@@ -3,11 +3,6 @@
 
 .filenamespace f40_basic_wedge
 
-// RESET		Switch to 40-column display, 8K+ mode
-// RESET 0		Switch to 22-column display, unexpanded mode
-// RESET 3		Switch to 22-column display, 3K mode (if RAM in BLK0)
-// RESET 8		Switch to 22-column display, 8K+ mode
-
 // Handler for BASIC extensions
 decode_command:
 .pc = * "decode_command"
@@ -44,7 +39,7 @@ getbyte:	jsr vic20.os_zpvars.CHRGET						// [6]		call CHRGET to get a byte
 			beq reset 										// [2/3]	do the 8K+ reset
 			ldx #$0e										// [2]		set error code (illegal quantity)
 error:		jmp (vic20.os_vars.ERRMSG)						// [5]		issue error and do BASIC warm-start
-coldstart:	jmp (vic20.kernal.CPURES)						// [5]		do cold-start for FAST-40 startup
+coldstart:	jmp vic20.kernal.RESET							// [3]		do cold-start for FAST-40 startup
 vecreload:	jsr vic20.os_zpvars.CHRGET						// [6]		call CHRGET to get a byte
 			jmp f40_helper_routines.reload_vectors			// [3]		reload VIC vectors
 nomatch:	jmp vic20.basic.BASICGET 						// [3]		jump to stock BASIC logic to continue decode

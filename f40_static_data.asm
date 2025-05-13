@@ -72,7 +72,7 @@ SHIFTRS:				// SHIFT+RUNSTOP alternate
 
 .fill 1,$aa				// Spare bytes
 
-IDMSG1:					// 40-column startup banner
+IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
 .text @"** COMMODORE BASIC V2 **\$0d "
 .byte 0

@@ -1,4 +1,4 @@
-// FAST-40 IRQ routine
+// FAST-40 IRQ/NMI routines
 // Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_interrupt_handlers
@@ -64,7 +64,7 @@ nmi_handler:
 stocknmi:	jmp vic20.kernal.NMINOA0						// [3]		jump to stock NMI handler (no cartridge)
 rsrestore:	jsr vic20.kernal.INITIO							// [6]		reset VIA interrupts
 			jsr f40_helper_routines.reset_vectors			// [6]		reset KERNAL and FAST-40 vectors
-			jsr f40_helper_routines.configure_vic			// [6]		reset 40-column mode
+			jsr f40_helper_routines.configure_vic			// [6]		reset 40x24 mode
 			jsr f40_controlcode_handlers.clear_screen 		// [6]		clear screen
 			jmp (vic20.basic.BASICWRM)						// [5]		do BASIC warm-start
 }

@@ -37,10 +37,6 @@ findcode:	cmp f40_static_data.CONCODEC,y					// [4]		check for control character
 			bcs clearb7										// [3/2]	SHIFTed glyph if both set
 			sbc #63											// [2]		CBMed glyph if only b6
 clearb7:	and #%01111111									// [2]		clear b7 for appropriate glyph
-			// cmp #%01111111									// [2]		was it PI token code before we cleared b7
-			// bne notpi										// [3/2]	skip PI if not
-			// lda #vic20.screencodes.PI_CHAR					// [2]		replace with displayable character
-notpi:		// tax												// [2]		stash modified character code
 			bne setrvs										// [3/3]	do RVS mode
 notshifted:	jsr vic20.kernal.FLIPQUOT						// [6]		toggle quote-mode flag if character is a quote
 			and #%00111111									// [2]		clear b6 for screen code
@@ -130,7 +126,6 @@ line_continuation:
 			bne character_output_tidyup						// [2/3]	skip continuation if at maximum
 
 			// insert line
-// TODO: maybe this should just do continuations and not line inserts here?
 			jsr f40_helper_routines.insert_blank_line		// [6]		insert blank line for continuation
 			bpl character_output_tidyup						// [2/3]	skip redraw if no line inserted (.Y is +ve)
 			txa 											// [2]		get current line for redraw limit

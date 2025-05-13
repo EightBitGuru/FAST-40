@@ -14,9 +14,7 @@ character_input:
 			cmp #vic20.devices.SCREEN						// [2]		test for screen input device
 			beq screen										// [3/2]	handle screen input
 			jmp vic20.kernal.CHRIN2							// [3]		not keyboard or screen so let KERNAL handle it
-
-// TODO:	Just return an error for the moment as we don't yet have a test-case to exercise this path
-screen:		sec												// [2]		set Carry (error flag)
+screen:		sec												// [2]		set Carry (error flag) as we have no known path to here
 			rts												// [6]
 
 			// set for input from keyboard

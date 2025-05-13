@@ -105,7 +105,6 @@ redraw_lines_to_bottom:
 // Redraw text buffer line range
 // => A			Redraw start line
 // => X			Redraw end line
-// TODO: This is visibly slow when redrawing many lines - can we optimise?
 redraw_line_range:
 .pc = * "redraw_line_range"
 {
@@ -213,7 +212,7 @@ getbyte:	lda V1CNTSC,x									// [4]		get vector byte
 }
 
 
-// Configure VIC settings for 40-column mode
+// Configure VIC settings for 40x24 mode
 configure_vic:
 .pc = * "configure_vic"
 {

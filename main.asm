@@ -13,8 +13,7 @@
 cart:
 .word vic20_memory_test.memory_test		    			// Cartridge cold-start vector
 .word f40_interrupt_handlers.nmi_handler				// Cartridge warm-start vector
-.text "A0"												// Cartridge autostart signature (A0CBM)
-.byte $C3,$C2,$CD
+.byte 'A','0',$C3,$C2,$CD								// Cartridge autostart signature (A0CBM)
 
 data:
 .import source "f40_static_data.asm"					// Static data structures

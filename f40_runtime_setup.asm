@@ -4,7 +4,7 @@
 .filenamespace f40_runtime_setup
 
 // Memory / system setup
-// => RAMBITS	RAM population bits
+// => A		RAM population bits
 setup:
 .pc = * "runtime_setup"
 {
@@ -65,7 +65,7 @@ copycode:	lda f40_static_data.RAMCODE,x					// [4]		get code byte
 			dex												// [2]
 			bpl copycode									// [3/2]	loop until done
 
-			// initialise 40-column screen character matrix
+			// initialise 40x24 screen character matrix
 			ldy #240										// [2]		initialise table index
 copychar:	lda f40_static_data.MATDATA-1,y					// [4]		get matrix character
 			sta f40_runtime_memory.Character_Matrix-1,y		// [5]		store character in screen matrix
@@ -116,8 +116,8 @@ notjiffy:	tya	 											// [2]		get JiffyDOS bit
 			ora f40_runtime_memory.Memory_Bitmap 			// [4]		merge both with memory bitmap
 			sta f40_runtime_memory.Memory_Bitmap 			// [4]		stash with merged bits
 
-			// initialise the 40-column screen
-			jsr f40_helper_routines.configure_vic			// [6]		set 40-column mode
+			// initialise the 40x24 screen
+			jsr f40_helper_routines.configure_vic			// [6]		set 40x24 mode
 			dec f40_runtime_memory.TXTBUFFL					// [5]		decrement for page index offset operations
 			lda #vic20.screencodes.CLRSCRN					// [2]		clear/home
 			jsr f40_character_output.character_output		// [6]		display character
