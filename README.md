@@ -53,13 +53,13 @@ FAST-40 will detect and work with the JiffyDOS v6.01 Kernal replacement ROM if p
 
 ### Memory Requirement
 
-FAST-40 uses all of the 4K unexpanded RAM area ($1000-$1FFF) for video display reconfiguration, and requires a minimum of 8K expansion RAM in BLK1 ($2000-$3FFF). A text buffer of just under 1K is reserved at the top of the highest available 8K block, leaving the rest free for BASIC - it will happily work with additional expansion RAM in BLK2 and BLK3 if present.
+FAST-40 uses all of the 4K unexpanded RAM area ($1000-$1FFF) for video display reconfiguration and requires a minimum of 8K expansion RAM in BLK1 ($2000-$3FFF). Just under 1K is reserved at the top of the highest available 8K block, leaving the rest free for BASIC.
 
-If the 3K expansion RAM area in BLK0 ($0400-$0FFF) is also populated then FAST-40 will preferentially use the top of that as the text buffer area instead, leaving the lower 2K ($0400-$0BFF) of it available for machine-code programs and all of BLK1 (and BLK2/BLK3 if populated) available to BASIC.
+If the 3K expansion RAM area in BLK0 ($0400-$0FFF) is also populated then FAST-40 will preferentially use that instead, leaving the lower 2K of it ($0400-$0BFF) available for machine-code programs and all of BLK1 (and BLK2/BLK3 if populated) available to BASIC.
 
 ### Memory Usage
 
-FAST-40 makes changes to numerous memory areas, VIC registers, and system vectors in order to configure and manage the 40x24 mode. Except where noted, these area should be considered 'out of bounds' for other programs:
+FAST-40 makes changes to numerous memory areas, VIC registers, and system vectors in order to configure and manage the 40x24 mode. Except where noted, these areas should be considered 'out of bounds' for other programs:
 
     $0003-$0004     Not normally used by BASIC/KERNAL.     [only used if BRK debugging is enabled at build time]
     $00D9-$00F1     Normally used as the BASIC screen editor line-link table.
@@ -117,7 +117,7 @@ Limitations in the VIC design mean there is no way to preserve the usual 1:1 rel
 
 ### Undocumented OpCodes
 
-FAST-40 expects to run on a VIC-20 fitted with a standard NMOS 6502, which features a number of 'undocumented' opcodes - some use of which is made where they offer a space or time saving. Later variants of the 6502 (including the CMOS 65C02) disable or replace these undocumented opcodes, and FAST-40 will not operate correctly (if at all) on these microprocessors.
+FAST-40 expects to run on a VIC-20 fitted with a standard NMOS 6502, and uses several of its 'undocumented' opcodes. Later variants of the 6502 (including the CMOS 65C02) disable or replace these undocumented opcodes, and FAST-40 will not operate correctly (if at all) on these microprocessors.
 
 ## Who is 8-Bit Guru?
 
