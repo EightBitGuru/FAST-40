@@ -3,8 +3,6 @@
 
 .filenamespace f40_character_input
 
-.var EnableSRSDir = true 									// use alternate disk directory load for SHIFT+RUNSTOP
-
 // Vector handler for CHRIN (vectored through INPVEC2 at $0324 to $F20E)
 character_input:
 .pc = * "character_input"
@@ -25,7 +23,7 @@ keyboard:	txa												// [2]		stash .X and .Y to Stack
 			lda vic20.os_zpvars.INPUTSRC					// [3]		get input source (0=keyboard, !0=screen)
 			bne screenin									// [2/3]	get input from screen
 
-			// NEW: stash cursor position before input starts
+			// stash cursor position before input starts
 			ldy vic20.os_zpvars.CRSRLPOS					// [3]		get cursor position for input start
 			dey												// [2]		decrement for column index
  			sty vic20.os_zpvars.EOLPTR						// [3]		set physical input columnm
@@ -44,28 +42,22 @@ waitkey:	lda vic20.os_zpvars.KEYCOUNT					// [3]		get keyboard buffer character 
 
 			// handle [SHIFT]+[RUN/STOP]
 			sei												// [2]		disable IRQ whilst we stuff the buffer
-.if(EnableSRSDir)
-{
-			ldx #15											// [2]		keyboard buffer index
-}
-else
-{
-			ldx #9											// [2]		keyboard buffer index
-}
-			stx vic20.os_zpvars.KEYCOUNT					// [3]		set keyboard buffer char count
-nextchar:
-.if(EnableSRSDir)
-{
-			lda f40_static_data.SHIFTRS-1,x					// [4]		get alternate disk directory load bytes
-}
-else
-{
-			lda vic20.kernal.SHIFTTAB-1,x					// [4]		get "LOAD",$0D,"RUN",$0D bytes
-}
-			sta vic20.os_vars.KEYBUFF-1,x					// [4]		inject into to keyboard buffer
+			ldx #14											// [2]		command data length
+ 			stx vic20.os_zpvars.KEYCOUNT					// [3]		set keyboard buffer character count
+loadloop:	lda f40_static_data.SRSLOAD-1,x					// [4]		get LOAD"$*",8 / LIST bytes
+			sta vic20.os_vars.KEYBUFF-1,x					// [5]		inject into keyboard buffer
 			dex												// [2]		decrement index
-			bne nextchar									// [3/2]	loop for next character
-			beq waitkey										// [3/3]	go do buffer readout
+			bne loadloop									// [3/2]	loop for next character
+			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b6 for JiffyDOS
+			bvc waitkey										// [3/2]	execute if JiffyDOS not present
+			lda #'*'										// [2]		asterisk
+			sta vic20.os_vars.KEYBUFF+3						// [4]		inject into keyboard buffer
+			ldx #4											// [2]		command data length
+runloop:	lda f40_static_data.SRSRUN-1,x					// [4]		get RUN bytes
+			sta vic20.os_vars.KEYBUFF+8,x					// [5]		inject into keyboard buffer
+			dex												// [2]		decrement index
+			bne runloop										// [3/2]	loop for next character
+			beq waitkey										// [3/3]	execute
 
 			// check for [CR] and output character if not
 checkcr:	cmp #vic20.screencodes.CR						// [2]		check for [CR]

@@ -65,19 +65,22 @@ CROWOFFS:				// Character row offsets
 .pc = * "CROWOFFS"		// Character row offsets (13 bytes)
 .byte 0,20,40,60,80,100,120,140,160,180,200,220,240
 
-SHIFTRS:				// SHIFT+RUNSTOP alternate
-.pc = * "SHIFTRS"		// Command text (15 bytes)
-.text @"LOAD\"$\",8\$0d"
-.text @"LIST\$0d"
+BLNKTIME:				// Cursor blink timers
+.pc = * "BLNKTIME"
+.byte 19,13
 
-.fill 1,$aa				// Spare bytes
+SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8 / LIST
+.pc = * "SRSLOAD"		// Command text (9 bytes)
+.byte 'L','O'+64		// LOAD
+.text @"\"$*\",8\$0d"	// "$*",8 [CR]
+.text @"LIST\$0d"		// LIST
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
 .text @"** COMMODORE BASIC V2 **\$0d "
-.byte 0
+.byte vic20.screencodes.NULL
 IDMSG2:
-.byte $0d
+.byte vic20.screencodes.CR
 IDMSG3:
 .byte vic20.screencodes.RED
 .text @"  FAST-40 (C) 2025 8BG\$0d\$0d"
@@ -98,8 +101,8 @@ BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
 
 VICNTSC:				// 6560 (NTSC) VIC initialisation data
 .pc = * "VICNTSC"		// VIC register values
-.byte %00000111			// $9000 - b7 = interlace; b6-0 = screen x-pos (NTSC)
-.byte %00011001			// $9001 - b7-0 = screen y-pos (NTSC)
+.byte %00000111			// $9000 - b7 = interlace; b6-0 = screen x-pos
+.byte %00011001			// $9001 - b7-0 = screen y-pos
 .byte %00010100			// $9002 - b7 = screen address b9; b6-0 = screen cols
 .byte %00011001			// $9003 - b7 = raster b0; b6-1 = screen rows; b0 = double-height chars
 .byte %00000000			// $9004 - b7-0 = raster b1-8
@@ -113,7 +116,7 @@ VICNTSC:				// 6560 (NTSC) VIC initialisation data
 .byte %00000000			// $900C - b7-0 = oscillator 3 frequency
 .byte %00000000			// $900D - b7-0 = noise frequency
 .byte %00000000			// $900E - b7-4 = auxilliary colour; b3-0 = sound volume
-.byte %11101110			// $900F - b7-4 = background colour; b3 = inverse / normal; b2-0 = border colour [alternate blue/blue colours]
+.byte %11101110			// $900F - b7-4 = background colour; b3 = inverse / normal; b2-0 = border colour
 // Primary Screen Matrix is 20x12 chars  ->  240 bytes at $1000-$10EF (double-height chars)
 // Primary Colour Matrix is 20x12 chars  ->  240 bytes at $9600-$96EF (double-height chars)
 // Primary Screen Screen_Bitmap is 160x192 bits -> 3840 bytes at $1100-$1FFF
@@ -142,22 +145,20 @@ BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
 
 VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
 .pc = * "VICPAL"		// VIC register values (2 bytes)
-.byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos (PAL)
-.byte %00100100			// $9001 - b7-0 = screen y-pos (PAL)
+.byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
+.byte %00100100			// $9001 - b7-0 = screen y-pos
 
 WEDGECMD:				// BASIC wedge command
 .pc = * "WEDGECMD"		// Command text (5 bytes)
 .text "RESET"
 
-LINELEN:				// Maximum line length (0-based) for each line in a continuation group
-.pc = * "LINELEN"
-.byte 39,39,7
+SRSRUN:					// SHIFT+RUNSTOP bytes for RUN
+.pc = * "SRSRUN"		// Command text (5 bytes)
+.text @"RUN "
 
-BLNKTIME:				// Cursor blink timers
-.pc = * "BLNKTIME"
-.byte 19,13
-
-.fill 4,$aa				// Spare bytes
+JIFFYID:				// JiffyDOS identifier
+.pc = * "JIFFYID"		// Identifier string (5 bytes)
+.text "JIFFY"
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
@@ -177,12 +178,11 @@ MATDATA:				// Character matrix data for 20x12 (40x24) screen
 .byte $1A,$26,$32,$3E,$4A,$56,$62,$6E,$7A,$86,$92,$9E,$AA,$B6,$C2,$CE,$DA,$E6,$F2,$FE
 .byte $1B,$27,$33,$3F,$4B,$57,$63,$6F,$7B,$87,$93,$9F,$AB,$B7,$C3,$CF,$DB,$E7,$F3,$FF
 
-JIFFYDOS:				// JiffyDOS identifier
-.pc = * "JIFFYDOS"
-.text "JIFFYDOS"		// Identifier string
+LINELEN:				// Maximum line length (0-based) for each line in a continuation group
+.pc = * "LINELEN"
+.byte 39,39,7
 
-.fill 8,$aa				// Spare bytes
-
+.fill 13,$aa 			// Spare bytes
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256

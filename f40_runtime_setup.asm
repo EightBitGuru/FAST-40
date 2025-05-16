@@ -103,9 +103,9 @@ wait268:	lda vic20.vic.VCRASTER							// [4]		get current raster line
 			ldy #%10000000									// [2]		set PAL merge bit
 
 			// Detect JiffyDOS ROM
-romcheck:	ldx #7											// [2]		JiffyDOS identifier length
-chkbyte:	lda f40_static_data.JIFFYDOS,x					// [4]		get byte from ROM
-			cmp vic20.basic.BASICV2+1,x						// [4]		compare with power-up identifier
+romcheck:	ldx #4											// [2]		JiffyDOS identifier length (0-based)
+chkbyte:	lda f40_static_data.JIFFYID,x					// [4]		get signature test byte
+			cmp vic20.basic.BASICV2+1,x						// [4]		compare with power-up identifier in ROM
 			bne notjiffy									// [3/2]	exit as soon as we get a mismatch
 			dex												// [2]		decrement byte index
 			bpl chkbyte										// [3/2]	loop until done

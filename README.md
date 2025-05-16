@@ -14,7 +14,7 @@ FAST-40 works under emulation and on real VIC-20 hardware - it can be attached a
 
 Creation of modified or derivative works using, in whole or in part, any sourcecode, assets, or binary package originating from this project is subject to the following:
 
-* **Free for non-commercial use** (you must clearly include a credit and link reference to this project within your project).
+* **Free for non-commercial use** (you must clearly include a credit link to this project within your project).
 
 * **Commercial use is expressly forbidden** except by explicit consent from the copyright holder.
 
