@@ -12,15 +12,17 @@ FAST-40 works under emulation and on real VIC-20 hardware - it can be attached a
 
 #### FAST-40 is copyright © 2025 [8-Bit Guru](mailto:the8bitguru@gmail.com).
 
-* Creation of modified or derivative works ***for non-commercial use*** using, in whole or in part, any sourcecode, assets, or binary package originating from this project is permitted. You are required to clearly include a credit and link reference to this project within your project if you create such works.
+Creation of modified or derivative works using, in whole or in part, any sourcecode, assets, or binary package originating from this project is subject to the following:
 
-* Commercial reproduction and/or distribution of any part of the sourcecode, assets, or binary package originating from this project is **expressly forbidden** except by explicit consent from the copyright holder.
+* **Free for non-commercial use** (you must clearly include a credit and link reference to this project within your project).
+
+* **Commercial use is expressly forbidden** except by explicit consent from the copyright holder.
 
 * The FAST-40 project is hosted on [GitHub](https://github.com/EightBitGuru/FAST-40).
 
 #### Who is 8-Bit Guru?
 
-8-Bit Guru (also: Eight-Bit Guru, 8BitGuru, 8BG) is the *nom de guerre* of Mark Johnson. I'm a professional coder from the UK who has been telling computers what to do since 1981. My day job is all about C# backend processing systems which provide RESTful APIs for petcare websites, and my hobby projects mostly involve writing 6502 assembly language for 8-bit machines like the VIC-20.
+8-Bit Guru (also: Eight-Bit Guru, 8BitGuru, 8BG) is the *nom de guerre* of Mark Johnson. I'm a professional coder from the UK who has been telling computers what to do since 1981. My day job is all about C# and Azure, whilst my hobby projects mostly involve writing 6502 assembly language for the VIC-20 (my first computer).
 
 ## How to build and run FAST-40
 
@@ -49,7 +51,7 @@ To use the binary with ***xvic***:
 
     [Your_VICE_Path]\bin\xvic.exe -memory 0,1 -cartA fast40.bin
 
-* The cartridge auto-starts via the standard **A0CBM** signature-detection mechanism.
+* The cartridge auto-starts via the standard Commodore **A0CBM** signature-detection mechanism.
 
 * Both PAL and NTSC video standards are supported.
 
@@ -65,7 +67,7 @@ If the 3K expansion RAM area in BLK0 ($0400-$0FFF) is *also* populated then FAST
 
 ### New RESET Command
 
-FAST-40 provides a new BASIC command to easily reset the system and/or switch between memory configurations without having to swap cartridges.
+FAST-40 provides a new BASIC command to easily reset the system and switch between memory configurations without having to swap cartridges. **Note that memory is cleared during a system reset.**
 
     RESET [0|3|8]   Switch to specified video/memory configuration
     
@@ -146,7 +148,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Fixed a bug where data fed to the INPUT command included the prompt in the returned value and therefore broke it (reported by **mathom@denial**)
 * Fixed a bug where inserting a character into a long line would sometimes erroneously insert a blank line after it
 * Fixed a bug where doing a character insert in column 40 erroneously placed the inserted space character into column 39
-* Fixed a bug in the screen-scrolling logic where consecutive text buffer lines were assumed to be contiguous in memory
+* Fixed a bug in the screen-scrolling logic where it forgot that text buffer lines were not always contiguous in memory
 * Fixed a bug where RUNSTOP/RESTORE didn't reset the default text colour and character-case
 * Added a BRK handler to display CPU registers (to help debug a JiffyDOS showstopper crash reported by **mathom@denial**)
 * Added an alternate build option to do LOAD"$",8 / LIST on SHIFT/RUNSTOP
@@ -163,12 +165,12 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 
 ### Release (2nd May 2025)
 * Fixed a bug where the startup RAM detection wasn't triggering a clean system reset if BLK1 is empty
-* Fixed the JiffyDOS showstopper crash (induced by code rearrangement in the vectored SHIFT/CTRL/C= decode logic)
+* Fixed the JiffyDOS showstopper crash (JiffyDOS rearranges some code in the SHIFT/CTRL/C= keypress logic)
 * Added the JiffyDOS banner to the startup message (if present)
 
 ## The Wishlist
 
-The following improvements and enhancements may make it into the project if time and motivation permit:
+The following improvements and enhancements may make it into the project if time, motivation, and code space permit:
 
 * Make the SHIFT/RUNSTOP sequence modification dependent on JiffyDOS presence
 * Optimise the line-redraw logic, which is currently somewhat inefficient
@@ -177,7 +179,7 @@ The following improvements and enhancements may make it into the project if time
 * Redesign the text buffer to use an intrinsic page+offset index rather than a discrete lookup table
 * Add a bitmap point-plotting routine and an accompanying PLOT command to BASIC
 * Add PEEK/POKE intercepts to allow screen/colour memory access akin to the stock 22x23 text mode
-* Add CTRL/C= modifiers to the cursor control logic to allow jumping to the start/end of physical/logical lines
+* Add CTRL-key modifier to the cursor control logic to allow jumping to the start/end of physical/logical lines
 * If more space for code is needed, swap the turbocharged FAST-40 memory test for a simpler block-detection routine and let the stock RAMTAS code at $FD8D 'handle' testing in the usual (not very quick or thorough) way
 
 Other suggestions and/or pull requests will be reviewed periodically.
