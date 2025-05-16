@@ -42,7 +42,7 @@ waitkey:	lda vic20.os_zpvars.KEYCOUNT					// [3]		get keyboard buffer character 
 
 			// handle [SHIFT]+[RUN/STOP]
 			sei												// [2]		disable IRQ whilst we stuff the buffer
-			ldx #14											// [2]		command data length
+			ldx #13											// [2]		command data length
  			stx vic20.os_zpvars.KEYCOUNT					// [3]		set keyboard buffer character count
 loadloop:	lda f40_static_data.SRSLOAD-1,x					// [4]		get LOAD"$*",8 / LIST bytes
 			sta vic20.os_vars.KEYBUFF-1,x					// [5]		inject into keyboard buffer
@@ -50,11 +50,11 @@ loadloop:	lda f40_static_data.SRSLOAD-1,x					// [4]		get LOAD"$*",8 / LIST byte
 			bne loadloop									// [3/2]	loop for next character
 			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b6 for JiffyDOS
 			bvc waitkey										// [3/2]	execute if JiffyDOS not present
-			lda #'*'										// [2]		asterisk
+			lda #'*'										// [2]		overwrite '$' with '*'
 			sta vic20.os_vars.KEYBUFF+3						// [4]		inject into keyboard buffer
 			ldx #4											// [2]		command data length
 runloop:	lda f40_static_data.SRSRUN-1,x					// [4]		get RUN bytes
-			sta vic20.os_vars.KEYBUFF+8,x					// [5]		inject into keyboard buffer
+			sta vic20.os_vars.KEYBUFF+7,x					// [5]		inject into keyboard buffer
 			dex												// [2]		decrement index
 			bne runloop										// [3/2]	loop for next character
 			beq waitkey										// [3/3]	execute

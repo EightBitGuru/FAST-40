@@ -65,14 +65,14 @@ CROWOFFS:				// Character row offsets
 .pc = * "CROWOFFS"		// Character row offsets (13 bytes)
 .byte 0,20,40,60,80,100,120,140,160,180,200,220,240
 
-BLNKTIME:				// Cursor blink timers
-.pc = * "BLNKTIME"
-.byte 19,13
+LINELEN:				// Maximum line length (0-based) for each line in a continuation group
+.pc = * "LINELEN"
+.byte 39,39,7
 
 SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8 / LIST
-.pc = * "SRSLOAD"		// Command text (9 bytes)
+.pc = * "SRSLOAD"		// Command text (13 bytes)
 .byte 'L','O'+64		// LOAD
-.text @"\"$*\",8\$0d"	// "$*",8 [CR]
+.text @"\"$\",8\$0d"	// "$",8 [CR]
 .text @"LIST\$0d"		// LIST
 
 IDMSG1:					// FAST-40 startup banner
@@ -178,11 +178,11 @@ MATDATA:				// Character matrix data for 20x12 (40x24) screen
 .byte $1A,$26,$32,$3E,$4A,$56,$62,$6E,$7A,$86,$92,$9E,$AA,$B6,$C2,$CE,$DA,$E6,$F2,$FE
 .byte $1B,$27,$33,$3F,$4B,$57,$63,$6F,$7B,$87,$93,$9F,$AB,$B7,$C3,$CF,$DB,$E7,$F3,$FF
 
-LINELEN:				// Maximum line length (0-based) for each line in a continuation group
-.pc = * "LINELEN"
-.byte 39,39,7
+BLNKTIME:				// Cursor blink timers
+.pc = * "BLNKTIME"
+.byte 19,13
 
-.fill 13,$aa 			// Spare bytes
+.fill 14,$aa 			// Spare bytes
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256
