@@ -76,6 +76,14 @@ FAST-40 provides a new BASIC command to easily reset the system and switch betwe
         RESET 3		Switch to 22x23 3K mode (if RAM is present in BLK0)
         RESET 8		Switch to 22x23 8K+ mode
 
+### SHIFT/RUNSTOP Behaviour
+
+On a stock VIC-20 the SHIFT/RUNSTOP key combination causes the commands `LOAD` and `RUN` to be injected into the keyboard buffer to initiate an automatic start of the next program found on tape. Modern users now prefer to use disk devices (or modern pseudo-disk devices such as SD cards) for storage instead of tape, and will often make use of the JiffyDOS replacement Kernal ROM which disables tape operations in order to provide extended disk functionality.
+
+FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands to favour disk users as follows:
+* If JiffyDOS is _not_ present, the sequence `LOAD"$",8` and `LIST` is initiated to read and display the directory of the disk
+* If it _is_ present then `@$` is likely the preferred command to view the disk directory, so a more useful action is to load the first program on the disk by initiating `LOAD"*",8` and `RUN`
+
 ### System Reconfiguration
 
 FAST-40 makes changes to numerous memory areas, VIC registers, and system vectors in order to configure and manage the 40x24 display mode.
@@ -172,7 +180,6 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 
 The following improvements and enhancements may make it into the project if time, motivation, and code space permit:
 
-* Make the SHIFT/RUNSTOP sequence modification dependent on JiffyDOS presence
 * Optimise the line-redraw logic, which is currently somewhat inefficient
 * Integrate the display matrix setup logic into the RUNSTOP/RESTORE handler
 * Add a SHIFT modifier to the CTRL-delay function to toggle a full hold on scrolling until released
