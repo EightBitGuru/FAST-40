@@ -6,7 +6,7 @@
 
 dispatch_page:
 .pc = * "dispatch_page"
-.byte f40_runtime_constants.SCREEN_ROWS-1					// Push first routine on the page up a byte so JSR/RTS dispatch doesn't underflow
+.byte f40_runtime_constants.SCREEN_ROWS						// Push first routine on the page up a byte so JSR/RTS dispatch doesn't underflow
 
 // Handle control code $94 (INSERT)
 insert:
@@ -117,6 +117,7 @@ reset_pointers:
 .pc = * "reset_pointers"
 {
 			ldx vic20.os_zpvars.CRSRROW						// [3]		get cursor row
+// TODO: Add a check here to skip the pointer reset if line hasn't changed
 			jsr f40_helper_routines.set_line_pointer 		// [6]		set line buffer pointer to current line
 			txa												// [2]		copy cursor row to .A
 			lsr												// [2]		divide row by two for colour offset
@@ -145,7 +146,8 @@ set_colour_byte:
 			sta (vic20.os_zpvars.COLRPTRL),y				// [4]		set colour RAM byte
 @colexit:	rts												// [6]
 readcol:	lda (vic20.os_zpvars.COLRPTRL),y				// [5]		read colour RAM byte
-			sta vic20.os_vars.CURRCOLR						// [4]		set cursor colour
+// FIXME: This is sometimes getting the wrong colour
+			//sta vic20.os_vars.CURRCOLR						// [4]		set cursor colour
 			rts												// [6]
 }
 

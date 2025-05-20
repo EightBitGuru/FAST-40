@@ -4,8 +4,8 @@
 .filenamespace f40_runtime_memory
 
 // Zero-page - 25 bytes replaces LINELINK at $D9-$F1
-.label TXTBUFFL         = $00D9		//	Text buffer start address lo-byte
-.label TXTBUFFH	        = $00DA		//	Text buffer start address hi-byte
+.label TXTBUFBP         = $00D9		//	Text buffer address base page
+.label CONTVAL          = $00DA		//	Line continuation value
 .label MATROWL          = $00DB     //  Character matrix data row address end lo-byte
 .label MATROWH          = $00DC     //  Character matrix data row address end hi-byte
 .label CRSRBITL	        = $00DD		//	Cursor draw bitmap address lo-byte
@@ -32,8 +32,9 @@
 
 // Page 2 - 95 bytes available at $02A1-$02FF
 .label LINECONT	        = $02A1		//	Line-continuation table (24 bytes to $02B8)
-.label TXTBUFRL	        = $02B9     //	Text row address lo-bytes (24 bytes to $02D0)
-.label TXTBUFRH	        = $02D1		//	Text row address hi-byte addition bytes (24 bytes to $02E8)
+.label TXTBUFUF         = $02CE		//	Text row key sequence underflow bytes (2 bytes to $02CF)
+.label TXTBUFSQ         = $02D0		//	Text row key sequence bytes (24 bytes to $02E7)
+.label TXTBUFOF         = $02E8		//	Text row key sequence overflow byte (1 byte to $02E8)
 .label MERGROUT	        = $02E9		//	Self-modifying bitmap merge routine (22 bytes to $02FE)
 .label Memory_Bitmap    = $02FF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5-0->RAM bitmap
 

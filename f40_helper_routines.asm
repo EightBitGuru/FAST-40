@@ -3,15 +3,56 @@
 
 .filenamespace f40_helper_routines
 
+// Derive text buffer line continuation value
+// => X			Text buffer line index
+// <= A			Line continuation value
+get_line_continuation:
+.pc = * "get_line_continuation"
+{
+.break
+// TODO: Test me
+			lda #0											// [2]
+			sta f40_runtime_memory.CONTVAL 					// [3]		clear continuation value
+			lda f40_runtime_memory.TXTBUFSQ,x 				// [4]		get text buffer key for specified line
+			rol												// [2]		shift b7 to Carry
+			rol f40_runtime_memory.CONTVAL 					// [3]		shift Carry to continuation value
+			rol												// [2]		shift b7 to Carry
+			rol f40_runtime_memory.CONTVAL 					// [3]		shift Carry to continuation value
+			rts												// [6]
+}
+
+
+// Derive text buffer line address
+// => X			Text buffer line index
+// <= A			Text buffer line address hi-byte
+// <= Y			Text buffer line address lo-byte
+get_line_address:
+.pc = * "get_line_address"
+{
+			lda f40_runtime_memory.TXTBUFSQ,x 				// [4]		get text buffer key for specified line
+			and #%00011111									// [2]		mask-off continuation bits
+			tax 											// [2]		stash key for later
+			lsr												// [2]		shift out buffer page bits...
+			lsr												// [2]		...leaving buffer page offset
+			tay 											// [2]		set page offset index
+			lda f40_static_data.TXTBUFFO,y 					// [4]		get page offset value
+			tay 											// [2]		stash in .Y
+			txa 											// [2]		get key back
+			and #%00000011									// [2]		mask-off continuation and index bits
+			clc												// [2]
+			adc f40_runtime_memory.TXTBUFBP 				// [3]		add text buffer base page
+			rts												// [6]
+}
+
+
 // Set text buffer pointer for specified line
 // => X			Text buffer line index
 // <= SCRNLNL/H	Pointer to specified line
 set_line_pointer:
 .pc = * "set_line_pointer"
 {
-			lda f40_runtime_memory.TXTBUFRL,x				// [4]		get text buffer lo-byte
-			sta vic20.os_zpvars.SCRNLNL						// [3]		set screen line pointer lo-byte
-			lda f40_runtime_memory.TXTBUFRH,x				// [4]		get text buffer hi-byte
+			jsr get_line_address							// [6]		get address of specified line in .A & .Y
+			sty vic20.os_zpvars.SCRNLNL						// [3]		set screen line pointer lo-byte
 			sta vic20.os_zpvars.SCRNLNH						// [3]		set screen line pointer hi-byte
 			rts												// [6]
 }
@@ -24,21 +65,22 @@ initialise_screen:
 			jsr f40_interrupt_handlers.undraw_cursor		// [6]		undraw cursor if required
 
 			// initialise pointers for text buffer
-			ldy f40_runtime_memory.TXTBUFFH					// [3]		get text buffer page 1 address ($xC40) hi-byte
-			iny												// [2]		increment for page 2 address hi-byte (.X = $xD)
-			sty f40_runtime_memory.TEMPAH					// [3]		set text buffer page 2 address ($xD30) hi-byte
-			iny												// [2]		increment for page 3 address hi-byte (.X = $xE)
-			sty f40_runtime_memory.TEMPBH					// [3]		set text buffer page 3 address ($xE20) hi-byte
-			iny												// [2]		increment for page 4 address hi-byte (.X = $xF)
-			sty f40_runtime_memory.TEMPCH					// [3]		set text buffer page 4 address ($xF10) hi-byte
-			ldy #$2F										// [2]		text buffer page 2 address ($xD30) lo-byte
-			sty f40_runtime_memory.TEMPAL					// [3]		set text buffer page 2 address ($xD30) lo-byte
-			ldy #$1F										// [2]		text buffer page 3 address ($xE20) lo-byte
-			sty f40_runtime_memory.TEMPBL					// [3]		set text buffer page 3 address ($xD20) lo-byte
-			ldy #$0F										// [2]		text buffer page 4 address ($xF10) lo-byte
-			sty f40_runtime_memory.TEMPCL					// [3]		set text buffer page 4 address ($xD10) lo-byte
+			ldy f40_runtime_memory.TXTBUFBP					// [3]		get text buffer address base page
+			dey												// [2]		decrement for loop
+			sty f40_runtime_memory.TEMPAH					// [3]		set text buffer page 1 address hi-byte
+			iny												// [2]
+			sty f40_runtime_memory.TEMPBH					// [3]		set text buffer page 2 address hi-byte
+			iny												// [2]
+			sty f40_runtime_memory.TEMPCH					// [3]		set text buffer page 3 address hi-byte
+			iny												// [2]
+			sty f40_runtime_memory.TEMPDH					// [3]		set text buffer page 4 address hi-byte
+			ldy #$ff										// [2]		text buffer lo-byte
+			sty f40_runtime_memory.TEMPAL					// [3]		set text buffer page 2 address lo-byte
+			sty f40_runtime_memory.TEMPBL					// [3]		set text buffer page 3 address lo-byte
+			sty f40_runtime_memory.TEMPCL					// [3]		set text buffer page 4 address lo-byte
+			sty f40_runtime_memory.TEMPDL					// [3]		set text buffer page 4 address lo-byte
 
-			// clear text buffer and reset colour memory
+			// clear bitmap and text buffer, and reset colour memory
 			ldx vic20.os_vars.CURRCOLR						// [3]		get current text colour
 			ldy #240										// [2]		bitmap index (240 * 16 = 3840)
 initloop:	lda #0											// [2]		initialise bitmap to zero
@@ -61,19 +103,25 @@ initloop:	lda #0											// [2]		initialise bitmap to zero
 			txa												// [2]		get text colour from .X
 			sta vic20.colour_ram.COLOUR1-1,y				// [5]		set byte at offset in colour matrix
 			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
-			sta (f40_runtime_memory.TXTBUFFL),y				// [4]		set character in text buffer page 1
-			sta (f40_runtime_memory.TEMPAL),y				// [4]		set character in text buffer page 2
-			sta (f40_runtime_memory.TEMPBL),y				// [4]		set character in text buffer page 3
-			sta (f40_runtime_memory.TEMPCL),y				// [4]		set character in text buffer page 4
+			sta (f40_runtime_memory.TEMPAL),y				// [4]		set character in text buffer page 1
+			sta (f40_runtime_memory.TEMPBL),y				// [4]		set character in text buffer page 2
+			sta (f40_runtime_memory.TEMPCL),y				// [4]		set character in text buffer page 3
+			sta (f40_runtime_memory.TEMPDL),y				// [4]		set character in text buffer page 4
 			dey												// [2]		decrement index
 			bne initloop									// [3/2]	loop for next location
+// Fall-through into initialise_buffer_keys
+}
 
-			// reset continuation table
-			tya												// [2]		initialise continuatiom bytes to zero (.A = 0)
-			ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		initialise continuation byte loop counter
-initcont:	sta f40_runtime_memory.LINECONT,x				// [5] 		clear continuation byte
-			dex												// [2]		decrement index
-			bpl initcont									// [3/2]	loop for next byte
+
+// Initialise text buffer key sequence table (and clear continuation bits)
+initialise_buffer_keys:
+.pc = * "initialise_buffer_keys"
+{
+			ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		row index
+loop:		txa												// [2]		stash in .A
+			sta f40_runtime_memory.TXTBUFSQ,x				// [5]		set key sequence
+			dex												// [2]
+			bpl loop										// [3/2]	loop until done
 			rts												// [6]
 }
 
@@ -110,11 +158,10 @@ redraw_line_range:
 {
 			sta f40_runtime_memory.DRAWROWS					// [3]		stash redraw upper line limit
 setrow:		stx f40_runtime_memory.REGXSAVE					// [3]		stash line for later
-			lda f40_runtime_memory.TXTBUFRL,x				// [4]		get text buffer row address lo-byte
-			sta f40_runtime_memory.TEMPAL					// [3]		set text buffer pointer lo-byte
-			lda f40_runtime_memory.TXTBUFRH,x				// [4]		get text buffer row address hi-byte
+			jsr get_line_address							// [6]		get address of specified line in .A & .Y
+			sty f40_runtime_memory.TEMPAL					// [3]		set text buffer pointer lo-byte
 			sta f40_runtime_memory.TEMPAH					// [3]		set text buffer pointer hi-byte
-			txa												// [2]		copy line index to .A for divide
+			lax f40_runtime_memory.REGXSAVE					// [3]		get cursor row back
 			lsr												// [2]		divide by two for character matrix row
 			tay												// [2]		stash in .Y for index into row offset table
 
@@ -337,40 +384,28 @@ checkspace:	cmp (vic20.os_zpvars.SCRNLNL),y					// [6]		find last non-space char
 notspace:	tya 											// [2]		move to .A to set flags
 			bmi set_continuation_previous					// [3]		just set continuation byte if no insert needed
 
-			// stash text buffer address for last line
-insertline:	lda f40_runtime_memory.TXTBUFRL+23				// [4]		get text buffer lo-byte of last line
-			sta f40_runtime_memory.TEMPAL					// [3]		stash in temporary slot
-			lda f40_runtime_memory.TXTBUFRH+23				// [4]		get text buffer hi-byte of last line
-			sta f40_runtime_memory.TEMPAH					// [3]		stash in temporary slot
-
 			// handle insert on bottom row of screen
 			cpx #f40_runtime_constants.SCREEN_ROWS			// [2]		check if on bottom row
 			bne calclines									// [3/2]	do insert if not
 			jsr set_continuation_previous					// [3]		just set continuation byte if no insert needed
 			bne clearrow									// [3/3]	clear bottow row and scram
 
-			// shuffle continuation table and text buffer address table 'down' a row
+			// shuffle text buffer key table 'down' a row
 calclines:	stx f40_runtime_memory.REGXSAVE 				// [3]		stash current row
 			lax f40_controlcode_handlers.dispatch_page		// [4]		get screen line constant (22) to .A and .X
 			sec												// [2]		set Carry for subtraction
 			sbc f40_runtime_memory.REGXSAVE 				// [3]		subtract stashed row
 			tay	 											// [2]		set line shuffle counter
-bufferloop:	lda f40_runtime_memory.LINECONT,x				// [4]		shuffle continuation byte...
-			sta f40_runtime_memory.LINECONT+1,x				// [5]		... 1 row down
-			lda f40_runtime_memory.TXTBUFRL,x				// [4]		shuffle text buffer line lo-byte
-			sta f40_runtime_memory.TXTBUFRL+1,x				// [5]
-			lda f40_runtime_memory.TXTBUFRH,x				// [4]		shuffle text buffer line hi-byte
-			sta f40_runtime_memory.TXTBUFRH+1,x				// [5]
+copyloop:	lda f40_runtime_memory.TXTBUFSQ,x 				// [5]		get buffer key byte
+			sta f40_runtime_memory.TXTBUFSQ+1,x 			// [5]		move to next line slot
 			dex												// [2]		decrement line index
 			dey												// [2]		decrement loop counter
-			bpl bufferloop									// [3/2]	loop until shuffle complete
+			bpl copyloop									// [3/2]	loop until shuffle complete
 
 			// set continuation byte and text buffer for inserted line
 			jsr set_continuation_current					// [6]		set continuation byte
-			lda f40_runtime_memory.TEMPAL					// [3]		get text buffer lo-byte
-			sta f40_runtime_memory.TXTBUFRL,x				// [5]		set buffer
-			lda f40_runtime_memory.TEMPAH					// [3]		get text buffer hi-byte
-			sta f40_runtime_memory.TXTBUFRH,x				// [5]		set buffer
+			lda f40_runtime_memory.TXTBUFOF 				// [4]		get buffer key overflow byte
+			sta f40_runtime_memory.TXTBUFSQ,x 				// [5]		insert into new line slot
 clearrow:	jmp clear_text_bytes 							// [3/3]	clear bottom row
 }
 
@@ -572,29 +607,12 @@ delayloop:	dex												// [2]		decrement inner loop counter
 			bne delayloop									// [3/2]	do outer loop
 			sty vic20.os_zpvars.KEYCOUNT 					// [2]		reset key count
 
-			// initialise buffer pointers
-nodelay:	lda f40_runtime_memory.TXTBUFRL					// [4]		get text buffer row 1 lo-byte for zap line
-			sta f40_runtime_memory.TEMPAL					// [3]		stash in temporary slot
-			lda f40_runtime_memory.TXTBUFRH					// [4]		get text buffer row 1 hi-byte for zap line
-			sta f40_runtime_memory.TEMPAH					// [3]		stash in temporary slot
-			lda f40_runtime_memory.TXTBUFRL+1				// [4]		get text buffer row 2 lo-byte for next line
-			sta f40_runtime_memory.TEMPBL					// [3]		stash in temporary slot
-			lda f40_runtime_memory.TXTBUFRH+1				// [4]		get text buffer row 2 hi-byte for next line
-			sta f40_runtime_memory.TEMPBH					// [3]		stash in temporary slot
-
 			// stash matrix character pointer for top row
-			lda f40_runtime_memory.Character_Matrix			// [4]		get first character from first matrix row
+nodelay:	lda f40_runtime_memory.Character_Matrix			// [4]		get first character from first matrix row
 			and #$0F										// [2]		mask top nybble
 			tay												// [2]		set matrix lookup row offset
 			lda f40_static_data.CROWOFFS,y					// [4]		get matrix lookup row pointer lo-byte
 			sta f40_runtime_memory.MATROWL					// [3]		set matrix row pointer lo-byte
-
-			// shuffle continuation and text buffer address tables 'up' two rows
-			ldy #186										// [2]		table index (offset from base)
-tableup:	lda f40_runtime_memory.LINECONT-184,y			// [4] 		get table byte
-			sta f40_runtime_memory.LINECONT-186,y			// [5]		stash two bytes back
-			iny												// [2]		increment index
-			bne tableup										// [3/2]	loop until done
 
 			// shuffle character and colour matrices 'up' a row
 			ldy #36											// [2]		set character matrix index
@@ -609,9 +627,9 @@ matrixup:	lda f40_runtime_memory.Character_Matrix-16,y	// [4]		get character mat
 			ldy #19											// [2]		set character matrix index
 resetchars:	lax (f40_runtime_memory.MATROWL),y				// [5]		get matrix character
 			lda f40_static_data.BITADDRL-16,x				// [4]		get associated bitmap address lo-byte
-			sta f40_runtime_memory.TEMPCL					// [3]		set bitmap draw address lo-byte
+			sta f40_runtime_memory.TEMPAL					// [3]		set bitmap draw address lo-byte
 			lda f40_static_data.BITADDRH-16,x				// [4]		get associated bitmap address hi-byte
-			sta f40_runtime_memory.TEMPCH					// [3]		set bitmap draw address hi-byte
+			sta f40_runtime_memory.TEMPAH					// [3]		set bitmap draw address hi-byte
 
 			// This is an alternate sequence that reduces the bitmap address lookup table sizes from 240 to 16 bytes
 			// It is slower, but possibly useful if we run short of space before we finish
@@ -619,7 +637,7 @@ resetchars:	lax (f40_runtime_memory.MATROWL),y				// [5]		get matrix character
 			// and #$0F										// [2]		mask top nybble for index
 			// tay											// [2]		index into bitmap address lo-byte table
 			// lda f40_static_data.B2TADDRL,y				// [4]		get bitmap address lo-byte
-			// sta f40_runtime_memory.TEMPCL				// [3]		set bitmap draw address lo-byte
+			// sta f40_runtime_memory.TEMPAL				// [3]		set bitmap draw address lo-byte
 			// txa	 										// [2]		get character matrix index
 			// lsr											// [2]		divide ...
 			// lsr											// [2]		... by ...
@@ -627,13 +645,13 @@ resetchars:	lax (f40_runtime_memory.MATROWL),y				// [5]		get matrix character
 			// lsr											// [2]		... for index
 			// tay											// [2]		index into bitmap address hi-byte table
 			// lda f40_static_data.B2TADDRH,y				// [4]		get bitmap address hi-byte
-			// sta f40_runtime_memory.TEMPCH				// [3]		set bitmap draw address hi-byte
+			// sta f40_runtime_memory.TEMPAH				// [3]		set bitmap draw address hi-byte
 			
 			// clear bitmap for matrix character
 			sty f40_runtime_memory.REGYSAVE					// [3]		stash character matrix index
 			lda #0											// [2]
 			ldy #15											// [2]		bitmap row index
-zapbitmap:	sta (f40_runtime_memory.TEMPCL),y				// [6]		clear bitmap row byte
+zapbitmap:	sta (f40_runtime_memory.TEMPAL),y				// [6]		clear bitmap row byte
 			dey												// [2]		decrement row index
 			bpl zapbitmap									// [3/2]	loop until done
 
@@ -646,21 +664,30 @@ zapbitmap:	sta (f40_runtime_memory.TEMPCL),y				// [6]		clear bitmap row byte
 			dey												// [2]		decrement index
 			bpl resetchars									// [3/2]	loop until done
 
-			// clear bottom two rows of continuation table and reset text buffer pointers
-			lda #0 											// [2]
-			sta f40_runtime_memory.LINECONT+22				// [4]		clear continuation bytes
-			sta f40_runtime_memory.LINECONT+23				// [4]
-			lda f40_runtime_memory.TEMPAL					// [3]		get text buffer lo-byte
-			sta f40_runtime_memory.TXTBUFRL+22				// [5]		set buffer
-			lda f40_runtime_memory.TEMPAH					// [3]		get text buffer hi-byte
-			sta f40_runtime_memory.TXTBUFRH+22				// [5]		set buffer
-			jsr clear_text_bytes 							// [6]		clear first text buffer row
-			lda f40_runtime_memory.TEMPBL					// [3]		get text buffer lo-byte
-			sta f40_runtime_memory.TXTBUFRL+23				// [5]		set buffer
-			sta f40_runtime_memory.TEMPAL					// [3]		set buffer clear lo-byte
-			lda f40_runtime_memory.TEMPBH					// [3]		get text buffer hi-byte
-			sta f40_runtime_memory.TXTBUFRH+23				// [5]		set buffer
-			sta f40_runtime_memory.TEMPAH					// [3]		set buffer clear hi-byte
+			// shuffle text row keys up two lines
+			ldx #232										// [2]		table index
+loop:		lda f40_runtime_memory.TXTBUFSQ-232,x			// [5]		get text buffer key
+			sta f40_runtime_memory.TXTBUFUF-232,x			// [5]		stash two bytes back
+			inx												// [2]
+			bne loop										// [3/2]	loop until done
+
+			// clear continuation bits for bottom two lines
+			ldx #%00011111									// [2]		mask for continuation bits
+			lda f40_runtime_memory.TXTBUFUF					// [4]		get old first entry
+			sax f40_runtime_memory.TXTBUFSQ+22				// [4]		clear bits and stash in line 22
+			lda f40_runtime_memory.TXTBUFUF+1				// [4]		get old second entry
+			sax f40_runtime_memory.TXTBUFSQ+23				// [4]		clear bits and stash in line 23
+
+			// clear text bytes for bottom two lines
+			ldx #22											// [2]		line to clear
+			jsr get_line_address							// [6]		get address of line
+			sty f40_runtime_memory.TEMPAL					// [3]		set screen line pointer lo-byte
+			sta f40_runtime_memory.TEMPAH					// [3]		set screen line pointer hi-byte
+			jsr clear_text_bytes 							// [6]		clear text buffer row
+			ldx #23											// [2]		line to clear
+			jsr get_line_address							// [6]		get address of line
+			sty f40_runtime_memory.TEMPAL					// [3]		set screen line pointer lo-byte
+			sta f40_runtime_memory.TEMPAH					// [3]		set screen line pointer hi-byte
 // Fall-through into clear_text_bytes
 }
 

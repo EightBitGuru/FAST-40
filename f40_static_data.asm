@@ -49,47 +49,45 @@ CONCODEL:
 	.byte concode_lo_bytes.get(i)-1		// Subtract 1 for RTS offset
 }
 
-TROWOFFL:				// Text row address offset data
-.pc = * "TROWOFFL"		// Text row address lo-byte offsets
-.fill 24,f40_runtime_memory.Text_Buffer+(40*i)
+TXTBUFFO:
+.pc = * "TXTBUFFO"		// Text row address lo-byte offsets (6 bytes)
+.byte 0,40,80,120,160,200
 
-TROWOFFH:
-.pc = * "TROWOFFH"		// Text row address hi-byte additions
-.fill 24,(>f40_runtime_memory.Text_Buffer+(40*i))->f40_runtime_memory.Text_Buffer
+.fill 42,$aa 			// Spare bytes
 
-BROWOFFS:				// Screen_Bitmap row offsets (even/odd)
+BROWOFFS:
 .pc = * "BROWOFFS"		// Screen_Bitmap row offsets (24 bytes)
 .fill 12,[0,8]			// 0=even row, 8=odd row
 
-CROWOFFS:				// Character row offsets
+CROWOFFS:
 .pc = * "CROWOFFS"		// Character row offsets (13 bytes)
 .byte 0,20,40,60,80,100,120,140,160,180,200,220,240
 
-LINELEN:				// Maximum line length (0-based) for each line in a continuation group
-.pc = * "LINELEN"
+LINELEN:
+.pc = * "LINELEN"		// Maximum line length (0-based) for each line in a continuation group
 .byte 39,39,7
 
-SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8 / LIST
-.pc = * "SRSLOAD"		// Command text (13 bytes)
+SRSLOAD:
+.pc = * "SRSLOAD"		// SHIFT+RUNSTOP bytes for LOAD"$*",8 / LIST (13 bytes)
 .byte 'L','O'+64		// LOAD
 .text @"\"$\",8\$0d"	// "$",8 [CR]
 .text @"LIST\$0d"		// LIST
 
-IDMSG1:					// FAST-40 startup banner
-.pc = * "IDMSG1"		// Startup banner message
+IDMSG1:
+.pc = * "IDMSG1"		// FAST-40 startup banner
 .text @"** COMMODORE BASIC V2 **\$0d "
 .byte vic20.screencodes.NULL
 IDMSG2:
 .byte vic20.screencodes.CR
 IDMSG3:
 .byte vic20.screencodes.RED
-.text @"  FAST-40 (C) 2025 8BG\$0d\$0d"
+.text @"FAST-40 1.1 (C) 2025 8BG\$0d\$0d"
 .byte vic20.screencodes.BLACK
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256
-BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
+BITADDRL:
 .pc = * "BITADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
 .for(var x=0;x<15;x++)
 {
@@ -99,8 +97,8 @@ BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
 	}
 }
 
-VICNTSC:				// 6560 (NTSC) VIC initialisation data
-.pc = * "VICNTSC"		// VIC register values
+VICNTSC:
+.pc = * "VICNTSC"		// 6560 (NTSC) VIC initialisation data (16 bytes)
 .byte %00000111			// $9000 - b7 = interlace; b6-0 = screen x-pos
 .byte %00011001			// $9001 - b7-0 = screen y-pos
 .byte %00010100			// $9002 - b7 = screen address b9; b6-0 = screen cols
@@ -124,7 +122,7 @@ VICNTSC:				// 6560 (NTSC) VIC initialisation data
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256
-BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
+BITADDRH:
 .pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
 .for(var x=0;x<15;x++)
 {
@@ -143,28 +141,28 @@ BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
 // .pc = * "B2TADDRH"
 // .fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*(i-1))]	// $00 - $0F plus Screen_Bitmap start address hi-byte
 
-VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
-.pc = * "VICPAL"		// VIC register values (2 bytes)
+VICPAL:
+.pc = * "VICPAL"		// 6561 (PAL) VIC initialisation data (2 bytes)
 .byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
 .byte %00100100			// $9001 - b7-0 = screen y-pos
 
-WEDGECMD:				// BASIC wedge command
-.pc = * "WEDGECMD"		// Command text (5 bytes)
+WEDGECMD:
+.pc = * "WEDGECMD"		// BASIC wedge command (5 bytes)
 .text "RESET"
 
-SRSRUN:					// SHIFT+RUNSTOP bytes for RUN
-.pc = * "SRSRUN"		// Command text (5 bytes)
+SRSRUN:
+.pc = * "SRSRUN"		// SHIFT+RUNSTOP bytes for RUN (5 bytes)
 .text @"RUN "
 
-JIFFYID:				// JiffyDOS identifier
-.pc = * "JIFFYID"		// Identifier string (5 bytes)
+JIFFYID:
+.pc = * "JIFFYID"		// JiffyDOS identifier (5 bytes)
 .text "JIFFY"
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256
-MATDATA:				// Character matrix data for 20x12 (40x24) screen
-.pc = * "MATDATA"		// Character code bytes (240 bytes)
+MATDATA:
+.pc = * "MATDATA"		// Character matrix data for 20x12 (40x24) screen (240 bytes)
 .byte $10,$1C,$28,$34,$40,$4C,$58,$64,$70,$7C,$88,$94,$A0,$AC,$B8,$C4,$D0,$DC,$E8,$F4
 .byte $11,$1D,$29,$35,$41,$4D,$59,$65,$71,$7D,$89,$95,$A1,$AD,$B9,$C5,$D1,$DD,$E9,$F5
 .byte $12,$1E,$2A,$36,$42,$4E,$5A,$66,$72,$7E,$8A,$96,$A2,$AE,$BA,$C6,$D2,$DE,$EA,$F6
@@ -178,8 +176,8 @@ MATDATA:				// Character matrix data for 20x12 (40x24) screen
 .byte $1A,$26,$32,$3E,$4A,$56,$62,$6E,$7A,$86,$92,$9E,$AA,$B6,$C2,$CE,$DA,$E6,$F2,$FE
 .byte $1B,$27,$33,$3F,$4B,$57,$63,$6F,$7B,$87,$93,$9F,$AB,$B7,$C3,$CF,$DB,$E7,$F3,$FF
 
-BLNKTIME:				// Cursor blink timers
-.pc = * "BLNKTIME"
+BLNKTIME:
+.pc = * "BLNKTIME"		// Cursor blink timer values (2 bytes)
 .byte 19,13
 
 .fill 14,$aa 			// Spare bytes

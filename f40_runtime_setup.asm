@@ -8,8 +8,6 @@
 setup:
 .pc = * "runtime_setup"
 {
-			ldy #<f40_runtime_memory.Text_Buffer			// [2]		get text buffer address lo-byte
-			sty f40_runtime_memory.TXTBUFFL					// [3]		set text buffer pointer lo-byte
 			ldy #0											// [2]		clear .Y
 			lsr												// [2]		shift 3K BLK0 bit to Carry
 			bcc chkblk1										// [2/3]	3K BLK0 is empty so check BLK1/2/3
@@ -33,30 +31,16 @@ chkblk2:	ldx #$40										// [2]		top of RAM for BLK1
 emptyblk:	txa												// [2]		move top of RAM to .A
 			cpy #0											// [2]		check if using 3K BLK0
 			bne setptrs										// [2/3]	nonzero means we are using it
-			ldx #<f40_runtime_memory.Text_Buffer			// [2]		BLK1/2/3 text buffer address lo-byte
-			stx vic20.os_vars.OSMEMTPL						// [4]		set top-of-memory pointer lo-byte
-			sec												// [2]		not using BLK0 so set Carry for subtraction
-			sbc #4											// [2]		subtract for text buffer reservation
+			sbc #4											// [2]		subtract for BLK1/2/3 text buffer reservation
 			tay												// [2]		stash in .Y for text buffer
 
 			// initialise memory pointers
 setptrs:	sta vic20.os_vars.OSMEMTPH						// [4]		set top-of-memory pointer hi-byte
-			sty f40_runtime_memory.TXTBUFFH					// [3]		set FAST-40 text buffer pointer hi-byte
+			sty f40_runtime_memory.TXTBUFBP					// [3]		set FAST-40 text buffer base page
 			ldy #$10										// [2]		screen start is $1000
 			sty vic20.os_vars.SCRNMEMP						// [4]		set screen memory page
 			ldy #$20										// [2]		start of memory is $2000
 			sty vic20.os_vars.BASICH						// [4]		set Start-of-BASIC pointer hi-byte
-			ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		row index
-			clc												// [2]		clear Carry for addition
-
-			// copy & compute text row address tables in RAM
-copytab:	lda f40_static_data.TROWOFFL,x					// [4]		get text row address lo-byte
-			sta f40_runtime_memory.TXTBUFRL,x				// [5]		stash in RAM
-			lda f40_static_data.TROWOFFH,x					// [4]		get text row address hi-byte addition
-			adc f40_runtime_memory.TXTBUFFH					// [3]		add text buffer base hi-byte
-			sta f40_runtime_memory.TXTBUFRH,x				// [5]		stash in RAM
-			dex												// [2]
-			bpl copytab										// [3/2]	loop until done
 
 			// copy self-modifying bitmap routine to RAM
 			ldx #21											// [2]		bytes to copy (zero-based)
@@ -118,7 +102,6 @@ notjiffy:	tya	 											// [2]		get JiffyDOS bit
 
 			// initialise the 40x24 screen
 			jsr f40_helper_routines.configure_vic			// [6]		set 40x24 mode
-			dec f40_runtime_memory.TXTBUFFL					// [5]		decrement for page index offset operations
 			lda #vic20.screencodes.CLRSCRN					// [2]		clear/home
 			jsr f40_character_output.character_output		// [6]		display character
 
