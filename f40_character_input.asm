@@ -85,11 +85,9 @@ screenin:	inc vic20.os_zpvars.CRSRICOL					// [5]		increment screen input column
 			ldy vic20.os_zpvars.EOLPTR						// [3]		get stashed cursor position
 			cpy #f40_runtime_constants.SCREEN_COLUMNS+1		// [2]		check physical column limit
 			bne getchar										// [3/2]	no row increment if still on line
-
 			inc vic20.os_zpvars.CRSRIROW					// [5]		increment screen input row
 			ldx vic20.os_zpvars.CRSRIROW					// [3]		get screen input row
 			jsr f40_helper_routines.set_line_pointer 		// [6]		set line buffer pointer to line in .X
-
 			ldy #0											// [2]		reset cursor for new line
 			sty vic20.os_zpvars.EOLPTR						// [3]		set stashed cursor position
 getchar:	lax (vic20.os_zpvars.SCRNLNL),y					// [5]		get character from line

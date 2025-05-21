@@ -21,6 +21,7 @@ screen:		txa												// [2]		save .X and .Y to Stack
 			pha												// [3]
 			lda #vic20.devices.KEYBOARD						// [2]
 			sta vic20.os_zpvars.INPUTSRC					// [3]		set input source
+			sta f40_runtime_memory.CRSRCHNG					// [3]		clear cursor row change flag
 			lax vic20.os_zpvars.CHARBYTE					// [3]		get output character to .A and .X
 
 			// check if character is a control code

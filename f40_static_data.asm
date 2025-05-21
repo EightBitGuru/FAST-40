@@ -19,6 +19,17 @@ mergebit:	ora #$FF										// [2]		merge glyph byte with bitmap byte
 			jmp f40_character_output.line_continuation		// [3]		jump to line continuation logic
 }
 
+IDMSG1:
+.pc = * "IDMSG1"		// FAST-40 startup banner
+.text @"** COMMODORE BASIC V2 **\$0d "
+.byte vic20.screencodes.NULL
+IDMSG2:
+.byte vic20.screencodes.CR
+IDMSG3:
+.byte vic20.screencodes.RED
+.text @"FAST-40 1.1 (C) 2025 8BG\$0d\$0d"
+.byte vic20.screencodes.BLACK
+
 CONCODEC:
 .pc = * "CONCODEC"		// CHROUT control character codes (sorted in ascending likely-usage-frequency order)
 .byte vic20.screencodes.NULL,vic20.screencodes.F1,vic20.screencodes.F2,vic20.screencodes.F3
@@ -50,10 +61,13 @@ CONCODEL:
 }
 
 TXTBUFFO:
-.pc = * "TXTBUFFO"		// Text row address lo-byte offsets (6 bytes)
-.byte 0,40,80,120,160,200
+.pc = * "TXTBUFFO"		// Text row address lo-byte offsets (24 bytes)
+.for(var x=0;x<206;x+=41)
+{
+	.fill 4,x			// 4 * 0 / 41 / 82 / 123 / 164 / 205
+}
 
-.fill 42,$aa 			// Spare bytes
+.fill 22,$aa 			// Spare bytes
 
 BROWOFFS:
 .pc = * "BROWOFFS"		// Screen_Bitmap row offsets (24 bytes)
@@ -72,17 +86,6 @@ SRSLOAD:
 .byte 'L','O'+64		// LOAD
 .text @"\"$\",8\$0d"	// "$",8 [CR]
 .text @"LIST\$0d"		// LIST
-
-IDMSG1:
-.pc = * "IDMSG1"		// FAST-40 startup banner
-.text @"** COMMODORE BASIC V2 **\$0d "
-.byte vic20.screencodes.NULL
-IDMSG2:
-.byte vic20.screencodes.CR
-IDMSG3:
-.byte vic20.screencodes.RED
-.text @"FAST-40 1.1 (C) 2025 8BG\$0d\$0d"
-.byte vic20.screencodes.BLACK
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 

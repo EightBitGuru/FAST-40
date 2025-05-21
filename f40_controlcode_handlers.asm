@@ -38,6 +38,7 @@ clear_screen:
 cursor_home:
 .pc = * "cursor_home"
 {
+			stx f40_runtime_memory.CRSRCHNG					// [3]		set cursor row change flag
 			sta vic20.os_zpvars.CRSRLPOS					// [3]		reset cursor position on logical line (0-87)
 			sta vic20.os_zpvars.CRSRROW						// [3]		reset cursor row
 			beq reset_pointers								// [3/3]	reset line pointers
@@ -77,6 +78,7 @@ resetpos:	sty vic20.os_zpvars.CRSRLPOS					// [3]		reset cursor column
 cursor_up:
 .pc = * "cursor_up"
 {
+			stx f40_runtime_memory.CRSRCHNG					// [3]		set cursor row change flag
 			dec vic20.os_zpvars.CRSRROW						// [5]		decrement cursor row
 			bpl reset_pointers								// [3/2]	reset line pointers if no underrun (line >= 0)
 			sta vic20.os_zpvars.CRSRROW						// [3]		reset cursor row to zero
@@ -101,6 +103,7 @@ cursor_right:
 cursor_down:
 .pc = * "cursor_down"
 {
+			stx f40_runtime_memory.CRSRCHNG					// [3]		set cursor row change flag
 			sec												// [2]		set Carry for subtraction
 			lda #f40_runtime_constants.SCREEN_ROWS+1		// [2]		one line beyond end of screen
 			isb vic20.os_zpvars.CRSRROW						// [5]		increment cursor line in .A
@@ -116,8 +119,9 @@ cursor_down:
 reset_pointers:
 .pc = * "reset_pointers"
 {
+			ldx f40_runtime_memory.CRSRCHNG					// [3]		set cursor row change flag
+			beq colexit										// [3/2]	skip pointer reset if row unchanged
 			ldx vic20.os_zpvars.CRSRROW						// [3]		get cursor row
-// TODO: Add a check here to skip the pointer reset if line hasn't changed
 			jsr f40_helper_routines.set_line_pointer 		// [6]		set line buffer pointer to current line
 			txa												// [2]		copy cursor row to .A
 			lsr												// [2]		divide row by two for colour offset
@@ -146,8 +150,7 @@ set_colour_byte:
 			sta (vic20.os_zpvars.COLRPTRL),y				// [4]		set colour RAM byte
 @colexit:	rts												// [6]
 readcol:	lda (vic20.os_zpvars.COLRPTRL),y				// [5]		read colour RAM byte
-// FIXME: This is sometimes getting the wrong colour
-			//sta vic20.os_vars.CURRCOLR						// [4]		set cursor colour
+			sta vic20.os_vars.CURRCOLR						// [4]		set cursor colour
 			rts												// [6]
 }
 

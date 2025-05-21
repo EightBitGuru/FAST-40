@@ -3,9 +3,11 @@
 
 .filenamespace f40_runtime_memory
 
-// Zero-page - 25 bytes replaces LINELINK at $D9-$F1
-.label TXTBUFBP         = $00D9		//	Text buffer address base page
-.label CONTVAL          = $00DA		//	Line continuation value
+// Zero-page - 26 bytes replaces LINELINK / ROWMARKR at $D9-$F2
+// .label CONTADDL         = $00D9		//	Continuation byte address lo-byte
+// .label CONTADDH         = $00DA		//	Continuation byte address hi-byte
+.label CRSRCHNG	        = $00D9		//	Cursor row change flag
+.label TXTBUFBP         = $00DA		//	Text buffer address base page
 .label MATROWL          = $00DB     //  Character matrix data row address end lo-byte
 .label MATROWH          = $00DC     //  Character matrix data row address end hi-byte
 .label CRSRBITL	        = $00DD		//	Cursor draw bitmap address lo-byte
@@ -28,7 +30,7 @@
 .label TEMPCH	        = $00EE		//	Temporary data/address hi-byte
 .label TEMPDL    	    = $00EF		//	Temporary data/address lo-byte
 .label TEMPDH	        = $00F0		//	Temporary data/address hi-byte
-.label SPAREZP	        = $00F1		//	Spare (5 bytes)
+.label SPAREZP	        = $00F1		//	Spare (2 bytes)
 
 // Page 2 - 95 bytes available at $02A1-$02FF
 .label LINECONT	        = $02A1		//	Line-continuation table (24 bytes to $02B8)
@@ -38,11 +40,22 @@
 .label MERGROUT	        = $02E9		//	Self-modifying bitmap merge routine (22 bytes to $02FE)
 .label Memory_Bitmap    = $02FF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5-0->RAM bitmap
 
-// 3K BLK0 - layout is the same if placed at top of BLK1/2/3
-.label SPAREP04         = $0400		//	Spare (2112 bytes)
-.label Text_Buffer	    = $0C40		//	Text buffer (960 bytes to 0FFF as four 240-byte pages at $0C40/$0D30/$0E20/$0F10)
+// 3K BLK0
+.label SPAREP04         = $0400		//	Spare (2048 bytes to 0BFF)
+.label Text_Buffer	    = $0C00		//	Text buffer (1024 bytes to 0FFF)
 
 // Onboard RAM
 .label Character_Matrix	= $1000		//	Screen character matrix is 20x12 double-height chars -> 240 bytes to $10EF
 .label SPAREP10	        = $10F0		//	Spare (16 bytes)
 .label Screen_Bitmap    = $1100		//	Screen bitmap is 160x192 bits -> 20 * 8 * 24 = 3840 bytes to $1FFF
+
+// Text Buffer Layout
+// Page 1       Page 2      Page 3      Page 4
+// -------------------------------------------
+// Line 1       Line 2      Line 3      Line 4
+// Line 5       Line 6      Line 7      Line 8
+//   ..           ..          ..          ..
+// Line 21      Line 22     Line 23     Line 24
+// Line Format: TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTC
+//              T = Text Characters      (40)
+//              C = Continuation Byte    (1)
