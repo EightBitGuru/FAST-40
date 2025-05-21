@@ -56,43 +56,27 @@ initialise_screen:
 
 			// initialise pointers for text buffer
 			ldy f40_runtime_memory.TXTBUFBP					// [3]		get text buffer address base page
-			dey												// [2]		decrement for loop
 			sty f40_runtime_memory.TEMPAH					// [3]		set text buffer page 1 address hi-byte
-			iny												// [2]
+			iny												// [2]		increment for page 2
 			sty f40_runtime_memory.TEMPBH					// [3]		set text buffer page 2 address hi-byte
-			iny												// [2]
+			iny												// [2]		increment for page 2
 			sty f40_runtime_memory.TEMPCH					// [3]		set text buffer page 3 address hi-byte
-			iny												// [2]
+			iny												// [2]		increment for page 2
 			sty f40_runtime_memory.TEMPDH					// [3]		set text buffer page 4 address hi-byte
-			ldy #$ff										// [2]		text buffer lo-byte
+			ldy #0											// [2]		text buffer lo-byte
 			sty f40_runtime_memory.TEMPAL					// [3]		set text buffer page 2 address lo-byte
 			sty f40_runtime_memory.TEMPBL					// [3]		set text buffer page 3 address lo-byte
 			sty f40_runtime_memory.TEMPCL					// [3]		set text buffer page 4 address lo-byte
 			sty f40_runtime_memory.TEMPDL					// [3]		set text buffer page 4 address lo-byte
 
-			// clear bitmap and text buffer, and reset colour memory
-			ldx vic20.os_vars.CURRCOLR						// [3]		get current text colour
-			ldy #240										// [2]		bitmap index (240 * 16 = 3840)
+			// clear bitmap (256 * 15 = 3840) and text buffer
+			ldx #vic20.screencodes.SPACE					// [2]		[SPACE]
 buffloop:	lda #0											// [2]		initialise bitmap to zero
-			sta f40_runtime_memory.Screen_Bitmap-1,y		// [5]		clear byte at offset on each page in bitmap
-			sta f40_runtime_memory.Screen_Bitmap+239,y		// [5]		3x faster than a loop
-			sta f40_runtime_memory.Screen_Bitmap+479,y		// [5]
-			sta f40_runtime_memory.Screen_Bitmap+719,y		// [5]
-			sta f40_runtime_memory.Screen_Bitmap+959,y		// [5]
-			sta f40_runtime_memory.Screen_Bitmap+1199,y		// [5]
-			sta f40_runtime_memory.Screen_Bitmap+1439,y		// [5]
-			sta f40_runtime_memory.Screen_Bitmap+1679,y		// [5]
-			sta f40_runtime_memory.Screen_Bitmap+1919,y		// [5]
-			sta f40_runtime_memory.Screen_Bitmap+2159,y		// [5]
-			sta f40_runtime_memory.Screen_Bitmap+2399,y		// [5]
-			sta f40_runtime_memory.Screen_Bitmap+2639,y		// [5]
-			sta f40_runtime_memory.Screen_Bitmap+2879,y		// [5]
-			sta f40_runtime_memory.Screen_Bitmap+3119,y		// [5]
-			sta f40_runtime_memory.Screen_Bitmap+3359,y		// [5]
-			sta f40_runtime_memory.Screen_Bitmap+3599,y		// [5]
+.for(var i=0;i<3840;i+=256)
+{
+			sta f40_runtime_memory.Screen_Bitmap+i,y		// [5]		clear byte at offset on each page in bitmap
+}
 			txa												// [2]		get text colour from .X
-			sta vic20.colour_ram.COLOUR1-1,y				// [5]		set byte at offset in colour matrix
-			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
 			sta (f40_runtime_memory.TEMPAL),y				// [6]		set character in text buffer page 1
 			sta (f40_runtime_memory.TEMPBL),y				// [6]		set character in text buffer page 2
 			sta (f40_runtime_memory.TEMPCL),y				// [6]		set character in text buffer page 3
@@ -100,16 +84,23 @@ buffloop:	lda #0											// [2]		initialise bitmap to zero
 			dey												// [2]		decrement index
 			bne buffloop									// [3/2]	loop for next location
 
+			// reset colour matrix
+			ldx #240										// [2]		matrix bytes to reset
+			lda vic20.os_vars.CURRCOLR						// [3]		get current text colour
+colrloop:	sta vic20.colour_ram.COLOUR1-1,x				// [5]		set byte at offset in colour matrix
+			dex												// [2]		decrement index
+			bne colrloop									// [3/2]	loop until done
+
 			// reset text buffer key sequence table and continuation bytes
 			ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		row index
-keyloop:	txa												// [2]		stash in .A
-			sta f40_runtime_memory.TXTBUFSQ,x				// [5]		set key sequence
-			ldy f40_static_data.TXTBUFFO,x 					// [4]		get page offset value for line
+keyloop:	ldy f40_static_data.TXTBUFFO+4,x 				// [4]		get page offset value for line
 			lda #0											// [2]		
 			sta (f40_runtime_memory.TEMPAL),y				// [6]		clear continuation bytes in buffer page 1
 			sta (f40_runtime_memory.TEMPBL),y				// [6]		clear continuation bytes in buffer page 2
 			sta (f40_runtime_memory.TEMPCL),y				// [6]		clear continuation bytes in buffer page 3
 			sta (f40_runtime_memory.TEMPDL),y				// [6]		clear continuation bytes in buffer page 4
+			txa												// [2]		stash in .A
+			sta f40_runtime_memory.TXTBUFSQ,x				// [5]		set key sequence
 			dex												// [2]		decrement index
 			bpl keyloop										// [3/2]	loop until done
 			rts												// [6]
