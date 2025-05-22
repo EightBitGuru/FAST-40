@@ -94,6 +94,7 @@ colrloop:	sta vic20.colour_ram.COLOUR1-1,x				// [5]		set byte at offset in colo
 			// reset text buffer key sequence table and continuation bytes
 			ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		row index
 keyloop:	ldy f40_static_data.TXTBUFFO+4,x 				// [4]		get page offset value for line
+// FIXME: the offset is +1 too high
 			lda #0											// [2]		
 			sta (f40_runtime_memory.TEMPAL),y				// [6]		clear continuation bytes in buffer page 1
 			sta (f40_runtime_memory.TEMPBL),y				// [6]		clear continuation bytes in buffer page 2
@@ -103,6 +104,7 @@ keyloop:	ldy f40_static_data.TXTBUFFO+4,x 				// [4]		get page offset value for 
 			sta f40_runtime_memory.TXTBUFSQ,x				// [5]		set key sequence
 			dex												// [2]		decrement index
 			bpl keyloop										// [3/2]	loop until done
+.break
 			rts												// [6]
 }
 
