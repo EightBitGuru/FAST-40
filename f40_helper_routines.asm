@@ -72,7 +72,7 @@ initialise_screen:
 			// clear bitmap (256 * 15 = 3840) and text buffer
 			ldx #vic20.screencodes.SPACE					// [2]		[SPACE]
 buffloop:	lda #0											// [2]		initialise bitmap to zero
-.for(var i=0;i<3840;i+=256)
+.for(var i=0;i<3840;i+=256)									//			unrolled loop is 3x faster than a loop
 {
 			sta f40_runtime_memory.Screen_Bitmap+i,y		// [5]		clear byte at offset on each page in bitmap
 }
@@ -91,19 +91,26 @@ colrloop:	sta vic20.colour_ram.COLOUR1-1,x				// [5]		set byte at offset in colo
 			dex												// [2]		decrement index
 			bne colrloop									// [3/2]	loop until done
 
-			// reset text buffer key sequence table and continuation bytes
+			// initialise text buffer key sequence table
 			ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		row index
-keyloop:	ldy f40_static_data.TXTBUFFO+4,x 				// [4]		get page offset value for line
-// FIXME: the offset is +1 too high
-			lda #0											// [2]		
+keyloop:	txa	 											// [2]		copy to .A
+			sta f40_runtime_memory.TXTBUFSQ,x				// [5]		set key sequence byte
+			dex												// [2]		decrement index
+			bpl keyloop										// [3/2]	loop until done
+
+			// reset text buffer key sequence table and continuation bytes
+.break
+// FIXME:
+			ldx #f40_runtime_constants.SCREEN_ROWS+4		// [2]		row index
+			lda #$aa										// [2]		
+contloop:	ldy f40_static_data.TXTBUFFO,x 				// [4]		get page offset value for line
+			//iny
 			sta (f40_runtime_memory.TEMPAL),y				// [6]		clear continuation bytes in buffer page 1
 			sta (f40_runtime_memory.TEMPBL),y				// [6]		clear continuation bytes in buffer page 2
 			sta (f40_runtime_memory.TEMPCL),y				// [6]		clear continuation bytes in buffer page 3
 			sta (f40_runtime_memory.TEMPDL),y				// [6]		clear continuation bytes in buffer page 4
-			txa												// [2]		stash in .A
-			sta f40_runtime_memory.TXTBUFSQ,x				// [5]		set key sequence
 			dex												// [2]		decrement index
-			bpl keyloop										// [3/2]	loop until done
+			bne contloop									// [3/2]	loop until done
 .break
 			rts												// [6]
 }

@@ -61,13 +61,17 @@ CONCODEL:
 }
 
 TXTBUFFO:
-.pc = * "TXTBUFFO"		// Text row address lo-byte offsets (28 bytes)
-.for(var x=0;x<247;x+=41)
+.pc = * "TXTBUFFO"		// Text row address lo-byte offsets (24 bytes)
+.for(var x=0;x<206;x+=41)
 {
 	.fill 4,x			// 4 * 0 / 41 / 82 / 123 / 164 / 205 / 246
 }
 
-.fill 18,$aa 			// Spare bytes
+CONTOFFS:
+.pc = * "CONTOFFS"		// Text buffer continuation byte offsets (6 bytes)
+.byte 40,80,120,160,200,240
+
+.fill 16,$aa 			// Spare bytes
 
 BROWOFFS:
 .pc = * "BROWOFFS"		// Screen_Bitmap row offsets (24 bytes)
