@@ -22,7 +22,7 @@ Creation of modified or derivative works using, in whole or in part, any sourcec
 
 #### Who is 8-Bit Guru?
 
-8-Bit Guru (also: Eight-Bit Guru, 8BitGuru, 8BG) is the *nom de guerre* of Mark Johnson. I'm a professional coder from the UK who has been telling computers what to do since 1981. My day job is all about C# and Azure, whilst my hobby projects mostly involve writing 6502 assembly language for the VIC-20 (my first computer).
+8-Bit Guru (also: Eight-Bit Guru, 8BitGuru, 8BG) is the *nom de guerre* of Mark Johnson. I'm a professional coder from the UK who has been telling computers what to do since 1981. My day job is all about C# and Azure, whilst my hobby projects mostly involve writing 6502 assembly language for the VIC-20 (my first computer, back in '81).
 
 ## How to build and run FAST-40
 
@@ -30,7 +30,7 @@ Creation of modified or derivative works using, in whole or in part, any sourcec
 
 * **Editor**  
 My personal choice is [Visual Studio Code](https://code.visualstudio.com/), but any editor you're comfortable with will suffice.
-I use a 3rd-party VSCode extension called [Kick Assembler 8-Bit Retro Studio 0.23.3](https://gitlab.com/retro-coder/commodore/kick-assembler-vscode-ext) which provides a bunch of useful functionality including syntax highlighting and automated invocation of KickAssembler and VICE without needing to switch out to a command prompt.
+I also use a 3rd-party VSCode extension called [Kick Assembler 8-Bit Retro Studio 0.23.3](https://gitlab.com/retro-coder/commodore/kick-assembler-vscode-ext) which provides a bunch of useful functionality including syntax highlighting and automated invocation of KickAssembler and VICE without needing to switch out to a command prompt.
 
 * **Assembler**  
 The sourcecode syntax targets [KickAssembler 5.25](https://theweb.dk/KickAssembler/Main.html#frontpage). No other build tool is required.  
@@ -41,13 +41,13 @@ The code builds a binary cartridge image which can be used with ***xvic***, the 
 
 ### Build / Run
 
-The sourcecode produces a standard BLK5 ($A000-$BFFF) 8K cartridge ROM binary.
+The sourcecode produces a standard BLK5 ($A000-$BFFF) 8K cartridge ROM binary image.
 
-Execute KickAssembler in your working copy directory to build the binary:
+Execute KickAssembler in your working copy directory to build the image:
  
     java -jar [Your_KickAssembler_Path]\KickAss.jar main.asm -o fast40.bin -binfile
 
-To use the binary with ***xvic***:
+To use the image with ***xvic***:
 
     [Your_VICE_Path]\bin\xvic.exe -memory 0,1 -cartA fast40.bin
 
@@ -55,7 +55,7 @@ To use the binary with ***xvic***:
 
 * Both PAL and NTSC video standards are supported.
 
-* The JiffyDOS v6.01 ROM is supported, if present.
+* The JiffyDOS v6.01 Kernal ROM is supported, if present.
 
 * FAST-40 expects to run on a real or emulated VIC-20 fitted with an NMOS 6502, and makes use of several undocumented opcodes. It will not operate correctly on later variants such as the CMOS 65C02 which disable or replace these opcodes.
 
@@ -78,11 +78,11 @@ FAST-40 provides a new BASIC command to easily reset the system and switch betwe
 
 ### SHIFT/RUNSTOP Behaviour
 
-On a stock VIC-20 the SHIFT/RUNSTOP key combination causes the commands `LOAD` and `RUN` to be injected into the keyboard buffer to initiate an automatic start of the next program found on tape. Modern users now prefer to use disk devices (or modern pseudo-disk devices such as SD cards) for storage instead of tape, and will often make use of the JiffyDOS replacement Kernal ROM which disables tape operations in order to provide extended disk functionality.
+On a stock VIC-20 the SHIFT/RUNSTOP key combination causes the commands `LOAD` and `RUN` to be injected into the keyboard buffer to initiate an automatic start of the next program found on tape. Modern users prefer to use disk devices (or modern pseudo-disk devices such as SD cards) for storage instead of tape, and will often make use of the JiffyDOS Kernal ROM which disables tape operations in order to provide extended disk functionality.
 
 FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands to favour disk users as follows:
-* If JiffyDOS is _not_ present, the sequence `LOAD"$",8` and `LIST` is initiated to read and display the directory of the disk
-* If it _is_ present then `@$` is likely the preferred command to view the disk directory, so a more useful action is to load the first program on the disk by initiating `LOAD"*",8` and `RUN`
+* If JiffyDOS is _not_ present, the sequence `LOAD"$",8` and `LIST` is executed to read and display the directory of the disk
+* If JiffyDOS _is_ present then its `@$` command is the preferred method to view the disk directory; therefore auto-starting the first program on the disk by executing `LOAD"*",8` and `RUN` seems more likely to be useful
 
 ### System Reconfiguration
 
@@ -91,7 +91,7 @@ FAST-40 makes changes to numerous memory areas, VIC registers, and system vector
 Memory areas:
 
     $0003-$0004     Not normally used by BASIC/KERNAL.     [only used if BRK debugging is enabled on build]
-    $00D9-$00F1     Normally used as the BASIC screen editor line-link table.
+    $00D9-$00F2     Normally used as the BASIC screen editor line-link table.
     $02A1-$02FF     Not normally used by BASIC/KERNAL.
     $0C00-$0FFF     Reserved for the FAST-40 text buffer if there is 3K RAM in BLK0.
     $1000-$1FFF     Normally used as the unexpanded screen and RAM area.
@@ -139,7 +139,7 @@ In the event that a program inadvertantly 'breaks' FAST-40 by overwriting someth
 
 * Writes to the VIC registers, system vectors, and/or other runtime memory structures can almost always be repaired via a RUNSTOP/RESTORE 'soft' reset.
 
-* Writes to the display character matrix and any other critical areas will require a system reset to trigger a repair. A system reset can be achieved by power-cycling the machine, hitting a hardware reset button if one has fitted, or by using the new RESET command. **Note that memory is cleared during a system reset.**
+* Writes to the display character matrix and any other critical areas will require a system reset to trigger a repair. A system reset can be achieved by power-cycling the machine, hitting a hardware reset button if one is fitted, or by using the new RESET command. **Note that memory is cleared during a system reset.**
 
 ## Beta testing, and credit where it's due
 
@@ -183,7 +183,6 @@ The following improvements and enhancements may make it into the project if time
 * Optimise the line-redraw logic, which is currently somewhat inefficient
 * Integrate the display matrix setup logic into the RUNSTOP/RESTORE handler
 * Add a SHIFT modifier to the CTRL-delay function to toggle a full hold on scrolling until released
-* Redesign the text buffer to use an intrinsic page+offset index rather than a discrete lookup table
 * Add a bitmap point-plotting routine and an accompanying PLOT command to BASIC
 * Add PEEK/POKE intercepts to allow screen/colour memory access akin to the stock 22x23 text mode
 * Add CTRL-key modifier to the cursor control logic to allow jumping to the start/end of physical/logical lines

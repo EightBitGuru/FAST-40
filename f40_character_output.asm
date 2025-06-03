@@ -23,15 +23,23 @@ screen:		txa												// [2]		save .X and .Y to Stack
 			sta vic20.os_zpvars.INPUTSRC					// [3]		set input source
 			lax vic20.os_zpvars.CHARBYTE					// [3]		get output character to .A and .X
 
-			// check if character is a control code
-			ldy #34											// [2]		control code table index
-findcode:	cmp f40_static_data.CONCODEC,y					// [4]		check for control character code
+			// check if character is in a control code range
+			cmp #vic20.screencodes.INVSPACE					// [2]		check if greater or equal to [INVERSE-SPACE]
+			bcs notcode										// [2/3]	skip control code lookup if so
+			cmp #vic20.screencodes.F1						// [2]		check if greater or equal to [F1]
+			bcs checkcode									// [2/3]	do control code lookup if so
+			cmp #vic20.screencodes.SPACE					// [2]		check if greater or equal to [SPACE]
+			bcs notcode										// [2/3]	skip control code lookup if so
+
+			// lookup character in control codes
+checkcode:	ldy #34											// [2]		control code table index
+testcode:	cmp f40_static_data.CONCODEC,y					// [4]		check for control character code
 			beq iscode										// [3/2]	go handle control code
 			dey												// [2]		decrement table index
-			bpl findcode									// [3/2]	loop until done
+			bpl testcode									// [3/2]	loop until done
 
 			// character is not a control code
-			txa												// [2]		transfer from .X to set flags
+notcode:	txa												// [2]		transfer from .X to set flags
 			bpl notshifted									// [3/2]	not shifted if b7 is clear
 			cmp #%11000000									// [2]		check b7/b6
 			bcs clearb7										// [3/2]	SHIFTed glyph if both set
@@ -130,7 +138,7 @@ line_continuation:
 			bpl character_output_tidyup						// [2/3]	skip redraw if no line inserted (.Y is +ve)
 			txa 											// [2]		get current line for redraw limit
 			jsr f40_helper_routines.redraw_lines_to_bottom	// [6]		redraw changed lines to bottom of screen
-			jsr f40_controlcode_handlers.reset_pointers		// [6]		reset line pointers
+			jsr f40_controlcode_handlers.reset_text_pointer	// [6]		reset line pointers
 // Fall-through into character_output_tidyup
 }
 

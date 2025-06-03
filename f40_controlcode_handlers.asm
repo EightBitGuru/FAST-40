@@ -40,7 +40,7 @@ cursor_home:
 {
 			sta vic20.os_zpvars.CRSRLPOS					// [3]		reset cursor position on logical line (0-87)
 			sta vic20.os_zpvars.CRSRROW						// [3]		reset cursor row
-			beq reset_pointers								// [3/3]	reset line pointers
+			beq reset_text_pointer							// [3/3]	reset line pointers
 }
 
 
@@ -63,7 +63,7 @@ cursor_left:
 .pc = * "cursor_left"
 {
 			dec vic20.os_zpvars.CRSRLPOS					// [5]		decrement cursor column (0-39)
-			bpl reset_pointers								// [3/2]	reset line pointers if no underrun (column < 0)
+			bpl reset_colour_pointer						// [3/2]	reset colour pointer if no underrun (column < 0)
 			ldy vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
 			beq resetpos									// [2/3]	skip cursor-up if already on row 0
 			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		last column on line
@@ -78,9 +78,9 @@ cursor_up:
 .pc = * "cursor_up"
 {
 			dec vic20.os_zpvars.CRSRROW						// [5]		decrement cursor row
-			bpl reset_pointers								// [3/2]	reset line pointers if no underrun (line >= 0)
+			bpl reset_text_pointer							// [3/2]	reset line pointers if no underrun (line >= 0)
 			sta vic20.os_zpvars.CRSRROW						// [3]		reset cursor row to zero
-			bmi reset_pointers								// [3/3]	reset line pointers after correction
+			bmi reset_text_pointer							// [3/3]	reset line pointers after correction
 }
 
 
@@ -91,7 +91,7 @@ cursor_right:
 			sec												// [2]		set Carry for subtraction
 			lda #40											// [2]		one column beyond end of line
 			isb vic20.os_zpvars.CRSRLPOS					// [5]		increment cursor column
-			bne reset_pointers								// [3/2]	reset line pointers if no overrun (column > 39)
+			bne reset_colour_pointer						// [3/2]	reset colour pointer if no overrun (column > 39)
 			sta vic20.os_zpvars.CRSRLPOS					// [3]		reset cursor column to start of line
 // Fall-through into cursor_down
 }
@@ -104,21 +104,29 @@ cursor_down:
 			sec												// [2]		set Carry for subtraction
 			lda #f40_runtime_constants.SCREEN_ROWS+1		// [2]		one line beyond end of screen
 			isb vic20.os_zpvars.CRSRROW						// [5]		increment cursor line in .A
-			bne reset_pointers								// [3/2]	reset line pointers if not beyond end of screen
+			bne reset_text_pointer							// [3/2]	reset line pointers if not beyond end of screen
 			jsr f40_helper_routines.scroll_lines_up			// [6]		scroll all lines up when beyond last line
 			lda #22											// [2]	 	cursor line after scroll
 			sta vic20.os_zpvars.CRSRROW						// [3]		set cursor line
-// Fall-through into reset_pointers
+// Fall-through into reset_text_pointer
 }
 
 
-// Reset colour and text buffer pointers for new line
-reset_pointers:
-.pc = * "reset_pointers"
+// Reset text buffer pointer for new line
+reset_text_pointer:
+.pc = * "reset_text_pointer"
 {
 			ldx vic20.os_zpvars.CRSRROW						// [3]		get cursor row
 			jsr f40_helper_routines.set_line_pointer 		// [6]		set line buffer pointer to current line
-			txa												// [2]		copy cursor row to .A
+// Fall-through into reset_colour_pointer
+}
+
+
+// Reset colour pointer for new line
+reset_colour_pointer:
+.pc = * "reset_colour_pointer"
+{
+			lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row
 			lsr												// [2]		divide row by two for colour offset
 			tax												// [2]		copy colour offset to .X
 			lda f40_static_data.CROWOFFS,x					// [4]		get colour matrix row offset
