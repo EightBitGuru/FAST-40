@@ -87,7 +87,7 @@ setmem:		stx vic20.os_vars.OSMEMTPH						// [4]		set top-of-memory pointer hi-by
 nextbit:	jsr vic20.kernal.RESKVEC						// [6]		reset KERNAL I/O vectors
 			jsr vic20.kernal.INITIO							// [6]		reset VIA interrupts
 			jsr vic20.kernal.INITSCRN						// [6]		reset VIC configuration for 22-column screen
-			jsr vic20.basic.INITV							// [6]		initialise BASIC vectors
+			jsr vic20.basic.INITBASV						// [6]		initialise BASIC vectors
 			jsr f40_helper_routines.reset_wedge				// [6]		reset BASIC wedge
 			jmp vic20.basic.INIT2 							// [3]		jump to BASIC after vector init
 }

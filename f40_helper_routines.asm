@@ -23,21 +23,6 @@ initialise_screen:
 {
 			jsr f40_interrupt_handlers.undraw_cursor		// [6]		undraw cursor if required
 
-			// initialise pointers for text buffer
-			ldy f40_runtime_memory.TXTBUFFH					// [3]		get text buffer page 1 address ($xC40) hi-byte
-			iny												// [2]		increment for page 2 address hi-byte (.X = $xD)
-			sty f40_runtime_memory.TEMPAH					// [3]		set text buffer page 2 address ($xD30) hi-byte
-			iny												// [2]		increment for page 3 address hi-byte (.X = $xE)
-			sty f40_runtime_memory.TEMPBH					// [3]		set text buffer page 3 address ($xE20) hi-byte
-			iny												// [2]		increment for page 4 address hi-byte (.X = $xF)
-			sty f40_runtime_memory.TEMPCH					// [3]		set text buffer page 4 address ($xF10) hi-byte
-			ldy #$2F										// [2]		text buffer page 2 address ($xD30) lo-byte
-			sty f40_runtime_memory.TEMPAL					// [3]		set text buffer page 2 address ($xD30) lo-byte
-			ldy #$1F										// [2]		text buffer page 3 address ($xE20) lo-byte
-			sty f40_runtime_memory.TEMPBL					// [3]		set text buffer page 3 address ($xD20) lo-byte
-			ldy #$0F										// [2]		text buffer page 4 address ($xF10) lo-byte
-			sty f40_runtime_memory.TEMPCL					// [3]		set text buffer page 4 address ($xD10) lo-byte
-
 			// clear text buffer and reset colour memory
 			ldx vic20.os_vars.CURRCOLR						// [3]		get current text colour
 			ldy #240										// [2]		bitmap index (240 * 16 = 3840)
@@ -61,10 +46,11 @@ initloop:	lda #0											// [2]		initialise bitmap to zero
 			txa												// [2]		get text colour from .X
 			sta vic20.colour_ram.COLOUR1-1,y				// [5]		set byte at offset in colour matrix
 			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
-			sta (f40_runtime_memory.TXTBUFFL),y				// [4]		set character in text buffer page 1
-			sta (f40_runtime_memory.TEMPAL),y				// [4]		set character in text buffer page 2
-			sta (f40_runtime_memory.TEMPBL),y				// [4]		set character in text buffer page 3
-			sta (f40_runtime_memory.TEMPCL),y				// [4]		set character in text buffer page 4
+			lda #$aa
+			sta f40_runtime_memory.Text_Buffer-1,y			// [5]		clear byte at offset in text buffer
+			sta f40_runtime_memory.Text_Buffer+239,y		// [5]
+			sta f40_runtime_memory.Text_Buffer+479,y		// [5]
+			sta f40_runtime_memory.Text_Buffer+719,y		// [5]
 			dey												// [2]		decrement index
 			bne initloop									// [3/2]	loop for next location
 

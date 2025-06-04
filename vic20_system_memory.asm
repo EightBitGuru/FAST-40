@@ -586,7 +586,7 @@
     .label BYTEFREE	= $E429			//	Power-Up Message DATA ("BYTES FREE")
     .label BASICV2	= $E437			//	Power-Up Message DATA ("CBM BASIC V2")
     .label BVTRS	= $E44F			//	Table of BASIC Vectors (for 0300) WORD
-    .label INITV	= $E45B			//	Initialize Vectors
+    .label INITBASV	= $E45B			//	Initialize BASIC Vectors
     .label BASRESET	= $E467			//	BASIC Warm Restart [RUNSTOP-RESTORE]
     .label UNKNOWN4	= $E475			//	Unknown
     .label UNUSED8	= $E47C			//	Unused Bytes For Future Patches EMPTY
