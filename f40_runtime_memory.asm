@@ -29,9 +29,13 @@
 .label SPAREZP	        = $00EF		//	Spare (3 bytes)
 
 // Page 2 - 95 bytes available at $02A1-$02FF
-.label LINECONT	        = $02A1		//	Line-continuation table (24 bytes to $02B8)
-.label TXTBUFRL	        = $02B9     //	Text row address lo-bytes (24 bytes to $02D0)
-.label TXTBUFRH	        = $02D1		//	Text row address hi-byte addition bytes (24 bytes to $02E8)
+.label SPAREP02         = $02A1		//	Spare (19 bytes to 02B3)
+.label LINCNTUF         = $02B4		//	Line-continuation table underflow bytes (2 bytes to $02B5)
+.label LINECONT	        = $02B6		//	Line-continuation table (24 bytes to $02CD)
+.label LINCNTOF         = $02CE		//	Line-continuation table overflow byte (1 byte to $02CE)
+.label TXTBUFUF         = $02CE		//	Text row key sequence underflow bytes (2 bytes to $02CF)
+.label TXTBUFSQ         = $02D0		//	Text row key sequence bytes (24 bytes to $02E7)
+.label TXTBUFOF         = $02E8		//	Text row key sequence overflow byte (1 byte to $02E8)
 .label MERGROUT	        = $02E9		//	Self-modifying bitmap merge routine (22 bytes to $02FE)
 .label Memory_Bitmap    = $02FF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5-0->RAM bitmap
 

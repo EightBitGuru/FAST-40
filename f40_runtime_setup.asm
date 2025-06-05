@@ -8,8 +8,6 @@
 setup:
 .pc = * "runtime_setup"
 {
-.break
-// TODO:	Memory settings are b0rked
 			lsr												// [2]		shift 3K BLK0 bit to Carry
 			bcs set3k										// [2/3]	3K BLK0 is populated
 			jmp vic20.kernal.RESET2							// [3]		FAST-40 can't run without at least 3K in BLK0
@@ -33,13 +31,6 @@ set3k:		ldx #>vic20.ram.RAMBLK0							// [2]		get BASIC start address for 3K
 			lsr												// [2]		shift BLK3 bit to Carry
 			bcc setmem										// [2/3]	skip if BLK3 is empty
 			ldx #>vic20.character_generator.UCROM			// [2]		top of RAM for BLK3
-
-// TODO:	x Alter static data TROWOFFL/H to be precomputed addresses for page 0C
-//			x Remove TXTBUFFL/H from ZP
-//			Alter TXTBUFRL/H to be sequential reference table into TROWOFFL/H
-//          Add underflow/overflow bytes to LINECONT and TXTBUFRL/H
-//			Update screen clear, line scroll, ins/del for new sequence table
-//			x Update screen clear to not use TXTBUFFL
 
 			// set top-of-memory and screen page
 setmem:		stx vic20.os_vars.OSMEMTPH						// [4]		set top-of-memory pointer hi-byte
@@ -123,8 +114,6 @@ notjiffy:	tya	 											// [2]		get JiffyDOS bit
 			jsr vic20.basic.STROUT							// [6]		display string
 			lda #<f40_static_data.IDMSG3					// [2]		pointer to FAST-40 message string lo-byte
 			ldy #>f40_static_data.IDMSG3					// [2]		pointer to FAST-40 message string hi-byte
-.break
-// TODO:	Somehow this call to STROUT is overwriting the memory pointers used by INITMEM2 to calculate free memory
 f40msg:		jsr vic20.basic.STROUT							// [6]		display string
 			jsr vic20.basic.INITMEM2						// [6]		output 'XXXX BYTES FREE' and reset BASIC pointers
 			ldx #$fb										// [2]

@@ -49,8 +49,9 @@ CONCODEL:
 	.byte concode_lo_bytes.get(i)-1		// Subtract 1 for RTS offset
 }
 
+TROWADD:
+.pc = * "TROWADD"		// Text row address hi/lo bytes
 TROWADDR:
-.pc = * "TROWADDR"		// Text row address hi/lo bytes
 .lohifill 24,f40_runtime_memory.Text_Buffer+(40*i)
 
 BROWOFFS:				// Screen_Bitmap row offsets (even/odd)
