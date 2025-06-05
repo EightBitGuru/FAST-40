@@ -1,12 +1,10 @@
 # FAST-40
 
-FAST-40 is a cartridge ROM program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language and requires a minimum of 8K expansion RAM to run.
+FAST-40 is a cartridge ROM program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language and requires a 3K RAM expansion to run.
 
 No hardware modification is required.
 
-Other (vintage) 40-column programs typically suffer from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the ground up to render an artifact-free 40x24 text mode with performance as close to the hardware-generated 22x23 speeds as possible, whilst faithfully reproducing standard screen-editor functionality.
-
-Despite processing almost twice as much text data, FAST-40 throughput rates are approximatekly 90% of stock hardware speeds for fully-populated lines containing combinations of display and control characters. Where the rendering engine has lower-complexity lines to process it can achieve rates of up to 96% even when scrolling the entire screen.
+Other (vintage) 40-column programs typically suffer from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the ground up to render an artifact-free 40x24 text mode with performance comparable to the hardware-assisted 22x23 display, whilst faithfully reproducing standard screen-editor functionality. In tests, FAST-40 character output rates match (or exceed) stock speeds.
 
 FAST-40 works under emulation and on real VIC-20 hardware - it can be attached as an auto-start cartridge in VICE (see below) or burned/flashed/loaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
 
@@ -49,7 +47,7 @@ Execute KickAssembler in your working copy directory to build the image:
 
 To use the image with ***xvic***:
 
-    [Your_VICE_Path]\bin\xvic.exe -memory 0,1 -cartA fast40.bin
+    [Your_VICE_Path]\bin\xvic.exe -memory 1 -cartA fast40.bin
 
 * The cartridge auto-starts via the standard Commodore **A0CBM** signature-detection mechanism.
 
@@ -61,9 +59,9 @@ To use the image with ***xvic***:
 
 ### Memory Requirements
 
-FAST-40 uses all of the 4K unexpanded RAM area ($1000-$1FFF) for video display reconfiguration and requires a minimum of 8K expansion RAM in BLK1 ($2000-$3FFF). Just under 1K is reserved at the top of the highest available 8K block, leaving the rest free for BASIC.
+FAST-40 uses all of the 4K unexpanded RAM area for video display reconfiguration and requires a minimum of 3K expansion RAM in BLK0 (of which just under 1K is reserved and the remaining 2.1K left free for BASIC).
 
-If the 3K expansion RAM area in BLK0 ($0400-$0FFF) is *also* populated then FAST-40 will preferentially use that instead, leaving the lower 2K of it ($0400-$0BFF) available for machine-code programs and all of BLK1 (and BLK2/BLK3 if populated) available to BASIC.
+If 8K (or 16K/24K) expansion RAM is also present in BLK1/2/3 then FAST-40 will make all 8K blocks available for BASIC and the 'lost' 2.1K in BLK0 available for machine-code programs.
 
 ### New RESET Command
 
@@ -71,10 +69,10 @@ FAST-40 provides a new BASIC command to easily reset the system and switch betwe
 
     RESET [0|3|8]   Switch to specified video/memory configuration
     
-        RESET		Switch to 40x24 8K+ mode
+        RESET		Switch to 40x24 3K/8K+ mode
         RESET 0		Switch to 22x23 unexpanded mode
-        RESET 3		Switch to 22x23 3K mode (if RAM is present in BLK0)
-        RESET 8		Switch to 22x23 8K+ mode
+        RESET 3		Switch to 22x23 3K mode
+        RESET 8		Switch to 22x23 8K+ mode (if RAM is present in BLK1/2/3)
 
 ### SHIFT/RUNSTOP Behaviour
 
@@ -82,7 +80,7 @@ On a stock VIC-20 the SHIFT/RUNSTOP key combination causes the commands `LOAD` a
 
 FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands to favour disk users as follows:
 * If JiffyDOS is _not_ present, the sequence `LOAD"$",8` and `LIST` is executed to read and display the directory of the disk
-* If JiffyDOS _is_ present then its `@$` command is the preferred method to view the disk directory; therefore auto-starting the first program on the disk by executing `LOAD"*",8` and `RUN` seems more likely to be useful
+* If JiffyDOS _is_ present then its `@$` command is the preferred method to view the disk directory; therefore the sequence `LOAD"*",8` and `RUN` is executed to auto-start the first program on the disk
 
 ### System Reconfiguration
 
@@ -91,13 +89,10 @@ FAST-40 makes changes to numerous memory areas, VIC registers, and system vector
 Memory areas:
 
     $0003-$0004     Not normally used by BASIC/KERNAL.     [only used if BRK debugging is enabled on build]
-    $00D9-$00F2     Normally used as the BASIC screen editor line-link table.
-    $02A1-$02FF     Not normally used by BASIC/KERNAL.
-    $0C00-$0FFF     Reserved for the FAST-40 text buffer if there is 3K RAM in BLK0.
+    $00D9-$00F1     Normally used as the BASIC screen editor line-link table.
+    $02B4-$02FF     Not normally used by BASIC/KERNAL.
+    $0C40-$0FFF     Top of 3K RAM expansion (BLK0).
     $1000-$1FFF     Normally used as the unexpanded screen and RAM area.
-    $3C00-$3FFF     Reserved for the FAST-40 text buffer if BLK0 is empty and 8K in BLK1.
-    $5C00-$5FFF     Reserved for the FAST-40 text buffer if BLK0 is empty and 16K in BLK1/2.
-    $7C00-$7FFF     Reserved for the FAST-40 text buffer if BLK0 is empty and 24K in BLK1/2/3.
     $9400-$95FF     Normally used as colour memory when RAM is in BLK1/2/3.
 
 VIC registers:
@@ -181,11 +176,10 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 The following improvements and enhancements may make it into the project if time, motivation, and code space permit:
 
 * Optimise the line-redraw logic, which is currently somewhat inefficient
-* Integrate the display matrix setup logic into the RUNSTOP/RESTORE handler
-* Add a SHIFT modifier to the CTRL-delay function to toggle a full hold on scrolling until released
+* Integrate the display matrix setup logic into the RUNSTOP/RESTORE handler for better breakage recovery
+* Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a full hold until released
+* Add a CTRL-key modifier to the cursor control logic to allow jumping to the start/end of physical/logical lines
 * Add a bitmap point-plotting routine and an accompanying PLOT command to BASIC
 * Add PEEK/POKE intercepts to allow screen/colour memory access akin to the stock 22x23 text mode
-* Add CTRL-key modifier to the cursor control logic to allow jumping to the start/end of physical/logical lines
-* If more space for code is needed, swap the turbocharged FAST-40 memory test for a simpler block-detection routine and let the stock RAMTAS code at $FD8D 'handle' testing in the usual (not very quick or thorough) way
 
 Other suggestions and/or pull requests will be reviewed periodically.
