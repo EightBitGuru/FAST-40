@@ -54,6 +54,7 @@ TROWADD:
 TROWADDR:
 .lohifill 24,f40_runtime_memory.Text_Buffer+(40*i)
 
+// TODO: Can we optimise this with a bit-test on the LSB instead of a lookup table?
 BROWOFFS:				// Screen_Bitmap row offsets (even/odd)
 .pc = * "BROWOFFS"		// Screen_Bitmap row offsets (24 bytes)
 .fill 12,[0,8]			// 0=even row, 8=odd row

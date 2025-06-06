@@ -6,7 +6,7 @@
 
 dispatch_page:
 .pc = * "dispatch_page"
-.byte f40_runtime_constants.SCREEN_ROWS-1					// Push first routine on the page up a byte so JSR/RTS dispatch doesn't underflow
+.byte f40_runtime_constants.SCREEN_ROWS						// Push first routine on the page up a byte so JSR/RTS dispatch doesn't underflow
 
 // Handle control code $94 (INSERT)
 insert:

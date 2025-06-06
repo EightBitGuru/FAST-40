@@ -324,8 +324,6 @@ movecrsr:	jmp f40_controlcode_handlers.cursor_left		// [3]		move cursor left
 insert_blank_line:
 .pc = * "insert_blank_line"
 {
-.break
-//TODO:		B0rked
 			lda f40_runtime_memory.LINECONT,x				// [5]		get continuation byte for this line
 			bne exit										// [2/3]	scram if already a continuation
 
@@ -339,15 +337,22 @@ checkspace:	cmp (vic20.os_zpvars.SCRNLNL),y					// [6]		find last non-space char
 notspace:	tya 											// [2]		move to .A to set flags
 			bmi set_continuation_previous					// [3]		just set continuation byte if no insert needed
 
+			// stash address of what is currently the last line
+			stx f40_runtime_memory.REGXSAVE 				// [3]		stash current row
+			ldx #f40_runtime_constants.SCREEN_ROWS			// [3]		last line
+			jsr get_line_address 							// [6]		get address of last line
+			sty f40_runtime_memory.TEMPAL					// [3]		stash address lo-byte in temporary slot
+			sta f40_runtime_memory.TEMPAH					// [3]		stash address hi-byte in temporary slot
+		
 			// handle insert on bottom row of screen
+			ldx f40_runtime_memory.REGXSAVE 				// [3]		get stashed row
 			cpx #f40_runtime_constants.SCREEN_ROWS			// [2]		check if on bottom row
 			bne calclines									// [3/2]	do insert if not
 			jsr set_continuation_previous					// [3]		just set continuation byte if no insert needed
 			bne clearrow									// [3/3]	clear bottow row in TEMPAL/H and scram
 
 			// shuffle continuation table and text buffer sequence table 'down' a row
-calclines:	stx f40_runtime_memory.REGXSAVE 				// [3]		stash current row
-			lax f40_controlcode_handlers.dispatch_page		// [4]		get screen line constant (22) to .A and .X
+calclines:	lax f40_controlcode_handlers.dispatch_page		// [4]		get screen line constant (22) to .A and .X
 			sec												// [2]		set Carry for subtraction
 			sbc f40_runtime_memory.REGXSAVE 				// [3]		subtract stashed row
 			tay	 											// [2]		set line shuffle counter
@@ -363,15 +368,9 @@ copyloop:	lda f40_runtime_memory.TXTBUFSQ,x 				// [5]		get buffer key byte
 			jsr set_continuation_current					// [6]		set continuation byte
 			lda f40_runtime_memory.TXTBUFOF 				// [4]		get text buffer sequence overflow byte
 			sta f40_runtime_memory.TXTBUFSQ,x 				// [5]		insert into new line slot
-			iny												// [2]		.Y = 0
-			sty f40_runtime_memory.LINCNTOF 				// [4]		clear line continuation overflow
-
-			// clear bottom row in text buffer
-clearrow:	ldx #f40_runtime_constants.SCREEN_ROWS			// [3]		last line
-			jsr get_line_address 							// [6]		get address of last line
-			sty f40_runtime_memory.TEMPAL					// [3]		stash address lo-byte in temporary slot
-			sta f40_runtime_memory.TEMPAH					// [3]		stash address hi-byte in temporary slot
-			jmp clear_text_bytes 							// [3/3]	clear bottom row in TEMPAL/H
+			lda #0											// [2]
+			sta f40_runtime_memory.LINCNTOF 				// [4]		clear line continuation overflow
+clearrow:	jmp clear_text_bytes 							// [3/3]	clear new line in TEMPAL/H
 }
 
 
@@ -404,6 +403,8 @@ set_continuation_current:
 insert_character:
 .pc = * "insert_character"
 {
+// TODO:	B0rked after inserting blank line
+//			And on third line of block
 			ldx vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
 			stx f40_runtime_memory.DRAWROWS					// [3]		stash redraw start row
 			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
@@ -415,6 +416,8 @@ checkline:	sty f40_runtime_memory.REGYSAVE 				// [3]		stash last continuation b
 			lda (vic20.os_zpvars.SCRNLNL),y					// [5]		get end-of-line character
 			pha												// [3]		stash for shuffle later
 			inx												// [2]		increment row for next line
+// TODO:	We can remove this test as the overflow byte is always zero
+//			But then .Y changes and propagates into the rest of the routine
 			cpx #f40_runtime_constants.SCREEN_ROWS+1		// [2]		check if beyond last screen line
 			bcs	allchecked									// [2/3]	skip further line checks if past last line
 			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
@@ -449,7 +452,7 @@ scroll:		jsr scroll_lines_up								// [6]		scroll the screen
 			dex												// [2]		... twice
 			stx vic20.os_zpvars.CRSRROW						// [3]		reset cursor row
 			stx f40_runtime_memory.DRAWROWS					// [3]		reset redraw start row
-			ldx #22											// [2]		set current row
+			ldx #f40_runtime_constants.SCREEN_ROWS-1		// [2]		set current row
 			jsr set_continuation_previous					// [6]		set continuation byte for new line
 setline:	jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
 
