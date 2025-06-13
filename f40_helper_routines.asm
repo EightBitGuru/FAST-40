@@ -111,7 +111,6 @@ redraw_lines_to_bottom:
 redraw_line_range:
 .pc = * "redraw_line_range"
 {
-//.break
 			sta f40_runtime_memory.DRAWROWS					// [3]		stash redraw upper line limit
 setrow:		stx f40_runtime_memory.REGXSAVE					// [3]		stash line for later
 			jsr set_line_address							// [6]		set address of line in TEMPAL/H
@@ -119,7 +118,7 @@ setrow:		stx f40_runtime_memory.REGXSAVE					// [3]		stash line for later
 			lsr												// [2]		divide by two for character matrix row
 			tay												// [2]		stash in .Y for index into row offset table
 
-			// get matrix character for column 19
+			// get matrix character for column 19 of matrix row in .Y
 			lda #19											// [2]		matrix column
 			clc												// [2]		clear Carry for addition
 			adc f40_static_data.CROWOFFS,y					// [4]		calculate character matrix index
@@ -145,8 +144,15 @@ getchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash column index for lat
 			adc f40_runtime_memory.CASEFLAG					// [3]		add renderer glyph case offset
 			sta f40_runtime_memory.TEMPCH					// [3]		set data read address hi-byte
 
-			// set second (right) character data address
+			// check if both characters in this pair are the same
+//.break
 			iny												// [2]		next column
+			txa												// [2]		move character to .A
+			cmp (f40_runtime_memory.TEMPAL),y				// [5]		compare character from line
+			beq samechar									// [2/3]	simple copy if the same
+
+			// set second (right) character data address
+//			iny												// [2]		next column
 			lax (f40_runtime_memory.TEMPAL),y				// [5]		get character from line
 			lda f40_static_data.GLPHADDR.lo,x				// [4]		get character glyph data address lo-byte
 			sta f40_runtime_memory.TEMPDL					// [3]		set data read address lo-byte
@@ -154,9 +160,9 @@ getchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash column index for lat
 			clc												// [2]		clear Carry for addition
 			adc f40_runtime_memory.CASEFLAG					// [3]		add renderer glyph case offset
 			sta f40_runtime_memory.TEMPDH					// [3]		set data read address hi-byte
-			ldy #7											// [2]		glyph bytes to process
 
 			// merge character data with bitmap
+			ldy #7											// [2]		glyph bytes to process
 merge:		lda (f40_runtime_memory.TEMPCL),y				// [5]		get left character glyph data byte
 			and #$F0										// [2]		mask-off right nybble
 			sta f40_runtime_memory.LINECHAR					// [3]		stash left nybble
@@ -166,9 +172,18 @@ merge:		lda (f40_runtime_memory.TEMPCL),y				// [5]		get left character glyph da
 			sta (f40_runtime_memory.TEMPBL),y				// [6]		set bitmap byte
 			dey												// [2]		decrement glyph byte counter
 			bpl merge										// [3/2]	loop for next glyph byte
+			bmi setaddr 									// [3/3]	go for next character pair
+
+			// copy two identical characters to bitmap
+samechar:	ldy #7											// [2]		glyph bytes to process
+copyloop:	lda (f40_runtime_memory.TEMPCL),y				// [5]		get left character glyph data byte
+			sta (f40_runtime_memory.TEMPBL),y				// [6]		set bitmap byte
+			dey												// [2]		decrement glyph byte counter
+			bpl copyloop									// [3/2]	loop for next glyph byte
 
 			// decrement bitmap address for next character pair
-			lda f40_runtime_memory.TEMPBL					// [3]		get draw address lo-byte
+setaddr:	lda f40_runtime_memory.TEMPBL					// [3]		get draw address lo-byte
+			clc												// [2]		clear Carry for subtraction
 			sbc #191										// [2]		subtract for previous column
 			sta f40_runtime_memory.TEMPBL					// [3]		set draw address lo-byte
 			bcs nextcol										// [3/2]	skip hi-byte decrement if no wrap
@@ -242,6 +257,7 @@ settext:	lda #0											// [2]
 delete_character:
 .pc = * "delete_character"
 {
+//.break
 			lax vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
 			ora vic20.os_zpvars.CRSRLPOS					// [3]		merge cursor column (0-39)
 			beq exit										// [2/3]	scram if at top-left corner
@@ -335,16 +351,20 @@ checkspace:	cmp (vic20.os_zpvars.SCRNLNL),y					// [6]		find last non-space char
 			dey												// [2]		decrement character index
 			bpl checkspace									// [3/2]	loop for next character
 notspace:	tya 											// [2]		move to .A to set flags
-			bmi set_continuation_previous					// [3]		just set continuation byte if no insert needed
+			bmi set_continuation_previous					// [3/2]	just set continuation byte if no insert needed
 
-			// handle insert on bottom row of screen
+			// set line address for bottom row
 			stx f40_runtime_memory.REGXSAVE 				// [3]		stash current row
 			ldx #f40_runtime_constants.SCREEN_ROWS			// [3]		last line (before shuffle)
 			jsr set_line_address							// [6]		set address of line in TEMPAL/H
+
+			// check which line insert is happening
 			ldx f40_runtime_memory.REGXSAVE 				// [3]		get stashed row
 			cpx #f40_runtime_constants.SCREEN_ROWS			// [2]		check if on bottom row
 			bne calclines									// [3/2]	do insert if not
-			jsr set_continuation_previous					// [3]		just set continuation byte if no insert needed
+
+			// no insert needed on bottom row
+			jsr set_continuation_previous					// [3]		just set continuation byte
 			jmp clear_text_bytes 							// [3/3]	clear row in TEMPAL/H
 
 			// shuffle continuation table and text buffer sequence table 'down' a row
@@ -399,6 +419,7 @@ set_continuation_current:
 insert_character:
 .pc = * "insert_character"
 {
+//.break
 			ldx vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
 			stx f40_runtime_memory.DRAWROWS					// [3]		stash redraw start row
 
