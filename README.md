@@ -4,7 +4,7 @@ FAST-40 is a cartridge ROM program for the Commodore VIC-20 which reconfigures t
 
 No hardware modification is required.
 
-Other (vintage) 40-column programs typically suffer from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the ground up to render an artifact-free 40x24 text mode with performance comparable to the hardware-assisted 22x23 display, whilst faithfully reproducing standard screen-editor functionality. In tests, FAST-40 character output rates match (or exceed) stock speeds.
+Other (vintage) 40-column programs typically suffer from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the ground up to render an artifact-free 40x24 text mode with performance comparable to the hardware-assisted 22x23 display, whilst faithfully reproducing standard screen-editor functionality. In tests, FAST-40 character output rates match or exceed stock speeds.
 
 FAST-40 works under emulation and on real VIC-20 hardware - it can be attached as an auto-start cartridge in VICE (see below) or burned/flashed/loaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
 
@@ -166,16 +166,23 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Fixed a bug where deleting a character from column 1 of an unlinked line produced an unwanted side-effect on the previous line
 * Fixed a bug where the screen-scroll CTRL-delay code intermittently failed to execute properly (reported by **tokra@denial**)
 
-### Release (2nd May 2025)
+### Release v1.0 (2nd May 2025)
 * Fixed a bug where the startup RAM detection wasn't triggering a clean system reset if BLK1 is empty
 * Fixed the JiffyDOS showstopper crash (JiffyDOS rearranges some code in the SHIFT/CTRL/C= keypress logic)
 * Added the JiffyDOS banner to the startup message (if present)
 
+### Release v1.1 (xx June 2025)
+* Rendering performance increased from 92% to 107% of stock display speed (FAST-40 is now faster at drawing the 40x24 mode than the stock ROM is at drawing 22x23)
+* FAST-40 now always requires 3K in BLK0 and leaves all 8K blocks completely free for BASIC
+* There has been a small reduction of the runtime memory footprint in Page 2
+* Line redraws triggered by INS/DEL or case-switching are now up to 30% faster
+* SHIFT/RUNSTOP behaviour now adapts to JiffyDOS Kernal presence
+* Fixed a bug where switching case during a screen-scroll event triggered a crash
+
 ## The Wishlist
 
-The following improvements and enhancements may make it into the project if time, motivation, and code space permit:
+The following improvements and enhancements may make it into the project if time, motivation, and memory availability permit:
 
-* Optimise the line-redraw logic, which is currently somewhat inefficient
 * Integrate the display matrix setup logic into the RUNSTOP/RESTORE handler for better breakage recovery
 * Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a full hold until released
 * Add a CTRL-key modifier to the cursor control logic to allow jumping to the start/end of physical/logical lines

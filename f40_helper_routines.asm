@@ -145,14 +145,12 @@ getchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash column index for lat
 			sta f40_runtime_memory.TEMPCH					// [3]		set data read address hi-byte
 
 			// check if both characters in this pair are the same
-//.break
 			iny												// [2]		next column
 			txa												// [2]		move character to .A
 			cmp (f40_runtime_memory.TEMPAL),y				// [5]		compare character from line
 			beq samechar									// [2/3]	simple copy if the same
 
 			// set second (right) character data address
-//			iny												// [2]		next column
 			lax (f40_runtime_memory.TEMPAL),y				// [5]		get character from line
 			lda f40_static_data.GLPHADDR.lo,x				// [4]		get character glyph data address lo-byte
 			sta f40_runtime_memory.TEMPDL					// [3]		set data read address lo-byte
