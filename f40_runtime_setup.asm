@@ -71,7 +71,7 @@ copychar:	lda f40_static_data.MATDATA-1,y					// [4]		get matrix character
 			jsr vic20.basic.INITZP							// [6]		initialise BASIC zero-page data
 			jsr f40_helper_routines.reset_vectors			// [6]		reset KERNAL and FAST-40 vectors
 
-			// set VIC for PAL or NTSC
+			// check for PAL or NTSC
 			ldy #0											// [2]		initialise bitmerge value
 			lda #1											// [2]		raster line #2 (register counts in twos)
 wait2:		cmp vic20.vic.VCRASTER							// [4]		check for line
