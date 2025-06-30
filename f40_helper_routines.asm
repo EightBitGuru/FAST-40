@@ -255,7 +255,6 @@ settext:	lda #0											// [2]
 delete_character:
 .pc = * "delete_character"
 {
-//.break
 			lax vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
 			ora vic20.os_zpvars.CRSRLPOS					// [3]		merge cursor column (0-39)
 			beq exit										// [2/3]	scram if at top-left corner
@@ -265,65 +264,37 @@ delete_character:
 
 			// set redraw start row
 			jsr f40_interrupt_handlers.undraw_cursor		// [6]		undraw cursor if required
-			lda vic20.os_zpvars.CRSRLPOS					// [3]		get cursor column
-			bne setfirst 									// [3/2]	skip row decrement if not first column
-			dex												// [2]		start at previous row if deleting from column 0
-setfirst:	stx f40_runtime_memory.DRAWROWS					// [3]		stash redraw start row
 
-			// stash start-of-line wrap characters
-nextline:	inx												// [2]		increment row for next line
-			cpx #f40_runtime_constants.SCREEN_ROWS+1		// [2]		check if beyond last screen line
-			bcs	allchecked									// [2/3]	skip further line checks if past last line
- 			lda f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
-			beq	allchecked									// [2/3]	skip further line checks if end of group
- 			jsr set_line_pointer 							// [6]		set line buffer pointer to next line
-			ldy #0											// [2]
-			lda (vic20.os_zpvars.SCRNLNL),y					// [5]		get first character from this line
-			pha												// [3]		ST stash for shuffle wrap later
-			jmp nextline									// [3]		loop back for next line
-allchecked:	lda #vic20.screencodes.SPACE					// [2]		[SPACE] for the end of the last line
-			pha												// [3]		ST stash for shuffle wrap later
+			// initialise work buffer address (minus first line length)
+.break
+			lda #<f40_runtime_memory.InsDel_Buffer-39		// [3]		get work buffer pointer lo-byte
+			sta f40_runtime_memory.TEMPBL					// [3]		set buffer pointer lo-byte
+			lda #>f40_runtime_memory.InsDel_Buffer			// [3]		get work buffer pointer hi-byte
+			sta f40_runtime_memory.TEMPBH					// [3]		set buffer pointer hi-byte
 
-			// set redraw end row and shuffle characters back
-			dex												// [2]		back up to previous line
- 			stx f40_runtime_memory.DRAWROWE					// [3]		stash for redraw end
-prevline:	jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
-			sta f40_runtime_memory.TEMPAH					// [3]		set temporary address hi-byte
-			ldy vic20.os_zpvars.SCRNLNL						// [3]		get screen line pointer lo-byte
-			dey												// [2]		decrement for shuffle
-			sty f40_runtime_memory.TEMPAL					// [3]		set temporary address lo-byte
-			ldy vic20.os_zpvars.CRSRLPOS					// [3]		get cursor column
-			cpx f40_runtime_memory.DRAWROWS					// [3]		compare this row with redraw start row
-			bcc redraw 										// [2/3]	less than, so all rows processed
-			beq checkcol									// [2/3]	do column check if on first row
-			ldy #1											// [2]		set shuffle start column
-			bne shuffle 									// [3/3]	shuffle line
-checkcol:	cpy #0											// [2]		check if first column
-			bne shuffle										// [3/2]	do line shuffle if not deleting from first column
+			// Copy logical lines to work buffer
+getcont:	lda f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
+			beq line1										// [2/3]	exit when we find the first line
+			dex												// [2]		decrement line index
+			bpl getcont										// [3/2]	loop until we find first line of block
+line1:		jsr set_line_address							// [6]		set address of line in TEMPAL/H
 
-			// just overwrite last character on this row
-			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set last column
-			inc f40_runtime_memory.TEMPAL					// [5]		increment temporary address lo-byte
-			bne wrapchar									// [3/3]	set character
 
-			// shuffle characters down on this row
-shuffle:	sty f40_runtime_memory.REGYSAVE					// [3]		stash shuffle start column
-			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for current line
-			lda f40_static_data.LINELEN,y					// [4]		get line length for current line
-			sta f40_runtime_memory.REGASAVE					// [3]		stash line length for compare later
-			ldy f40_runtime_memory.REGYSAVE					// [3]		get shuffle start column
-movechar:	lda (vic20.os_zpvars.SCRNLNL),y					// [5]		get character
-			sta (f40_runtime_memory.TEMPAL),y				// [6]		set character one position back
-			iny												// [2]		increment character index
-			cpy f40_runtime_memory.REGASAVE					// [3]		check if at end of line
-			bcc movechar									// [3/2]	less than, loop until done
-			beq movechar									// [3/2]	equal, loop until done
 
-			// wrap first character to end of previous line
-wrapchar:	pla												// [4]		ST get end-of-line character
-			sta (f40_runtime_memory.TEMPAL),y				// [6]		set last character on line
-			dex												// [2]		back up to previous line
-			bpl prevline									// [3/3]	loop until all rows shuffled
+
+
+
+			// lda #vic20.screencodes.SPACE					// [2]		[SPACE]
+			// sta f40_runtime_memory.InsDel_Buffer+40			// [4]		clear byte at end of work buffer
+			// sta f40_runtime_memory.InsDel_Buffer+80			// [4]		clear byte at end of work buffer
+			// sta f40_runtime_memory.InsDel_Buffer+88			// [4]		clear byte at end of work buffer
+
+
+			// Shuffle work buffer down 1 byte at cursor position
+
+			// Copy work buffer back to logical lines
+
+			// Clear contunation marker if line length has dropped below a line boundary
 
 			// refresh modified rows
 redraw:		lda f40_runtime_memory.DRAWROWS					// [3]		get redraw start row
@@ -331,6 +302,109 @@ redraw:		lda f40_runtime_memory.DRAWROWS					// [3]		get redraw start row
 			jsr redraw_line_range							// [6]		redraw changed lines
 movecrsr:	jmp f40_controlcode_handlers.cursor_left		// [3]		move cursor left
 }
+
+
+// Copy a text buffer row to the work buffer
+// => TEMPAL/H	Pointer to specified buffer row
+// => TEMPBL/H	Pointer to work buffer
+copy_row_to_buffer:
+.pc = * "copy_row_to_buffer"
+{
+.break
+			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for current line
+			lda f40_runtime_memory.TEMPBL					// [3]		get work buffer address lo-byte
+			clc												// [2]		clear Carry for addition
+			adc f40_static_data.LINELEN,y					// [4]		add line length for current line
+			sta f40_runtime_memory.TEMPBL					// [3]		set work buffer address lo-byte
+			lda f40_static_data.LINELEN,y					// [4]		get line length for current line
+			tay 											// [2]		set copy count
+copychar:	lda (f40_runtime_memory.TEMPAL),y				// [5]		get character from buffer row
+			sta (f40_runtime_memory.TEMPBL),y				// [6]		set character in work buffer
+			dey												// [2]		decrement count
+			bpl copychar									// [3/2]	loop until done
+			rts												// [6]
+}
+
+// // Delete a character and handle continuation line contraction
+// delete_character:
+// .pc = * "delete_character"
+// {
+// //.break
+// 			lax vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
+// 			ora vic20.os_zpvars.CRSRLPOS					// [3]		merge cursor column (0-39)
+// 			beq exit										// [2/3]	scram if at top-left corner
+//  			lda f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
+// 			ora vic20.os_zpvars.CRSRLPOS					// [3]		merge cursor column (0-39)
+// 			beq movecrsr									// [2/3]	scram if first column of first line of group
+
+// 			// set redraw start row
+// 			jsr f40_interrupt_handlers.undraw_cursor		// [6]		undraw cursor if required
+// 			lda vic20.os_zpvars.CRSRLPOS					// [3]		get cursor column
+// 			bne setfirst 									// [3/2]	skip row decrement if not first column
+// 			dex												// [2]		start at previous row if deleting from column 0
+// setfirst:	stx f40_runtime_memory.DRAWROWS					// [3]		stash redraw start row
+
+// 			// stash start-of-line wrap characters
+// nextline:	inx												// [2]		increment row for next line
+// 			cpx #f40_runtime_constants.SCREEN_ROWS+1		// [2]		check if beyond last screen line
+// 			bcs	allchecked									// [2/3]	skip further line checks if past last line
+//  			lda f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
+// 			beq	allchecked									// [2/3]	skip further line checks if end of group
+//  			jsr set_line_pointer 							// [6]		set line buffer pointer to next line
+// 			ldy #0											// [2]
+// 			lda (vic20.os_zpvars.SCRNLNL),y					// [5]		get first character from this line
+// 			pha												// [3]		ST stash for shuffle wrap later
+// 			jmp nextline									// [3]		loop back for next line
+// allchecked:	lda #vic20.screencodes.SPACE					// [2]		[SPACE] for the end of the last line
+// 			pha												// [3]		ST stash for shuffle wrap later
+
+// 			// set redraw end row and shuffle characters back
+// 			dex												// [2]		back up to previous line
+//  			stx f40_runtime_memory.DRAWROWE					// [3]		stash for redraw end
+// prevline:	jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
+// 			sta f40_runtime_memory.TEMPAH					// [3]		set temporary address hi-byte
+// 			ldy vic20.os_zpvars.SCRNLNL						// [3]		get screen line pointer lo-byte
+// 			dey												// [2]		decrement for shuffle
+// 			sty f40_runtime_memory.TEMPAL					// [3]		set temporary address lo-byte
+// 			ldy vic20.os_zpvars.CRSRLPOS					// [3]		get cursor column
+// 			cpx f40_runtime_memory.DRAWROWS					// [3]		compare this row with redraw start row
+// 			bcc redraw 										// [2/3]	less than, so all rows processed
+// 			beq checkcol									// [2/3]	do column check if on first row
+// 			ldy #1											// [2]		set shuffle start column
+// 			bne shuffle 									// [3/3]	shuffle line
+// checkcol:	cpy #0											// [2]		check if first column
+// 			bne shuffle										// [3/2]	do line shuffle if not deleting from first column
+
+// 			// just overwrite last character on this row
+// 			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set last column
+// 			inc f40_runtime_memory.TEMPAL					// [5]		increment temporary address lo-byte
+// 			bne wrapchar									// [3/3]	set character
+
+// 			// shuffle characters down on this row
+// shuffle:	sty f40_runtime_memory.REGYSAVE					// [3]		stash shuffle start column
+// 			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for current line
+// 			lda f40_static_data.LINELEN,y					// [4]		get line length for current line
+// 			sta f40_runtime_memory.REGASAVE					// [3]		stash line length for compare later
+// 			ldy f40_runtime_memory.REGYSAVE					// [3]		get shuffle start column
+// movechar:	lda (vic20.os_zpvars.SCRNLNL),y					// [5]		get character
+// 			sta (f40_runtime_memory.TEMPAL),y				// [6]		set character one position back
+// 			iny												// [2]		increment character index
+// 			cpy f40_runtime_memory.REGASAVE					// [3]		check if at end of line
+// 			bcc movechar									// [3/2]	less than, loop until done
+// 			beq movechar									// [3/2]	equal, loop until done
+
+// 			// wrap first character to end of previous line
+// wrapchar:	pla												// [4]		ST get end-of-line character
+// 			sta (f40_runtime_memory.TEMPAL),y				// [6]		set last character on line
+// 			dex												// [2]		back up to previous line
+// 			bpl prevline									// [3/3]	loop until all rows shuffled
+
+// 			// refresh modified rows
+// redraw:		lda f40_runtime_memory.DRAWROWS					// [3]		get redraw start row
+// 			ldx f40_runtime_memory.DRAWROWE					// [3]		get redraw end row
+// 			jsr redraw_line_range							// [6]		redraw changed lines
+// movecrsr:	jmp f40_controlcode_handlers.cursor_left		// [3]		move cursor left
+// }
 
 
 // Insert blank line and/or set line continuation
@@ -631,17 +705,17 @@ loop:		lda f40_runtime_memory.LINECONT-206,x			// [5]		get byte
 			inx												// [2]
 			bne loop										// [3/2]	loop until done
 
-			// loop underflow bytes around to end of table
-			lda f40_runtime_memory.LINCNTUF					// [4]		get old first entry
-			sta f40_runtime_memory.LINECONT+22				// [4]		stash in line 22
-			lda f40_runtime_memory.LINCNTUF+1				// [4]		get old second entry
-			sta f40_runtime_memory.LINECONT+23				// [4]		stash in line 23
+			// reset continuation bytes
+			stx f40_runtime_memory.LINECONT 				// [4]		clear first row line continuation
+			stx f40_runtime_memory.LINECONT+22				// [4]		clear last two rows line continuation
+			stx f40_runtime_memory.LINECONT+23				// [4]
+			stx f40_runtime_memory.LINCNTOF 				// [4]		clear overflow line continuation
+
+			// loop buffer sequence bytes around to end of table
 			lda f40_runtime_memory.TXTBUFUF					// [4]		get old first entry
 			sta f40_runtime_memory.TXTBUFSQ+22				// [4]		stash in line 22
 			lda f40_runtime_memory.TXTBUFUF+1				// [4]		get old second entry
 			sta f40_runtime_memory.TXTBUFSQ+23				// [4]		stash in line 23
-			lda #0											// [2]
-			sta f40_runtime_memory.LINCNTOF 				// [4]		clear line continuation overflow
 
 			// clear text bytes for bottom two lines
 			ldx #f40_runtime_constants.SCREEN_ROWS-1		// [2]		first line to clear

@@ -40,7 +40,8 @@
 .label Memory_Bitmap    = $02FF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5-0->RAM bitmap
 
 // 3K BLK0
-.label Text_Buffer	    = $0C40		//	Text buffer (960 bytes to 0FFF)
+.label Text_Buffer	    = $0BE7		//	Text buffer (960 bytes to 0FA6)
+.label InsDel_Buffer	= $0FA7		//	Insert/Delete buffer (89 bytes to 0FFF)
 
 // Onboard RAM
 .label Character_Matrix	= $1000		//	Screen character matrix is 20x12 double-height chars -> 240 bytes to $10EF

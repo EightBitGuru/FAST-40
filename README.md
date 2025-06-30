@@ -171,13 +171,15 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Fixed the JiffyDOS showstopper crash (JiffyDOS rearranges some code in the SHIFT/CTRL/C= keypress logic)
 * Added the JiffyDOS banner to the startup message (if present)
 
-### Release v1.1 (xx June 2025)
+### Release v1.1 (xx July 2025)
 * Rendering performance increased from 92% to 107% of stock display speed (FAST-40 is now faster at drawing the 40x24 mode than the stock ROM is at drawing 22x23)
+* Bitmap refreshes triggered by a case-switch event or INS/DEL keypress events are now up to 30% faster
 * FAST-40 now always requires 3K in BLK0 and leaves all 8K blocks completely free for BASIC
-* There has been a small reduction of the runtime memory footprint in Page 2
-* Line redraws triggered by INS/DEL or case-switching are now up to 30% faster
-* SHIFT/RUNSTOP behaviour now adapts to JiffyDOS Kernal presence
-* Fixed a bug where switching case during a screen-scroll event triggered a crash
+* The runtime memory footprint in Page 2 has been reduced
+* SHIFT/RUNSTOP keypress behaviour now adapts to JiffyDOS Kernal presence
+* Fixed a bug where line continuation markers were not correctly reset after a screen-scroll event
+* ##Fixed a bug where case-switch events conflicted with screen-scroll events and triggered a crash
+* ##Refactored INS/DEL keypress logic to reduce complexity and eliminate Stack usage
 
 ## The Wishlist
 
