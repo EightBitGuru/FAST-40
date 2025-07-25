@@ -58,13 +58,42 @@ CROWOFFS:				// Character row offsets
 .pc = * "CROWOFFS"		// Character row offsets (13 bytes)
 .byte 0,20,40,60,80,100,120,140,160,180,200,220,240
 
+LINELEN:				// Maximum line length for each line in a continuation group
+.pc = * "LINELEN"		// Zero-based logical line lengths (3 bytes)
+.byte 39,39,7
+
+IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
+.pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
+.byte <f40_runtime_memory.InsDel_Buffer
+.byte <f40_runtime_memory.InsDel_Buffer+40
+.byte <f40_runtime_memory.InsDel_Buffer+80
+
 SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8 / LIST
 .pc = * "SRSLOAD"		// Command text (13 bytes)
 .byte 'L','O'+64		// LOAD
 .text @"\"$\",8\$0d"	// "$",8 [CR]
 .text @"LIST\$0d"		// LIST
 
-.fill 26,$aa 			// Spare bytes
+SRSRUN:					// SHIFT+RUNSTOP bytes for RUN
+.pc = * "SRSRUN"		// Command text (5 bytes)
+.text @"RUN "
+
+WEDGECMD:				// BASIC wedge command
+.pc = * "WEDGECMD"		// Command text (5 bytes)
+.text "RESET"
+
+JIFFYID:				// JiffyDOS identifier
+.pc = * "JIFFYID"		// Identifier string (5 bytes)
+.text "JIFFY"
+
+BLNKTIME:				// Cursor blink timers
+.pc = * "BLNKTIME"		// Cursor phase on/off timer values (2 bytes)
+.byte 19,13
+
+VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
+.pc = * "VICPAL"		// VIC register values (2 bytes)
+.byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
+.byte %00100100			// $9001 - b7-0 = screen y-pos
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
@@ -75,7 +104,6 @@ IDMSG2:
 IDMSG3:
 .byte vic20.screencodes.RED
 .text @"FAST-40 1.1 (C) 2025 8BG\$0d\$0d"
-//.byte vic20.screencodes.BLACK
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
@@ -90,6 +118,9 @@ BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
 	}
 }
 
+// Primary Screen Matrix is 20x12 chars  ->  240 bytes at $1000-$10EF (double-height chars)
+// Primary Colour Matrix is 20x12 chars  ->  240 bytes at $9600-$96EF (double-height chars)
+// Primary Screen Screen_Bitmap is 160x192 bits -> 3840 bytes at $1100-$1FFF
 VICNTSC:				// 6560 (NTSC) VIC initialisation data
 .pc = * "VICNTSC"		// VIC register values
 .byte %00000111			// $9000 - b7 = interlace; b6-0 = screen x-pos
@@ -108,9 +139,6 @@ VICNTSC:				// 6560 (NTSC) VIC initialisation data
 .byte %00000000			// $900D - b7-0 = noise frequency
 .byte %00000000			// $900E - b7-4 = auxilliary colour; b3-0 = sound volume
 .byte %00011011			// $900F - b7-4 = background colour; b3 = inverse / normal; b2-0 = border colour
-// Primary Screen Matrix is 20x12 chars  ->  240 bytes at $1000-$10EF (double-height chars)
-// Primary Colour Matrix is 20x12 chars  ->  240 bytes at $9600-$96EF (double-height chars)
-// Primary Screen Screen_Bitmap is 160x192 bits -> 3840 bytes at $1100-$1FFF
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
@@ -134,22 +162,7 @@ BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
 // .pc = * "B2TADDRH"
 // .fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*(i-1))]	// $00 - $0F plus Screen_Bitmap start address hi-byte
 
-VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
-.pc = * "VICPAL"		// VIC register values (2 bytes)
-.byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
-.byte %00100100			// $9001 - b7-0 = screen y-pos
-
-WEDGECMD:				// BASIC wedge command
-.pc = * "WEDGECMD"		// Command text (5 bytes)
-.text "RESET"
-
-SRSRUN:					// SHIFT+RUNSTOP bytes for RUN
-.pc = * "SRSRUN"		// Command text (5 bytes)
-.text @"RUN "
-
-JIFFYID:				// JiffyDOS identifier
-.pc = * "JIFFYID"		// Identifier string (5 bytes)
-.text "JIFFY"
+.fill 16,$aa 			// Spare bytes
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
@@ -169,21 +182,8 @@ MATDATA:				// Character matrix data for 20x12 (40x24) screen
 .byte $1A,$26,$32,$3E,$4A,$56,$62,$6E,$7A,$86,$92,$9E,$AA,$B6,$C2,$CE,$DA,$E6,$F2,$FE
 .byte $1B,$27,$33,$3F,$4B,$57,$63,$6F,$7B,$87,$93,$9F,$AB,$B7,$C3,$CF,$DB,$E7,$F3,$FF
 
-LINELEN:				// Maximum line length (0-based) for each line in a continuation group
-.pc = * "LINELEN"
-.byte 39,39,7
+.fill 16,$aa 			// Spare bytes
 
-IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
-.pc = * "IDBUFFLO"
-.byte <f40_runtime_memory.InsDel_Buffer
-.byte <f40_runtime_memory.InsDel_Buffer+40
-.byte <f40_runtime_memory.InsDel_Buffer+80
-
-BLNKTIME:				// Cursor blink timers
-.pc = * "BLNKTIME"
-.byte 19,13
-
-.fill 8,$aa 			// Spare bytes
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256

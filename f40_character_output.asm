@@ -163,14 +163,13 @@ setmask:	sta f40_runtime_memory.CRSRMASK					// [3]		set cursor blink mask
 			adc f40_static_data.CROWOFFS,x					// [4]		add character matrix offset
 			tay												// [2]		set character matrix index
 			ldx f40_runtime_memory.Character_Matrix,y		// [4]		get matrix character
-			ldy f40_static_data.BITADDRL-16,x				// [5]		get bitmap address lo-byte
 			lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
 			and #%00000001									// [2]		mask LSB (odd/even)
-			beq setbyte										// [3/2]	skip offset addition for even columns
-			tya	 											// [2]		move lo-byte for addition
-			adc #8 											// [2]		add offset
-			tay 											// [2]		move lo-byte back
-setbyte:	sty f40_runtime_memory.CRSRBITL					// [3]		set cursor draw address lo-byte
+			asl												// [2]		multiply by 2...
+			asl												// [2]		... by 4 ...
+			asl												// [2]		... by 8
+			adc f40_static_data.BITADDRL-16,x				// [5]		add bitmap address lo-byte
+			sta f40_runtime_memory.CRSRBITL					// [3]		set cursor draw address lo-byte
 			lda f40_static_data.BITADDRH-16,x				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.CRSRBITH					// [3]		set cursor draw address hi-byte
 			pla												// [4]		pull .Y, .X and .A from Stack

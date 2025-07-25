@@ -128,17 +128,15 @@ setrow:		stx f40_runtime_memory.REGXSAVE					// [3]		stash line for later
 
 			// calculate bitmap draw address using matrix character
 // TODO: Test when InsDel starts calling this again
-			ldx f40_static_data.BITADDRL-16,y				// [5]		get bitmap address lo-byte
-			lda f40_runtime_memory.REGXSAVE					// [3]		get stashed cursor row (0-23)
+//.break
+			//lda f40_runtime_memory.REGXSAVE					// [3]		get stashed cursor row (0-23)
+			txa 											// [2]		get current line
 			and #%00000001									// [2]		mask LSB (odd/even)
-			beq setbyte										// [3/2]	skip offset addition for even columns
-			txa	 											// [2]		move lo-byte for addition
-			adc #8 											// [2]		add offset
-			tax 											// [2]		move lo-byte back
-setbyte:	stx f40_runtime_memory.CRSRBITL					// [3]		set cursor draw address lo-byte
-			// lda f40_static_data.BITADDRL-16,y				// [5]		get bitmap address lo-byte
-			// adc f40_static_data.BROWOFFS,x					// [4]		add stashed row offset (0 or 8)
-			// sta f40_runtime_memory.TEMPBL					// [3]		set draw address lo-byte
+			asl												// [2]		multiply by 2...
+			asl												// [2]		... by 4 ...
+			asl												// [2]		... by 8
+			adc f40_static_data.BITADDRL-16,y				// [5]		add bitmap address lo-byte
+			sta f40_runtime_memory.TEMPBL					// [3]		set draw address lo-byte
 			lda f40_static_data.BITADDRH-16,y				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.TEMPBH					// [3]		set draw address hi-byte
 			ldy #38											// [2]		column index
@@ -274,11 +272,11 @@ delete_character:
 			ora vic20.os_zpvars.CRSRLPOS					// [3]		merge cursor column (0-39)
 			beq movecrsr									// [2/3]	scram if first column of first line of group
 
-			// Copy logical lines to work buffer
 			jsr f40_interrupt_handlers.undraw_cursor		// [6]		undraw cursor if required
 			lda #>f40_runtime_memory.InsDel_Buffer			// [3]		get work buffer hi-byte
 			sta f40_runtime_memory.TEMPBH					// [3]		set buffer pointer hi-byte
 
+			// Copy logical lines to work buffer
 getcont:	lda f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
 			beq setline										// [2/3]	exit when we find the first line
 			dex												// [2]		decrement line index
@@ -301,7 +299,7 @@ setline:	jsr set_line_address							// [6]		set address of line in TEMPAL/H
 			// Clear continuation marker if line length has dropped below a line boundary
 
 			// refresh modified rows
-.break
+//.break
 redraw:		lda f40_runtime_memory.DRAWROWS					// [3]		get redraw start row
 			ldx f40_runtime_memory.DRAWROWE					// [3]		get redraw end row
 			jsr redraw_line_range							// [6]		redraw changed lines
