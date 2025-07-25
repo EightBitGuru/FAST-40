@@ -54,11 +54,6 @@ TROWADD:
 TROWADDR:
 .lohifill 24,f40_runtime_memory.Text_Buffer+(40*i)
 
-// TODO: Can we optimise this with a bit-test on the LSB instead of a lookup table?
-BROWOFFS:				// Screen_Bitmap row offsets (even/odd)
-.pc = * "BROWOFFS"		// Screen_Bitmap row offsets (24 bytes)
-.fill 12,[0,8]			// 0=even row, 8=odd row
-
 CROWOFFS:				// Character row offsets
 .pc = * "CROWOFFS"		// Character row offsets (13 bytes)
 .byte 0,20,40,60,80,100,120,140,160,180,200,220,240
@@ -69,7 +64,7 @@ SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8 / LIST
 .text @"\"$\",8\$0d"	// "$",8 [CR]
 .text @"LIST\$0d"		// LIST
 
-.fill 1,$aa 			// Spare bytes
+.fill 26,$aa 			// Spare bytes
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
@@ -80,7 +75,7 @@ IDMSG2:
 IDMSG3:
 .byte vic20.screencodes.RED
 .text @"FAST-40 1.1 (C) 2025 8BG\$0d\$0d"
-.byte vic20.screencodes.BLACK
+//.byte vic20.screencodes.BLACK
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
@@ -112,7 +107,7 @@ VICNTSC:				// 6560 (NTSC) VIC initialisation data
 .byte %00000000			// $900C - b7-0 = oscillator 3 frequency
 .byte %00000000			// $900D - b7-0 = noise frequency
 .byte %00000000			// $900E - b7-4 = auxilliary colour; b3-0 = sound volume
-.byte %11101110			// $900F - b7-4 = background colour; b3 = inverse / normal; b2-0 = border colour
+.byte %00011011			// $900F - b7-4 = background colour; b3 = inverse / normal; b2-0 = border colour
 // Primary Screen Matrix is 20x12 chars  ->  240 bytes at $1000-$10EF (double-height chars)
 // Primary Colour Matrix is 20x12 chars  ->  240 bytes at $9600-$96EF (double-height chars)
 // Primary Screen Screen_Bitmap is 160x192 bits -> 3840 bytes at $1100-$1FFF
@@ -178,11 +173,17 @@ LINELEN:				// Maximum line length (0-based) for each line in a continuation gro
 .pc = * "LINELEN"
 .byte 39,39,7
 
+IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
+.pc = * "IDBUFFLO"
+.byte <f40_runtime_memory.InsDel_Buffer
+.byte <f40_runtime_memory.InsDel_Buffer+40
+.byte <f40_runtime_memory.InsDel_Buffer+80
+
 BLNKTIME:				// Cursor blink timers
 .pc = * "BLNKTIME"
 .byte 19,13
 
-.fill 11,$aa 			// Spare bytes
+.fill 8,$aa 			// Spare bytes
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256

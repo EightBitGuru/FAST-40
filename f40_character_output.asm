@@ -148,9 +148,6 @@ character_output_tidyup:
 .pc = * "character_output_tidyup"
 {
 			jsr f40_interrupt_handlers.undraw_cursor 		// [6]		undraw cursor if required
-			lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
-			lsr												// [2]		divide by two for character matrix row
-			tax												// [2]		stash in .X for index into row offset table
 			lda vic20.os_zpvars.CRSRLPOS					// [3]		get cursor position on logical line (0-87)
 			lsr												// [2]		divide by two for character matrix column
 			tay												// [2]		stash matrix column in .Y for later
@@ -158,15 +155,22 @@ character_output_tidyup:
 			bcs setmask										// [3/2]	skip switch to right character if odd
 			lda #%11110000									// [2]		set mask for right character (odd column)
 setmask:	sta f40_runtime_memory.CRSRMASK					// [3]		set cursor blink mask
+			lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
+			lsr												// [2]		divide by two for character matrix row
+			tax												// [2]		stash in .X for index into row offset table
 			tya												// [2]		get matrix column back from .Y
 			clc												// [2]		clear Carry for addition
 			adc f40_static_data.CROWOFFS,x					// [4]		add character matrix offset
 			tay												// [2]		set character matrix index
 			ldx f40_runtime_memory.Character_Matrix,y		// [4]		get matrix character
-			ldy vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
-			lda f40_static_data.BITADDRL-16,x				// [4]		get bitmap address lo-byte
-			adc f40_static_data.BROWOFFS,y					// [4]		add bitmap row offset (0 or 8)
-			sta f40_runtime_memory.CRSRBITL					// [3]		set cursor draw address lo-byte
+			ldy f40_static_data.BITADDRL-16,x				// [5]		get bitmap address lo-byte
+			lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
+			and #%00000001									// [2]		mask LSB (odd/even)
+			beq setbyte										// [3/2]	skip offset addition for even columns
+			tya	 											// [2]		move lo-byte for addition
+			adc #8 											// [2]		add offset
+			tay 											// [2]		move lo-byte back
+setbyte:	sty f40_runtime_memory.CRSRBITL					// [3]		set cursor draw address lo-byte
 			lda f40_static_data.BITADDRH-16,x				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.CRSRBITH					// [3]		set cursor draw address hi-byte
 			pla												// [4]		pull .Y, .X and .A from Stack
