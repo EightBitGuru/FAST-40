@@ -12,7 +12,7 @@
 .label CRSRUDRW         = $00DE		//	Cursor undraw flag (b7 -> 0=no undraw, 1=undraw)
 .label CRSRCOLF	        = $00DF		//	Cursor colour flag ($00=read cursor colour, $80=set cursor colour)
 .label CASEFLAG         = $00E0		//	Upper/Lower-case flag ($00=upper-case, $08=lower-case)
-.label LINECHAR         = $00E1     //  Character for bitmap merge / line insert refresh flag
+.label LINECHAR         = $00E1     //  Character for bitmap merge / InsDel line length
 .label DRAWROWS         = $00E2     //  Bitmap redraw start row
 .label DRAWROWE         = $00E3     //  Bitmap redraw end row
 .label REGASAVE	        = $00E4		//	A-register save byte
