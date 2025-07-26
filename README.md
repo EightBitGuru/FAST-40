@@ -176,10 +176,11 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Reworked bitmap line refresh performance up 30% when triggered by a case-switch or INS/DEL keypress event
 * Reworked memory usage so FAST-40 now only uses 3K in BLK0 and leaves all 8K blocks free for BASIC
 * Reworked INS/DEL keypress logic to reduce complexity and eliminate Stack usage
-* Fixed a bug where case-switch events conflicted with screen-scroll events and triggered a crash
+* ##Fixed a bug where case-switch events conflicted with screen-scroll events and triggered a crash
 * Fixed a bug where line continuation markers were not correctly reset after a screen-scroll event
 * Tweaked SHIFT/RUNSTOP keypress behaviour to adapt to JiffyDOS Kernal presence
 * Tweaked startup colours back to stock blue-on-white for NTSC visual clarity
+* ##Added .D64 image to package containing .PRG version of the binary
 
 ## The Wishlist
 

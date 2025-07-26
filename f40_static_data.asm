@@ -95,6 +95,8 @@ VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
 .byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
 .byte %00100100			// $9001 - b7-0 = screen y-pos
 
+.fill 2,$aa 			// Spare bytes
+
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
 .text @"** COMMODORE BASIC V2 **\$0d "
@@ -103,7 +105,7 @@ IDMSG2:
 .byte vic20.screencodes.CR
 IDMSG3:
 .byte vic20.screencodes.RED
-.text @"FAST-40 1.1 (C) 2025 8BG\$0d\$0d"
+.text @"FAST-40 1.1 (C) 2025 8BG\$0d\$0d"		// Must be followed by NULL
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
