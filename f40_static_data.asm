@@ -71,27 +71,14 @@ SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8 / LIST
 .text @"LIST\$0d"		// LIST
 
 SRSRUN:					// SHIFT+RUNSTOP bytes for RUN
-.pc = * "SRSRUN"		// Command text (5 bytes)
+.pc = * "SRSRUN"		// Command text (4 bytes)
 .text @"RUN "
 
 WEDGECMD:				// BASIC wedge command
 .pc = * "WEDGECMD"		// Command text (5 bytes)
 .text "RESET"
 
-JIFFYID:				// JiffyDOS identifier
-.pc = * "JIFFYID"		// Identifier string (5 bytes)
-.text "JIFFY"
-
-BLNKTIME:				// Cursor blink timers
-.pc = * "BLNKTIME"		// Cursor phase on/off timer values (2 bytes)
-.byte 19,13
-
-VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
-.pc = * "VICPAL"		// VIC register values (2 bytes)
-.byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
-.byte %00100100			// $9001 - b7-0 = screen y-pos
-
-.fill 5,$aa 			// Spare bytes
+.fill 14,$aa 			// Spare bytes
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
@@ -186,9 +173,20 @@ LINELEN:				// Maximum line length for each line in a continuation group
 
 LINEADD:				// Line length additions for each line in a continuation group
 .pc = * "LINEADD"		// Zero-based line additions (4 bytes)
-.byte 40,80,120
+.byte 0,40,80,120
 
-.fill 10,$aa 			// Spare bytes
+JIFFYID:				// JiffyDOS identifier
+.pc = * "JIFFYID"		// Identifier string (5 bytes)
+.text "JIFFY"
+
+BLNKTIME:				// Cursor blink timers
+.pc = * "BLNKTIME"		// Cursor phase on/off timer values (2 bytes)
+.byte 19,13
+
+VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
+.pc = * "VICPAL"		// VIC register values (2 bytes)
+.byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
+.byte %00100100			// $9001 - b7-0 = screen y-pos
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
