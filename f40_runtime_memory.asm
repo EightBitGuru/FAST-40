@@ -12,7 +12,7 @@
 .label CRSRUDRW         = $00DE		//	Cursor undraw flag (b7 -> 0=no undraw, 1=undraw)
 .label CRSRCOLF	        = $00DF		//	Cursor colour flag ($00=read cursor colour, $80=set cursor colour)
 .label CASEFLAG         = $00E0		//	Upper/Lower-case flag ($00=upper-case, $08=lower-case)
-.label LINECHAR         = $00E1     //  Character for bitmap merge / InsDel line length
+.label LINECHAR         = $00E1     //  Character for bitmap merge / work buffer extent
 .label DRAWROWS         = $00E2     //  Bitmap redraw start row
 .label DRAWROWE         = $00E3     //  Bitmap redraw end row
 .label REGASAVE	        = $00E4		//	A-register save byte
@@ -40,8 +40,8 @@
 .label Memory_Bitmap    = $02FF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5-0->RAM bitmap
 
 // 3K BLK0
-.label Text_Buffer	    = $0BE7		//	Text buffer (960 bytes to 0FA6)
-.label InsDel_Buffer	= $0FA7		//	Insert/Delete buffer (89 bytes to 0FFF)
+.label Text_Buffer	    = $0BC7		//	Text buffer (960 bytes to 0F86)
+.label InsDel_Buffer	= $0F87		//	Insert/Delete buffer (121 bytes to 0FFF)
 
 // Onboard RAM
 .label Character_Matrix	= $1000		//	Screen character matrix is 20x12 double-height chars -> 240 bytes to $10EF

@@ -58,10 +58,6 @@ CROWOFFS:				// Character row offsets
 .pc = * "CROWOFFS"		// Character row offsets (13 bytes)
 .byte 0,20,40,60,80,100,120,140,160,180,200,220,240
 
-LINELEN:				// Maximum line length for each line in a continuation group
-.pc = * "LINELEN"		// Zero-based logical line lengths (3 bytes)
-.byte 39,39,7
-
 IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
 .pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
 .byte <f40_runtime_memory.InsDel_Buffer
@@ -95,7 +91,7 @@ VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
 .byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
 .byte %00100100			// $9001 - b7-0 = screen y-pos
 
-.fill 2,$aa 			// Spare bytes
+.fill 5,$aa 			// Spare bytes
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
@@ -103,9 +99,9 @@ IDMSG1:					// FAST-40 startup banner
 .byte vic20.screencodes.NULL
 IDMSG2:
 .byte vic20.screencodes.CR
-IDMSG3:
+IDMSG3:					// Must be followed by NULL (zero)
 .byte vic20.screencodes.RED
-.text @"FAST-40 1.1 (C) 2025 8BG\$0d\$0d"		// Must be followed by NULL
+.text @"FAST-40 1.1 (C) 2025 8BG\$0d\$0d"
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
@@ -184,7 +180,15 @@ MATDATA:				// Character matrix data for 20x12 (40x24) screen
 .byte $1A,$26,$32,$3E,$4A,$56,$62,$6E,$7A,$86,$92,$9E,$AA,$B6,$C2,$CE,$DA,$E6,$F2,$FE
 .byte $1B,$27,$33,$3F,$4B,$57,$63,$6F,$7B,$87,$93,$9F,$AB,$B7,$C3,$CF,$DB,$E7,$F3,$FF
 
-.fill 16,$aa 			// Spare bytes
+LINELEN:				// Maximum line length for each line in a continuation group
+.pc = * "LINELEN"		// Zero-based logical line lengths (3 bytes)
+.byte 39,39,7
+
+LINEADD:				// Line length additions for each line in a continuation group
+.pc = * "LINEADD"		// Zero-based line additions (4 bytes)
+.byte 0,40,80,120
+
+.fill 9,$aa 			// Spare bytes
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 

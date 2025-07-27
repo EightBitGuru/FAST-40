@@ -731,6 +731,7 @@ clearloop:	sta (f40_runtime_memory.TEMPAL),y				// [6]		clear text buffer byte
 // <= A		Line length
 // <= X		Continuation group start line
 // <= Y		Continuation group end line
+// TODO: can this be optimised using similar logic to transfer_rows_to_buffer?
 get_line_details:
 .pc = * "get_line_details"
 {
@@ -779,43 +780,40 @@ exit:		pha								 				// [3]		stash line length to Stack
 
 // Transfer text buffer rows to the work buffer
 // => X			Line number
-// <= LINECHAR	Line length
+// <= REGASAVE	Buffer cursor position
+// <= LINECHAR	Buffer extent
 transfer_rows_to_buffer:
 .pc = * "transfer_rows_to_buffer"
 {
 			lda #>f40_runtime_memory.InsDel_Buffer			// [3]		get work buffer hi-byte
 			sta f40_runtime_memory.TEMPBH					// [3]		set buffer pointer hi-byte
-			lda #0											// [2]
-			sta f40_runtime_memory.LINECHAR					// [3]		initialise line length
 
-			// find first line of continuation block and compute cursor position
+			// compute work buffer cursor position and find first line of continuation block
+			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
 			lda vic20.os_zpvars.CRSRLPOS					// [3]		get cursor column (0-39)
-getcont:	ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
-			beq setpos										// [2/3]	exit when we find the first line
-			adc f40_static_data.LINELEN						// [3]		add character offset for line
-			sec												// [2]		set Carry for next iteration
-			dex												// [2]		decrement line index
-			bpl getcont										// [3/2]	loop until we find first line of block
-setpos:		sta f40_runtime_memory.REGASAVE					// [3]		stash cursor position in work buffer
+ 			clc												// [2]		clear Carry for addition
+			adc f40_static_data.LINEADD,y					// [4]		add length addition for line
+			sta f40_runtime_memory.REGASAVE					// [3]		stash work buffer cursor position
+			txa												// [2]		shift line number to .A
+ 			sec												// [2]		set Carry for subtraction
+			sbc f40_runtime_memory.LINECONT,x				// [4]		subtract continuation byte for this line
+			tax												// [2]		first line of block in .X
 
-			// copy logical lines to work buffer and compute line length
+			// copy text buffer lines to work buffer and set buffer extent
 setline:	jsr set_line_address							// [6]		set TEMPAL/H to address of line in .X
-			lda f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for current line
-			tay	 											// [2]		stash in .Y for buffer offset index
-// here we at
-			adc f40_runtime_memory.LINECHAR					// [3]		add to line length tally
-			sta f40_runtime_memory.LINECHAR					// [3]		stash new line length
+			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for current line
 			lda f40_static_data.IDBUFFLO,y					// [4]		get work buffer offset lo-byte
 			sta f40_runtime_memory.TEMPBL					// [3]		set buffer pointer lo-byte
-			lda f40_static_data.LINELEN,y					// [4]		get line length for current line
-			tay 											// [2]		set copy count
-			iny												// [2]		increment for next buffer byte
+			iny												// [2]		increment for extent index
+			lda f40_static_data.LINEADD,y					// [4]		get length addition as buffer extent
+			sta f40_runtime_memory.LINECHAR					// [3]		stash buffer extent
+			tay												// [2]		stash extent in .Y
 			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
-			sta (f40_runtime_memory.TEMPBL),y				// [6]		set byte beyond end of the line
-			dey												// [2]		decrement for copy
+			sta f40_runtime_memory.InsDel_Buffer,y			// [5]		set trailing [SPACE]
+			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set byte copy count
 			jsr copy_bytes 									// [6]		copy line to buffer
 			inx												// [2]		increment line index
-			lda f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
+			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
 			bne	setline 									// [3/2]	loop until all lines copied
 			rts												// [6]
 }
