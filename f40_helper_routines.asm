@@ -804,7 +804,6 @@ setline:	jsr set_line_address							// [6]		set TEMPAL/H to address of line in .
 			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for current line
 			lda f40_static_data.IDBUFFLO,y					// [4]		get work buffer offset lo-byte
 			sta f40_runtime_memory.TEMPBL					// [3]		set buffer pointer lo-byte
-			iny												// [2]		increment for extent index
 			lda f40_static_data.LINEADD,y					// [4]		get length addition as buffer extent
 			sta f40_runtime_memory.LINECHAR					// [3]		stash buffer extent
 			tay												// [2]		stash extent in .Y

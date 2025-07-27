@@ -186,9 +186,9 @@ LINELEN:				// Maximum line length for each line in a continuation group
 
 LINEADD:				// Line length additions for each line in a continuation group
 .pc = * "LINEADD"		// Zero-based line additions (4 bytes)
-.byte 0,40,80,120
+.byte 40,80,120
 
-.fill 9,$aa 			// Spare bytes
+.fill 10,$aa 			// Spare bytes
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
