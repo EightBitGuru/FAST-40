@@ -39,7 +39,7 @@ setmem:		stx vic20.os_vars.OSMEMTPH						// [4]		set top-of-memory pointer hi-by
 			stx vic20.os_vars.SCRNMEMP						// [4]		set screen memory page
 
 			// copy self-modifying bitmap routine to RAM
-			ldx #21											// [2]		bytes to copy (zero-based)
+			ldx #f40_static_data.RAMCODE_LENGTH				// [2]		bytes to copy (zero-based)
 copycode:	lda f40_static_data.RAMCODE,x					// [4]		get code byte
 			sta f40_runtime_memory.MERGROUT,x				// [5]		stash in RAM
 			dex												// [2]

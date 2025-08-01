@@ -275,10 +275,9 @@ delete_character:
 
 			// populate work buffer
 			jsr f40_interrupt_handlers.undraw_cursor		// [6]		undraw cursor if required
-			jsr transfer_rows_to_buffer						// [6]		transfer text buffer rows to work buffer
+			jsr transfer_lines_to_buffer					// [6]		transfer text buffer lines to work buffer
 
 			// set shuffle pointers
-.break
 			lda #>f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer hi-byte
 			sta f40_runtime_memory.TEMPAH					// [3]		set source pointer hi-byte
 			lda #<f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer lo-byte
@@ -288,8 +287,7 @@ delete_character:
 			sty f40_runtime_memory.TEMPAL					// [3]		set source pointer lo-byte
 			dey												// [2]		decrement
 			sty f40_runtime_memory.TEMPBL					// [3]		set destination pointer lo-byte
-			lda #f40_static_data.LINEADD+3					// [2]		maximum buffer extent
-			// here we at
+			lda #f40_runtime_constants.BUFFER_LENGTH		// [2]		maximum buffer extent
 			sec												// [2]		set Carry for subtraction
 			sbc f40_runtime_memory.REGASAVE					// [3]		subtract cursor position in work buffer
 			sta f40_runtime_memory.REGASAVE					// [3]		stash limit for later
@@ -303,10 +301,21 @@ shuffle:	lda (f40_runtime_memory.TEMPAL),y				// [5]		get character from work bu
 			bne shuffle										// [3/2]	loop until done
 
 			// Copy work buffer back to logical lines
+			// here we at
+			lda #>f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer hi-byte
+			sta f40_runtime_memory.TEMPAH					// [3]		set source pointer hi-byte
+			lda #<f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer hi-byte
+			sta f40_runtime_memory.TEMPAH					// [3]		set source pointer hi-byte
+			ldx f40_runtime_memory.DRAWROWS					// [3]		get first line of block
+			jsr set_line_address							// [6]		set TEMPAL/H to address of line in .X
+			jsr copy_buffer_to_line
+
+			// here we at
 
 			// Clear continuation marker if line length has dropped below a line boundary
 
 			// refresh modified rows
+.break
 redraw:		lda f40_runtime_memory.DRAWROWS					// [3]		get redraw start row
 			ldx f40_runtime_memory.DRAWROWE					// [3]		get redraw end row
 			jsr redraw_line_range							// [6]		redraw changed lines
@@ -779,12 +788,14 @@ exit:		pha								 				// [3]		stash line length to Stack
 }
 
 
-// Transfer text buffer rows to the work buffer
-// => X			Line number
+// Transfer text buffer lines to the work buffer
+// => X			Screen line number
 // <= REGASAVE	Buffer cursor position
+// <= DRAWROWS	First line of block
+// <= DRAWROWE	Last line of block
 // <= LINECHAR	Buffer extent
-transfer_rows_to_buffer:
-.pc = * "transfer_rows_to_buffer"
+transfer_lines_to_buffer:
+.pc = * "transfer_lines_to_buffer"
 {
 			lda #>f40_runtime_memory.InsDel_Buffer			// [3]		get work buffer hi-byte
 			sta f40_runtime_memory.TEMPBH					// [3]		set buffer pointer hi-byte
@@ -798,6 +809,7 @@ transfer_rows_to_buffer:
 			txa												// [2]		shift line number to .A
  			sec												// [2]		set Carry for subtraction
 			sbc f40_runtime_memory.LINECONT,x				// [4]		subtract continuation byte for this line
+			sta f40_runtime_memory.DRAWROWS					// [3]		stash first line of block
 			tax												// [2]		first line of block in .X
 
 			// copy text buffer lines to work buffer and set buffer extent
@@ -811,24 +823,41 @@ setline:	jsr set_line_address							// [6]		set TEMPAL/H to address of line in .
 			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
 			sta f40_runtime_memory.InsDel_Buffer,y			// [5]		set trailing [SPACE]
 			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set byte copy count
-			jsr copy_bytes 									// [6]		copy line to buffer
+			jsr copy_line_to_buffer							// [6]		copy line to buffer
 			inx												// [2]		increment line index
 			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
 			bne	setline 									// [3/2]	loop until all lines copied
+			dex												// [2]		.X is last line of block
+			stx f40_runtime_memory.DRAWROWE					// [3]		stash last line of block
 			rts												// [6]
 }
 
 
-// Copy bytes from pointer to pointer
-// => TEMPAL/H	Pointer to source
-// => TEMPBL/H	Pointer to destination
+// Copy text buffer row to work buffer
+// => TEMPAL/H	Pointer to text buffer row
+// => TEMPBL/H	Pointer to work buffer
 // => Y			Bytes to copy
-copy_bytes:
-.pc = * "copy_bytes"
+copy_line_to_buffer:
+.pc = * "copy_line_to_buffer"
 {
-			lda (f40_runtime_memory.TEMPAL),y				// [5]		get byte from source
-			sta (f40_runtime_memory.TEMPBL),y				// [6]		set byte at destination
+			lda (f40_runtime_memory.TEMPAL),y				// [5]		get byte from text buffer
+			sta (f40_runtime_memory.TEMPBL),y				// [6]		set byte in work buffer
 			dey												// [2]		decrement count
-			bpl copy_bytes									// [3/2]	loop until done
+			bpl copy_line_to_buffer							// [3/2]	loop until done
+			rts												// [6]
+}
+
+
+// Copy work buffer to text buffer row
+// => TEMPAL/H	Pointer to text buffer row
+// => TEMPBL/H	Pointer to work buffer
+// => Y			Bytes to copy
+copy_buffer_to_line:
+.pc = * "copy_buffer_to_line"
+{
+			lda (f40_runtime_memory.TEMPBL),y				// [5]		get byte in work buffer
+			sta (f40_runtime_memory.TEMPAL),y				// [6]		set byte from text buffer
+			dey												// [2]		decrement count
+			bpl copy_buffer_to_line							// [3/2]	loop until done
 			rts												// [6]
 }

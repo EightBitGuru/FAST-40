@@ -4,10 +4,10 @@
 .filenamespace f40_static_data
 
 RAMCODE:
-.pc = * "RAMCODE"		// 23-byte self-modifying bitmap merge routine (copied to RAM at runtime) [AY]
+.pc = * "RAMCODE"		// 22-byte self-modifying bitmap merge routine (copied to RAM at runtime) [AY]
 .pseudopc f40_runtime_memory.MERGROUT						// Assemble for target RAM address
 {
-			lda $FFFF,y										// [4]		get character glyph data byte
+mergloop:	lda $FFFF,y										// [4]		get character glyph data byte
 			and f40_runtime_memory.CRSRMASK					// [3]		apply character mask
 			sta mergebit+1									// [4]		modify character/bitmap merge byte
 			lda (f40_runtime_memory.CRSRBITL),y				// [5]		indirect get bitmap byte
@@ -15,9 +15,10 @@ RAMCODE:
 mergebit:	ora #$FF										// [2]		merge glyph byte with bitmap byte
 			sta (f40_runtime_memory.CRSRBITL),y				// [6]		indirect set bitmap byte
 			dey												// [2]		decrement glyph byte counter
-			bpl f40_runtime_memory.MERGROUT					// [3/2]	loop for next glyph byte
+			bpl mergloop									// [3/2]	loop for next glyph byte
 			jmp f40_character_output.line_continuation		// [3]		jump to line continuation logic
 }
+.label RAMCODE_LENGTH = *-RAMCODE-1							// Length of self-modifying routine
 
 CONCODEC:
 .pc = * "CONCODEC"		// CHROUT control character codes (sorted in ascending likely-usage-frequency order)
@@ -54,16 +55,6 @@ TROWADD:
 TROWADDR:
 .lohifill 24,f40_runtime_memory.Text_Buffer+(40*i)
 
-CROWOFFS:				// Character row offsets
-.pc = * "CROWOFFS"		// Character row offsets (13 bytes)
-.byte 0,20,40,60,80,100,120,140,160,180,200,220,240
-
-IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
-.pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
-.byte <f40_runtime_memory.InsDel_Buffer
-.byte <f40_runtime_memory.InsDel_Buffer+40
-.byte <f40_runtime_memory.InsDel_Buffer+80
-
 SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8 / LIST
 .pc = * "SRSLOAD"		// Command text (13 bytes)
 .byte 'L','O'+64		// LOAD
@@ -78,7 +69,7 @@ WEDGECMD:				// BASIC wedge command
 .pc = * "WEDGECMD"		// Command text (5 bytes)
 .text "RESET"
 
-.fill 14,$aa 			// Spare bytes
+.fill 30,$aa 			// Spare bytes
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
@@ -138,16 +129,15 @@ BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
 	}
 }
 
-// Alternate smaller bitmap address lookup tables
-// B2TADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
-// .pc = * "B2TADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
-// .byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
+CROWOFFS:				// Character row offsets
+.pc = * "CROWOFFS"		// Character row offsets (13 bytes)
+.byte 0,20,40,60,80,100,120,140,160,180,200,220,240
 
-// B2TADDRH:
-// .pc = * "B2TADDRH"
-// .fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*(i-1))]	// $00 - $0F plus Screen_Bitmap start address hi-byte
-
-.fill 16,$aa 			// Spare bytes
+IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
+.pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
+.byte <f40_runtime_memory.InsDel_Buffer
+.byte <f40_runtime_memory.InsDel_Buffer+40
+.byte <f40_runtime_memory.InsDel_Buffer+80
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
@@ -198,3 +188,12 @@ GLPHADDR:
 // TODO: might be able to optimise this as:
 //			the lo-byte pattern is 8 rows of 32 bytes, 00-f8, in 8-byte steps (so a fill formula will probably work)
 //  		the hi-byte pattern is 8 rows of 32 bytes, b0-b7 (so we might be able to determine the value in code somehow and eliminate 256 bytes)
+
+// Also: alternate smaller bitmap address lookup tables
+// B2TADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
+// .pc = * "B2TADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
+// .byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
+// B2TADDRH:
+// .pc = * "B2TADDRH"
+// .fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*(i-1))]	// $00 - $0F plus Screen_Bitmap start address hi-byte
+

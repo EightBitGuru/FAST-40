@@ -5,3 +5,4 @@
 
 .label SCREEN_ROWS      = 23        // Number of rows on screen (24, zero-based)
 .label SCREEN_COLUMNS   = 39        // Number of columns on line (40, zero-based)
+.label BUFFER_LENGTH    = 121       // Size of InsDel work buffer
