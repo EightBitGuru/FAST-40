@@ -7,7 +7,7 @@ RAMCODE:
 .pc = * "RAMCODE"		// 22-byte self-modifying bitmap merge routine (copied to RAM at runtime) [AY]
 .pseudopc f40_runtime_memory.MERGROUT						// Assemble for target RAM address
 {
-mergloop:	lda $FFFF,y										// [4]		get character glyph data byte
+loop:		lda $FFFF,y										// [4]		get character glyph data byte
 			and f40_runtime_memory.CRSRMASK					// [3]		apply character mask
 			sta mergebit+1									// [4]		modify character/bitmap merge byte
 			lda (f40_runtime_memory.CRSRBITL),y				// [5]		indirect get bitmap byte
@@ -15,7 +15,7 @@ mergloop:	lda $FFFF,y										// [4]		get character glyph data byte
 mergebit:	ora #$FF										// [2]		merge glyph byte with bitmap byte
 			sta (f40_runtime_memory.CRSRBITL),y				// [6]		indirect set bitmap byte
 			dey												// [2]		decrement glyph byte counter
-			bpl mergloop									// [3/2]	loop for next glyph byte
+			bpl loop										// [3/2]	loop for next glyph byte
 			jmp f40_character_output.line_continuation		// [3]		jump to line continuation logic
 }
 .label RAMCODE_LENGTH = *-RAMCODE-1							// Length of self-modifying routine
