@@ -316,8 +316,35 @@ insert_character:
 			cmp #f40_runtime_constants.MAX_LINE_LENGTH		// [2]		check if line already full
 			beq exit										// [2/3]	scram if no inserts possible
 
+			// set shuffle pointers and byte count
+			ldx #>f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer hi-byte
+			stx f40_runtime_memory.TEMPAH					// [3]		set destination pointer hi-byte
+			ldx #<f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer lo-byte
+			stx f40_runtime_memory.TEMPAL					// [3]		set destination pointer lo-byte
+			inx												// [2]		increment for source
+			stx f40_runtime_memory.TEMPBL					// [3]		set source pointer lo-byte
+			// here - need to set pointers to shuffle up a byte but can't brain atm
+
+			ldx #<f40_runtime_memory.Character_Matrix-1		// [2]		get work buffer end lo-byte
+			stx f40_runtime_memory.TEMPAL					// [3]		set destination pointer lo-byte
+			dex												// [2]		decrement for source pointer
+			stx f40_runtime_memory.TEMPBL					// [3]		set source pointer lo-byte
+			tay	 											// [2]		set line length in .Y
+			// sec												// [2]		set Carry for subtraction
+			// sbc f40_runtime_memory.LINECHAR					// [3]		subtract cursor position from line length
+			// tay	 											// [2]		set shuffle count
+
+			// shuffle bytes up at cursor position
 .break
-			// do the shuffle up and insert a space
+shuffle:	lda (f40_runtime_memory.TEMPBL),y				// [5]		get character from work buffer
+			sta (f40_runtime_memory.TEMPAL),y				// [6]		set character up one byte
+			dey												// [2]		decrement index
+			cpy f40_runtime_memory.LINECHAR					// [3]		check for cursor position
+			bne shuffle										// [3/2]	loop until done
+.break
+			//sta f40_runtime_memory.TEMPBL					// [3]		set source pointer lo-byte
+
+
 			// check if we need to insert a blank line (or scroll the screen)
 			// copy work buffer back to lines
 			// refresh lines
