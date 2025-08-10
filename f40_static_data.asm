@@ -69,7 +69,11 @@ WEDGECMD:				// BASIC wedge command
 .pc = * "WEDGECMD"		// Command text (5 bytes)
 .text "RESET"
 
-.fill 30,$aa 			// Spare bytes
+JIFFYID:				// JiffyDOS identifier
+.pc = * "JIFFYID"		// Identifier string (4 bytes)
+.text "JIFF"
+
+.fill 26,$aa 			// Spare bytes
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
@@ -93,6 +97,13 @@ BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
 		.byte y			// 16 * $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
 	}
 }
+// An alternate approach for smaller bitmap address lookup tables
+// B2TADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
+// .pc = * "B2TADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
+// .byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
+// B2TADDRH:
+// .pc = * "B2TADDRH"
+// .fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*(i-1))]	// $00 - $0F plus Screen_Bitmap start address hi-byte
 
 // Primary Screen Matrix is 20x12 chars  ->  240 bytes at $1000-$10EF (double-height chars)
 // Primary Colour Matrix is 20x12 chars  ->  240 bytes at $9600-$96EF (double-height chars)
@@ -165,9 +176,9 @@ LINEADD:				// Line length additions for each line in a continuation group
 .pc = * "LINEADD"		// Zero-based line additions (4 bytes)
 .byte 0,40,80,120
 
-JIFFYID:				// JiffyDOS identifier
-.pc = * "JIFFYID"		// Identifier string (5 bytes)
-.text "JIFFY"
+LINESUM:				// Line length (summed) for each line in a continuation group
+.pc = * "LINESUM"		// Zero-based line length sums (3 bytes)
+.byte 39,79,87
 
 BLNKTIME:				// Cursor blink timers
 .pc = * "BLNKTIME"		// Cursor phase on/off timer values (2 bytes)
@@ -178,6 +189,8 @@ VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
 .byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
 .byte %00100100			// $9001 - b7-0 = screen y-pos
 
+.fill 2,$aa 			// Spare bytes
+
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256
@@ -186,14 +199,5 @@ GLYPHADD:				// Character glyph pixel address data
 GLPHADDR:
 .lohifill 256,CHARDATA+(8*i)		// Glyph pixel address lo/hi-bytes
 // TODO: might be able to optimise this as:
-//			the lo-byte pattern is 8 rows of 32 bytes, 00-f8, in 8-byte steps (so a fill formula will probably work)
-//  		the hi-byte pattern is 8 rows of 32 bytes, b0-b7 (so we might be able to determine the value in code somehow and eliminate 256 bytes)
-
-// Also: alternate smaller bitmap address lookup tables
-// B2TADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
-// .pc = * "B2TADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
-// .byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
-// B2TADDRH:
-// .pc = * "B2TADDRH"
-// .fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*(i-1))]	// $00 - $0F plus Screen_Bitmap start address hi-byte
-
+//		the lo-byte pattern is 8 rows of 32 bytes, 00-f8, in 8-byte steps (so a fill formula will probably work)
+//  	the hi-byte pattern is 8 rows of 32 bytes, b0-b7 (so we might be able to determine the value in code somehow and eliminate 256 bytes)

@@ -271,7 +271,7 @@ delete_character:
 
 			// populate work buffer from screen lines
 			jsr f40_interrupt_handlers.undraw_cursor		// [6]		undraw cursor if required
-			jsr transfer_lines_to_buffer					// [6]		transfer text buffer lines to work buffer
+			jsr transfer_lines_to_buffer					// [6]		populate work buffer
 
 			// set shuffle pointers and byte count
 			lda #>f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer hi-byte
@@ -312,13 +312,15 @@ movecrsr:	jmp f40_controlcode_handlers.cursor_left		// [3]		move cursor left
 insert_character:
 .pc = * "insert_character"
 {
+			jsr get_line_details							// [6]		populate work buffer and get line details
+			cmp #f40_runtime_constants.MAX_LINE_LENGTH		// [2]		check if line already full
+			beq exit										// [2/3]	scram if no inserts possible
+
 .break
-			jsr transfer_lines_to_buffer					// [6]		transfer text buffer lines to work buffer
-
-
-
-
-
+			// do the shuffle up and insert a space
+			// check if we need to insert a blank line (or scroll the screen)
+			// copy work buffer back to lines
+			// refresh lines
 
 
 
@@ -667,49 +669,22 @@ clearloop:	sta (f40_runtime_memory.TEMPAL),y				// [6]		clear text buffer byte
 // <= A		Line length
 // <= X		Continuation group start line
 // <= Y		Continuation group end line
-// TODO: can this be optimised using similar logic to transfer_rows_to_buffer?
 get_line_details:
 .pc = * "get_line_details"
 {
 			ldx vic20.os_zpvars.CRSRROW						// [3]		get cursor row
-findnext:	inx												// [2]		increment row for next line
-			cpx #f40_runtime_constants.SCREEN_ROWS+1		// [2]		check screen line limit
- 			bcs	saveline									// [2/3]	stop if beyond last line
-			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
-			bne findnext									// [2/3]	loop until start of next group
-saveline:	stx f40_runtime_memory.REGXSAVE 				// [3]		stash next group start line for later
-prevline:	dex												// [2]		back to previous line
-			jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
-			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
-			sty f40_runtime_memory.REGYSAVE 				// [3]		stash continuation byte for later
-			lda f40_static_data.LINELEN,y					// [4]		get line length of this line
-			tay	 											// [2]		set line index
+			jsr transfer_lines_to_buffer					// [6]		populate work buffer
+			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for last line in block
+			ldx f40_static_data.LINESUM,y					// [4]		get line length sum for last line in block
 			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
-checkspace:	cmp (vic20.os_zpvars.SCRNLNL),y					// [5]		check character on line
-			bne notspace									// [2/3]	stop if not [SPACE]
-			dey												// [2]		decrement line index
+checkspace:	cmp f40_runtime_memory.InsDel_Buffer,x			// [4]		check character in buffer
+			bne done										// [2/3]	stop if not [SPACE]
+			dex												// [2]		decrement character index
 			bpl checkspace									// [3/2]	loop for next character
-			ldy f40_runtime_memory.REGYSAVE 				// [3]		get stashed line continuation byte
-			bne prevline									// [3/3]	loop for previous line
-			tya	 											// [2]		set line length to zero
-			beq exit	 									// [3/3]	all done
-notspace:	iny												// [2]		increment for 1-based index
-			tya												// [2]		begin line length tally
-			ldy f40_runtime_memory.REGYSAVE 				// [3]		get stashed line continuation byte
-			beq exit	 									// [2/3]	all done if on first line of group
-addlength:	dey												// [2]		decrement line continuation byte
-			bmi exit										// [2/3]	all done when before continuation group start
-			sec												// [2]		set Carry for 1-based length addition
-			adc f40_static_data.LINELEN,y					// [3]		add line length of this line
-			bne addlength 									// [3/3]	loop for previous line
-exit:		pha								 				// [3]		stash line length to Stack
-			lda f40_runtime_memory.REGXSAVE 				// [3]		get stashed next group start line
-			tay												// [2]		copy to .Y
-			dey												// [2]		decrement for this group end line
-			clc												// [2]		clear Carry for subtraction
-			sbc f40_runtime_memory.LINECONT,y				// [4]		subtract continuation byte for this line
-			tax												// [2]		set group start line
-			pla												// [4]		get stashed line length from Stack
+done:		inx												// [2]		add 1 to length
+			txa 											// [2]		set line length
+			ldx f40_runtime_memory.DRAWROWS					// [3]		get first line of block
+			ldy f40_runtime_memory.DRAWROWE					// [3]		get last line of block
 			rts												// [6]
 }
 

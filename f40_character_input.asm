@@ -67,6 +67,7 @@ checkcr:	cmp #vic20.screencodes.CR						// [2]		check for [CR]
 
 			// handle [CR]
 docr:		jsr f40_helper_routines.get_line_details		// [6]		get logical line length & start/end lines (.A/.Y/.X)
+			cmp #0											// [2]		check line length
 			beq lineend										// [2/3]	no input line to process if line length is zero
 			sta vic20.os_zpvars.INPUTSRC					// [3]		set input source to screen (0=keyboard, !0=screen)
  			sta vic20.os_zpvars.LINELEN						// [3]		set logical line length
