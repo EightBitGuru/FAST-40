@@ -24,10 +24,11 @@ set_temp_line_pointer:
 set_line_pointer:
 .pc = * "set_line_pointer"
 {
-			jsr set_temp_line_pointer						// [6]		set address of line in TEMPAL/H
-			sta vic20.os_zpvars.SCRNLNH						// [3]		set screen line pointer hi-byte
-			lda f40_runtime_memory.TEMPAL					// [3]		get temporary pointer lo-byte
+			ldy f40_runtime_memory.TXTBUFSQ,x 				// [4]		get text buffer sequence index for line
+			lda f40_static_data.TROWADDR.lo,y 				// [4]		get text buffer address lo-byte
 			sta vic20.os_zpvars.SCRNLNL						// [3]		set screen line pointer lo-byte
+			lda f40_static_data.TROWADDR.hi,y 				// [4]		get text buffer address hi-byte
+			sta vic20.os_zpvars.SCRNLNH						// [3]		set screen line pointer hi-byte
 			rts												// [6]
 }
 
@@ -80,9 +81,10 @@ initloop2:	txa	 											// [2]		copy to .A
 }
 
 
-// Do SHIFT/C= case switch screen redraw
+// Do SHIFT/C= case switch
 // => A			Case flag
 // => X			Must be non-zero
+// TODO: maybe some sort of short-lived cursor change to highlight which characterset we're in?
 case_redraw:
 .pc = * "case_redraw"
 {
@@ -90,7 +92,7 @@ case_redraw:
 			stx vic20.os_zpvars.CRSRMODE					// [3]		set cursor blink mode (!0 = no flash)
 			lda #0											// [2]
 			sta vic20.os_zpvars.CRSRBLNK					// [3]		clear cursor blink phase flag
-// Fall-through into redraw_lines_to_bottom
+			rts												// [6]
 }
 
 
@@ -107,6 +109,7 @@ redraw_lines_to_bottom:
 // Redraw text buffer line range
 // => A			Redraw start line
 // => X			Redraw end line
+// TODO: optimise this
 redraw_line_range:
 .pc = * "redraw_line_range"
 {
@@ -185,7 +188,7 @@ copyloop:	lda (f40_runtime_memory.TEMPCL),y				// [5]		get left character glyph 
 			// decrement bitmap address for next character pair
 setaddr:	lda f40_runtime_memory.TEMPBL					// [3]		get draw address lo-byte
 			clc												// [2]		clear Carry for subtraction
-			sbc #191										// [2]		subtract for previous column
+			sbc #f40_runtime_constants.BITMAP_OFFSET		// [2]		subtract for previous column
 			sta f40_runtime_memory.TEMPBL					// [3]		set draw address lo-byte
 			bcs nextcol										// [3/2]	skip hi-byte decrement if no wrap
 			dec f40_runtime_memory.TEMPBH					// [5]		decrement draw address hi-byte
@@ -229,31 +232,6 @@ getbyte:	lda V1CNTSC,x									// [4]		get vector byte
 			ldy #>vic20.vectors.KVECBUFF					// [2]		pointer to interrupt reload vector hi-byte
 			jsr vic20.vectors.KVECLOAD						// [6]		load vectors
 			jmp vic20.basic.NEWSTT							// [3]		BASIC warm-start
-}
-
-
-// Configure VIC settings for 40x24 mode
-configure_vic:
-.pc = * "configure_vic"
-{
-			ldx #15											// [2]		set register index
-getbyte:	lda f40_static_data.VICNTSC,x					// [4]		get VIC register value
-			sta vic20.vic.VCSCRNX,x							// [5]		set VIC register
-			dex												// [2]		decrement index
-			bpl getbyte										// [3/2]	loop until done
-
-			// alter VIC settings for PAL mode if required
-			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b7 for PAL/NTSC
-			bpl settext										// [3/2]	skip PAL if NTSC
-			lda f40_static_data.VICPAL						// [4]		get PAL value
-			sta vic20.vic.VCSCRNX							// [4]		set VIC register
-			lda f40_static_data.VICPAL+1					// [4]		get PAL value
-			sta vic20.vic.VCSCRNY							// [4]		set VIC register
-settext:	lda #0											// [2]
-			sta f40_runtime_memory.CASEFLAG					// [3]		set glyph case flag ($00=upper-case, $08=lower-case)
-			lda #BLUE										// [2]
-			sta vic20.os_vars.CURRCOLR						// [4]		set current text colour
-@exit:		rts												// [6]
 }
 
 
@@ -308,58 +286,101 @@ movecrsr:	jmp f40_controlcode_handlers.cursor_left		// [3]		move cursor left
 }
 
 
+// Configure VIC settings for 40x24 mode
+configure_vic:
+.pc = * "configure_vic"
+{
+			ldx #15											// [2]		set register index
+getbyte:	lda f40_static_data.VICNTSC,x					// [4]		get VIC register value
+			sta vic20.vic.VCSCRNX,x							// [5]		set VIC register
+			dex												// [2]		decrement index
+			bpl getbyte										// [3/2]	loop until done
+
+			// alter VIC settings for PAL mode if required
+			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b7 for PAL/NTSC
+			bpl settext										// [3/2]	skip PAL if NTSC
+			lda f40_static_data.VICPAL						// [4]		get PAL value
+			sta vic20.vic.VCSCRNX							// [4]		set VIC register
+			lda f40_static_data.VICPAL+1					// [4]		get PAL value
+			sta vic20.vic.VCSCRNY							// [4]		set VIC register
+settext:	lda #0											// [2]
+			sta f40_runtime_memory.CASEFLAG					// [3]		set glyph case flag ($00=upper-case, $08=lower-case)
+			lda #BLUE										// [2]
+			sta vic20.os_vars.CURRCOLR						// [4]		set current text colour
+@exit:		rts												// [6]
+}
+
+
 // Insert a character and handle continuation line expansion
 insert_character:
 .pc = * "insert_character"
 {
 			jsr get_line_details							// [6]		populate work buffer and get line details
-			cmp #f40_runtime_constants.MAX_LINE_LENGTH		// [2]		check if line already full
+			cmp #vic20.screen.MAX_LINE_LENGTH				// [2]		check if line already full
 			beq exit										// [2/3]	scram if no inserts possible
 
-			// set shuffle pointers and byte count
-			ldx #>f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer hi-byte
-			stx f40_runtime_memory.TEMPAH					// [3]		set destination pointer hi-byte
-			ldx #<f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer lo-byte
-			stx f40_runtime_memory.TEMPAL					// [3]		set destination pointer lo-byte
-			inx												// [2]		increment for source
-			stx f40_runtime_memory.TEMPBL					// [3]		set source pointer lo-byte
-			// here - need to set pointers to shuffle up a byte but can't brain atm
+			// set shuffle pointers
+			tax 											// [2]		stash line length
+			lda #>f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer hi-byte
+			sta f40_runtime_memory.TEMPAH					// [3]		set source pointer hi-byte
+			lda #<f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer lo-byte
+			adc f40_runtime_memory.LINECHAR					// [3]		add cursor position in work buffer
+			sta f40_runtime_memory.TEMPAL					// [3]		set source pointer lo-byte
+			adc #1											// [2]		add 1 for shuffle
+			sta f40_runtime_memory.TEMPBL					// [3]		set destination pointer lo-byte
+			txa 											// [2]		get line length
+			sbc f40_runtime_memory.LINECHAR					// [3]		subtract cursor position
+			tay	 											// [2]		set shuffle count
 
-			ldx #<f40_runtime_memory.Character_Matrix-1		// [2]		get work buffer end lo-byte
-			stx f40_runtime_memory.TEMPAL					// [3]		set destination pointer lo-byte
-			dex												// [2]		decrement for source pointer
-			stx f40_runtime_memory.TEMPBL					// [3]		set source pointer lo-byte
-			tay	 											// [2]		set line length in .Y
-			// sec												// [2]		set Carry for subtraction
-			// sbc f40_runtime_memory.LINECHAR					// [3]		subtract cursor position from line length
-			// tay	 											// [2]		set shuffle count
-
-			// shuffle bytes up at cursor position
-.break
-shuffle:	lda (f40_runtime_memory.TEMPBL),y				// [5]		get character from work buffer
-			sta (f40_runtime_memory.TEMPAL),y				// [6]		set character up one byte
+			// shuffle bytes up at cursor position and insert space
+shuffle:	lda (f40_runtime_memory.TEMPAL),y				// [5]		get character from work buffer
+			sta (f40_runtime_memory.TEMPBL),y				// [6]		set character up one byte
 			dey												// [2]		decrement index
-			cpy f40_runtime_memory.LINECHAR					// [3]		check for cursor position
-			bne shuffle										// [3/2]	loop until done
-.break
-			//sta f40_runtime_memory.TEMPBL					// [3]		set source pointer lo-byte
-
+			bpl shuffle										// [3/2]	loop until done
+			iny												// [2]		.Y = 0
+			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
+			sta (f40_runtime_memory.TEMPAL),y				// [6]		set character
 
 			// check if we need to insert a blank line (or scroll the screen)
-			// copy work buffer back to lines
-			// refresh lines
+			inc vic20.os_zpvars.INSRTCNT					// [5]		increment pending INSERT count
+			inx 											// [2]		increment line length
+			cpx #f40_runtime_constants.LINE_1_OVERRUN		// [2]		check for line overrun
+			beq addline										// [2/3]	do insert/scroll
+			cpx #f40_runtime_constants.LINE_2_OVERRUN		// [2]		check for line overrun
+			bne done										// [3/2]	no insert/scroll needed
+addline:	ldx f40_runtime_memory.DRAWROWE					// [3]		get last line of block
+.break
+			cpx #f40_runtime_constants.SCREEN_ROWS			// [2]		check if on the last screen line
+			beq scroll										// [2/3]	scroll the screen if so
 
+			// insert line
+			inx												// [2]		increment for next line
+			jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
+			jsr insert_blank_line 							// [6]		insert blank line for continuation
+			lda #%10000000									// [2]
+			sta f40_runtime_memory.LINECHAR 				// [3]		set refresh-to-end flag in b7
+			bne setline 									// [3/3]	reset line pointer and do shuffle
 
+			// scroll screen
+scroll:		jmp done
+			// jsr scroll_lines_up								// [6]		scroll the screen
+			// ldx vic20.os_zpvars.CRSRROW						// [3]		get cursor row
+			// dex												// [2]		decrement for scroll ...
+			// dex												// [2]		... twice
+			// stx vic20.os_zpvars.CRSRROW						// [3]		reset cursor row
+			// stx f40_runtime_memory.DRAWROWS					// [3]		reset redraw start row
+			// ldx #f40_runtime_constants.SCREEN_ROWS-1		// [2]		set current row
+			// jsr set_continuation_previous					// [6]		set continuation byte for new line
+ setline:	jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
 
-
-
-redraw:		inc vic20.os_zpvars.INSRTCNT					// [5]		increment pending INSERT count
+			// Copy work buffer back to screen lines and refresh them
+done:		jsr transfer_buffer_to_lines					// [6]		transfer work buffer to text buffer lines
 			lda f40_runtime_memory.DRAWROWS					// [3]		get redraw start row
-			// bit f40_runtime_memory.LINECHAR 				// [3]		get refresh-to-end flag
-			// bmi tobottom									// [3/2]	redraw to end if flag set
+			bit f40_runtime_memory.LINECHAR 				// [3]		get refresh-to-end flag
+			bmi tobottom									// [3/2]	redraw to end if flag set
 			ldx f40_runtime_memory.DRAWROWE					// [3]		get redraw end row
 			jmp redraw_line_range							// [3]		redraw changed lines
-//tobottom:	jmp redraw_lines_to_bottom						// [3]		redraw all lines to end of screen
+tobottom:	jmp redraw_lines_to_bottom						// [3]		redraw all lines to end of screen
 
 
 
@@ -485,24 +506,11 @@ checkspace:	cmp (vic20.os_zpvars.SCRNLNL),y					// [6]		find last non-space char
 			dey												// [2]		decrement character index
 			bpl checkspace									// [3/2]	loop for next character
 notspace:	tya 											// [2]		move to .A to set flags
-			bmi set_continuation_previous					// [3/2]	just set continuation byte if no insert needed
-
-			// set line address for bottom row
-			stx f40_runtime_memory.REGXSAVE 				// [3]		stash current row
-			ldx #f40_runtime_constants.SCREEN_ROWS			// [3]		last line (before shuffle)
-			jsr set_temp_line_pointer						// [6]		set address of line in TEMPAL/H
-
-			// check which line insert is happening
-			ldx f40_runtime_memory.REGXSAVE 				// [3]		get stashed row
-			cpx #f40_runtime_constants.SCREEN_ROWS			// [2]		check if on bottom row
-			bne calclines									// [3/2]	do insert if not
-
-			// no insert needed on bottom row
-			jsr set_continuation_previous					// [3]		just set continuation byte
-			jmp clear_text_bytes 							// [3/3]	clear row in TEMPAL/H
+			bmi set_continuation							// [3/2]	set continuation byte if spaces (no insert needed)
 
 			// shuffle continuation table and text buffer sequence table 'down' a row
-calclines:	lax f40_controlcode_handlers.dispatch_page		// [4]		get screen line constant (22) to .A and .X
+			stx f40_runtime_memory.REGXSAVE 				// [3]		stash current row
+			lax f40_controlcode_handlers.dispatch_page		// [4]		get screen line constant (22) to .A and .X
 			sec												// [2]		set Carry for subtraction
 			sbc f40_runtime_memory.REGXSAVE 				// [3]		subtract stashed row
 			tay	 											// [2]		set line shuffle counter
@@ -515,35 +523,24 @@ copyloop:	lda f40_runtime_memory.TXTBUFSQ,x 				// [5]		get buffer key byte
 			bpl copyloop									// [3/2]	loop until shuffle complete
 
 			// set continuation byte and text buffer for inserted line
-			jsr set_continuation_current					// [6]		set continuation byte
+ 			ldx f40_runtime_memory.REGXSAVE 				// [3]		get stashed row
 			lda f40_runtime_memory.TXTBUFOF 				// [4]		get text buffer sequence overflow byte
 			sta f40_runtime_memory.TXTBUFSQ,x 				// [5]		insert into new line slot
+			jsr set_temp_line_pointer						// [6]		set address of row in TEMPAL/H
+			jsr set_continuation							// [6]		set continuation byte
 			lda #0											// [2]
 			sta f40_runtime_memory.LINCNTOF 				// [4]		clear line continuation overflow
-			jmp clear_text_bytes 							// [3/3]	clear row in TEMPAL/H
+			rts												// [6]
 }
 
 
 // Set continuation byte to one greater than previous line
-// => X			Text buffer line index
-set_continuation_previous:
-.pc = * "set_continuation_previous"
+// => X			Text buffer line index (will never be zero)
+set_continuation:
+.pc = * "set_continuation"
 {
-			txa												// [2]		move to .A to set flags
-			beq set_continuation_current					// [2/3]	skip decrement if on first line
-			dex												// [2]		decrement for previous line
-// Fall-through into set_continuation_current
-}
-
-
-// Set continuation byte to one greater than current line
-// => X			Text buffer line index
-set_continuation_current:
-.pc = * "set_continuation_current"
-{
-			ldy f40_runtime_memory.LINECONT,x				// [5]		get continuation byte for previous line
+			ldy f40_runtime_memory.LINECONT-1,x				// [4]		get continuation byte for previous line
 			iny												// [2]		increment byte for next line
-			inx												// [2]		increment line index for next line
 			shy f40_runtime_memory.LINECONT,x				// [5]		set continuation byte for next line
 			rts												// [6]
 }

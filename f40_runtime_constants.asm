@@ -5,4 +5,6 @@
 
 .label SCREEN_ROWS      = 23        // Number of rows on screen (24, zero-based)
 .label SCREEN_COLUMNS   = 39        // Number of columns on line (40, zero-based)
-.label MAX_LINE_LENGTH  = 88        // Maximum number of characters on line
+.label BITMAP_OFFSET    = 191       // Bitmap address column offset
+.label LINE_1_OVERRUN   = 41        // First column of second line of block
+.label LINE_2_OVERRUN   = 81        // First column of third line of block

@@ -64,3 +64,10 @@
     .label KEYBOARD = 0
     .label SCREEN   = 3
 }
+
+
+// Screen constants
+.namespace screen
+{
+    .label MAX_LINE_LENGTH = 88
+}

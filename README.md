@@ -59,9 +59,9 @@ To use the image with ***xvic***:
 
 ### Memory Requirements
 
-FAST-40 uses all of the 4K unexpanded RAM area for video display reconfiguration and requires a minimum of 3K expansion RAM in BLK0 (of which just under 1K is reserved and the remaining 2.1K left free for BASIC).
+FAST-40 uses all of the 4K unexpanded RAM area for video display reconfiguration and requires a minimum of 3K expansion RAM in BLK0 (of which just under 2K is left free for BASIC).
 
-If 8K (or 16K/24K) expansion RAM is also present in BLK1/2/3 then FAST-40 will make all 8K blocks available for BASIC and the 'lost' 2.1K in BLK0 available for machine-code programs.
+If 8K (or 16K/24K) expansion RAM is also present in BLK1/2/3 then FAST-40 will make all 8K blocks available for BASIC and the 'lost' 2K in BLK0 available for machine-code programs.
 
 ### New RESET Command
 
@@ -74,13 +74,23 @@ FAST-40 provides a new BASIC command to easily reset the system and switch betwe
         RESET 3		Switch to 22x23 3K mode
         RESET 8		Switch to 22x23 8K+ mode (if RAM is present in BLK1/2/3)
 
-### SHIFT/RUNSTOP Behaviour
+### SHIFT/RUNSTOP Keypress Behaviour
 
 On a stock VIC-20 the SHIFT/RUNSTOP key combination causes the commands `LOAD` and `RUN` to be injected into the keyboard buffer to initiate an automatic start of the next program found on tape. Modern users prefer to use disk devices (or modern pseudo-disk devices such as SD cards) for storage instead of tape, and will often make use of the JiffyDOS Kernal ROM which disables tape operations in order to provide extended disk functionality.
 
 FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands to favour disk users as follows:
 * If JiffyDOS is _not_ present, the sequence `LOAD"$",8` and `LIST` is executed to read and display the directory of the disk
 * If JiffyDOS _is_ present then its `@$` command is the preferred method to view the disk directory; therefore the sequence `LOAD"*",8` and `RUN` is executed to auto-start the first program on the disk
+
+### SHIFT/COMMODORE Keypress Behaviour
+
+On a stock VIC-20 the SHIFT/COMMODORE key combination (or a PRINT / POKE equivalent) causes the VIC to switch between two charactersets stored in ROM at $8000 and $8800. The first set contains upper-case letters and a wide selection of PETSCII graphics characters, whereas the second contains both upper- and lower-case letters and a smaller selection of PETSCII characters. Switching charactersets instantly affects all visible characters on the screen, not just those which are displayed after the switch occurs.
+
+The initial FAST-40 release took pains to reproduce this behaviour, ensuring that the entire screen was refreshed whenever characterset switches occurred. This was a moderately slow process (taking up to 870ms to redraw the entire bitmap) and often suffered a catastrophic race condition when the bitmap was being updated in response to other triggers such as screen scroll events.
+
+Broad evaluation of programatic use-cases confirmed that characterset switching was almost always triggered before any visible characters were output (or was not relevant), Thus the engineering complexity and associated performance impact needed to reproduce the 'instant update' effect was essentially redundant, and in fact the intrinsic capability for FAST-40 to switch between charactersets at any point and combine both on-screen simultaneously was a desirable feature.
+
+The feature was therefore dropped in the second release of FAST-40. Characterset switch events are still supported but no longer trigger a complete refresh of the screen, and glyphs from both charactersets are able to appear at the same time.
 
 ### System Reconfiguration
 
@@ -172,15 +182,16 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Added the JiffyDOS banner to the startup message (if present)
 
 ### Release v1.1 (?? August 2025)
-* Reworked rendering performance from 92% to 107% of stock speed (FAST-40 draws 40x24 mode faster than the stock ROM draws 22x23)
-* Reworked bitmap line refresh performance up 30% when triggered by a case-switch or INS/DEL keypress event
-* Reworked memory usage so FAST-40 now only uses 3K in BLK0 and leaves all 8K blocks free for BASIC
-* Reworked INS/DEL keypress logic to reduce complexity and eliminate Stack usage
-* ##Fixed a bug where case-switch events conflicted with screen-scroll events and triggered a crash
 * Fixed a bug where line continuation markers were not correctly reset after a screen-scroll event
-* Tweaked SHIFT/RUNSTOP keypress behaviour to adapt to JiffyDOS Kernal presence
-* Tweaked startup colours back to stock blue-on-white for NTSC visual clarity
-* ##Added .D64 image to package containing .PRG version of the binary
+* Improved glyph rendering performance from 92% to 107% of stock speed (FAST-40 draws 40x24 mode faster than the stock ROM draws 22x23)
+* Improved bitmap line-refresh performance by 30% when triggered by INS/DEL keypress events
+* Improved blank-line-insertion performance by 15% when extending lines
+* Refactored memory usage so FAST-40 now only uses 3K in BLK0 and leaves all 8K blocks free for BASIC
+* Refactored INS/DEL keypress logic to reduce complexity and eliminate Stack usage
+* Tweaked SHIFT/RUNSTOP keypress behaviour to align with JiffyDOS Kernal presence
+* Tweaked startup colours back to stock blue-on-white for NTSC visual clarity (prompted by **gunner@denial**)
+* Removed the pointless bitmap refresh for case-switch events which caused a race condition crash (reported by **boray@denial**)
+* ##Added .D64 image to package containing .PRG version of the binary (prompted by **boray@denial**)
 
 ## The Wishlist
 
@@ -189,6 +200,7 @@ The following improvements and enhancements may make it into the project if time
 * Integrate the display matrix setup logic into the RUNSTOP/RESTORE handler for better breakage recovery
 * Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a full hold until released
 * Add a CTRL-key modifier to the cursor control logic to allow jumping to the start/end of physical/logical lines
+* Refactor the bitmap line-refresh routine to use the same self-modifying code as the core renderer
 * Add a bitmap point-plotting routine and an accompanying PLOT command to BASIC
 * Add PEEK/POKE intercepts to allow screen/colour memory access akin to the stock 22x23 text mode
 

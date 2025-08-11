@@ -135,7 +135,8 @@ line_continuation:
 
 			// insert line
 			jsr f40_helper_routines.insert_blank_line		// [6]		insert blank line for continuation
-			bpl character_output_tidyup						// [2/3]	skip redraw if no line inserted (.Y is +ve)
+			bne character_output_tidyup						// [2/3]	skip redraw if no line inserted
+			jsr f40_helper_routines.clear_text_bytes 		// [6]		clear text buffer row in TEMPAL/H
 			txa 											// [2]		get current line for redraw limit
 			jsr f40_helper_routines.redraw_lines_to_bottom	// [6]		redraw changed lines to bottom of screen
 			jsr f40_controlcode_handlers.reset_text_pointer	// [6]		reset line pointers
