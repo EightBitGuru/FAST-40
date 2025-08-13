@@ -84,13 +84,9 @@ FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands t
 
 ### SHIFT/COMMODORE Keypress Behaviour
 
-On a stock VIC-20 the SHIFT/COMMODORE key combination (or a PRINT / POKE equivalent) causes the VIC to switch between two charactersets stored in ROM at $8000 and $8800. The first set contains upper-case letters and a wide selection of PETSCII graphics characters, whereas the second contains both upper- and lower-case letters and a smaller selection of PETSCII characters. Switching charactersets instantly affects all visible characters on the screen, not just those which are displayed after the switch occurs.
+On a stock VIC-20 the SHIFT/COMMODORE key combination (or programmatic equivalent) causes the VIC to switch between two charactersets stored in ROM at $8000 and $8800. The first set contains upper-case letters and a wide selection of PETSCII graphics characters, whereas the second contains both upper- and lower-case letters and a smaller choice of PETSCII characters. Switching charactersets instantly affects all visible characters on the screen, not just those which are displayed after the switch occurs. The initial FAST-40 release took pains to reproduce this behaviour, ensuring that the entire screen was refreshed whenever a characterset switch occurred.
 
-The initial FAST-40 release took pains to reproduce this behaviour, ensuring that the entire screen was refreshed whenever characterset switches occurred. This was a moderately slow process (taking up to 870ms to redraw the entire bitmap) and often suffered a catastrophic race condition when the bitmap was being updated in response to other triggers such as screen scroll events.
-
-Broad evaluation of programatic use-cases confirmed that characterset switching was almost always triggered before any visible characters were output (or was not relevant), Thus the engineering complexity and associated performance impact needed to reproduce the 'instant update' effect was essentially redundant, and in fact the intrinsic capability for FAST-40 to switch between charactersets at any point and combine both on-screen simultaneously was a desirable feature.
-
-The feature was therefore dropped in the second release of FAST-40. Characterset switch events are still supported but no longer trigger a complete refresh of the screen, and glyphs from both charactersets are able to appear at the same time.
+However since characterset switches typically happen before any characters are output (rarely being useful otherwise) the engineering overhead to drive the refresh and the associated rendering throughput performance impact was largely suboptimal. In fact the intrinsic capability of FAST-40 to switch between charactersets _without_ forcing a screen refresh (and thus allow simultaneous display of glyphs from both) is a desirable feature. The refresh feature was therefore dropped in the second release of FAST-40.
 
 ### System Reconfiguration
 
@@ -185,8 +181,8 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Fixed a bug where line continuation markers were not correctly reset after a screen-scroll event
 * Improved glyph rendering performance from 92% to 107% of stock speed (FAST-40 draws 40x24 mode faster than the stock ROM draws 22x23)
 * Improved bitmap line-refresh performance by 30% when triggered by INS/DEL keypress events
-* Improved blank-line-insertion performance by 15% when extending lines
-* Refactored memory usage so FAST-40 now only uses 3K in BLK0 and leaves all 8K blocks free for BASIC
+* Improved blank-line-insertion performance by 15% when extending logical lines
+* Restructured memory usage so FAST-40 now only uses 3K in BLK0 and leaves all 8K blocks free for BASIC
 * Refactored INS/DEL keypress logic to reduce complexity and eliminate Stack usage
 * Tweaked SHIFT/RUNSTOP keypress behaviour to align with JiffyDOS Kernal presence
 * Tweaked startup colours back to stock blue-on-white for NTSC visual clarity (prompted by **gunner@denial**)

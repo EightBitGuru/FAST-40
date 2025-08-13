@@ -21,6 +21,6 @@ checkshift:	lda vic20.os_vars.SHFTMODE						// [4]		get shift mode flag b7 (0=un
 			bmi scankey										// [2/3]	if shift mode locked then skip case toggle
 			lda f40_runtime_memory.CASEFLAG					// [3]		get glyph case flag ($00=upper-case, $08=lower-case)
 			eor #8											// [2]		flip case bit
-			jsr f40_helper_routines.case_redraw				// [6]		handle SHIFT/C= case switch redraw in .A & .X
+			jsr f40_controlcode_handlers.set_case			// [6]		handle SHIFT/C= case switch in .A & .X
 scankey:	jmp vic20.kernal.SCNKEY2						// [3]		jump into SCNKEY ($EB74)
 }

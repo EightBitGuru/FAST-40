@@ -164,7 +164,21 @@ switch_case:
 .pc = * "switch_case"
 {
 			lda vic20.basic.OROP+19,x						// [4]		get case value for switch ($00=upper-case, $08=lower-case)
-			jmp f40_helper_routines.case_redraw				// [3]		do screen redraw for case switch
+// Fall-through into set_colour_byte
+}
+
+
+// Set case switch (from control code or SHIFT/C=)
+// => A			Case flag
+// => X			Must be non-zero
+set_case:
+.pc = * "set_case"
+{
+			sta f40_runtime_memory.CASEFLAG					// [3]		set glyph case flag
+			stx vic20.os_zpvars.CRSRMODE					// [3]		set cursor blink mode (!0 = no flash)
+			lda #0											// [2]
+			sta vic20.os_zpvars.CRSRBLNK					// [3]		clear cursor blink phase flag
+			rts												// [6]
 }
 
 
