@@ -133,10 +133,11 @@ line_continuation:
 			lsr												// [2]		shift right
 			bne character_output_tidyup						// [2/3]	skip continuation if at maximum
 
-			// insert line
+			// extend (and possibly insert) line
 			jsr f40_helper_routines.insert_blank_line		// [6]		insert blank line for continuation
+ 			lda f40_runtime_memory.REGXSAVE 				// [3]		get stashed row
 			bne character_output_tidyup						// [2/3]	skip redraw if no line inserted
-			jsr f40_helper_routines.clear_text_bytes 		// [6]		clear text buffer row in TEMPAL/H
+			jsr f40_helper_routines.clear_text_bytes 		// [6]		clear text buffer row in .X
 			txa 											// [2]		get current line for redraw upper line limit
 			ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		use bottom of screen for lower line limit
 			jsr f40_helper_routines.redraw_line_range		// [6]		redraw changed lines to bottom of screen

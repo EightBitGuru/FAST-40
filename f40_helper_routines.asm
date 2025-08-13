@@ -138,6 +138,7 @@ getbyte:	lda V1CNTSC,x									// [4]		get vector byte
 insert_blank_line:
 .pc = * "insert_blank_line"
 {
+			stx f40_runtime_memory.REGXSAVE 				// [3]		stash current row
 			lda f40_runtime_memory.LINECONT,x				// [5]		get continuation byte for this line
 			bne exit										// [2/3]	scram if already a continuation
 
@@ -149,11 +150,16 @@ checkspace:	cmp (vic20.os_zpvars.SCRNLNL),y					// [6]		find last non-space char
 			dey												// [2]		decrement character index
 			bpl checkspace									// [3/2]	loop for next character
 notspace:	tya 											// [2]		move to .A to set flags
-			bmi set_continuation							// [3/2]	set continuation byte if spaces (no insert needed)
+			bpl shuffle										// [2/3]	shuffle tables if line is not spaces
+
+			// set continuation byte
+setbyte:	ldy f40_runtime_memory.LINECONT-1,x				// [4]		get continuation byte for previous line
+			iny												// [2]		increment byte for next line
+			shy f40_runtime_memory.LINECONT,x				// [5]		set continuation byte for next line
+@exit:		rts												// [6]
 
 			// shuffle continuation table and text buffer sequence table 'down' a row
-			stx f40_runtime_memory.REGXSAVE 				// [3]		stash current row
-			lax f40_controlcode_handlers.dispatch_page		// [4]		get screen line constant (22) to .A and .X
+shuffle:	lax f40_controlcode_handlers.dispatch_page		// [4]		get screen line constant (22) to .A and .X
 			sec												// [2]		set Carry for subtraction
 			sbc f40_runtime_memory.REGXSAVE 				// [3]		subtract stashed row
 			tay	 											// [2]		set line shuffle counter
@@ -169,23 +175,10 @@ copyloop:	lda f40_runtime_memory.TXTBUFSQ,x 				// [5]		get buffer key byte
  			ldx f40_runtime_memory.REGXSAVE 				// [3]		get stashed row
 			lda f40_runtime_memory.TXTBUFOF 				// [4]		get text buffer sequence overflow byte
 			sta f40_runtime_memory.TXTBUFSQ,x 				// [5]		insert into new line slot
-			jsr set_temp_line_pointer						// [6]		set address of row in TEMPAL/H
-			jsr set_continuation							// [6]		set continuation byte
 			lda #0											// [2]
 			sta f40_runtime_memory.LINCNTOF 				// [4]		clear line continuation overflow
-			rts												// [6]
-}
-
-
-// Set continuation byte to one greater than previous line
-// => X			Text buffer line index (will never be zero)
-set_continuation:
-.pc = * "set_continuation"
-{
-			ldy f40_runtime_memory.LINECONT-1,x				// [4]		get continuation byte for previous line
-			iny												// [2]		increment byte for next line
-			shy f40_runtime_memory.LINECONT,x				// [5]		set continuation byte for next line
-@exit:		rts												// [6]
+			sta f40_runtime_memory.REGXSAVE 				// [3]		clear stashed row
+			beq setbyte										// [3/3]	set continuation for inserted row
 }
 
 
@@ -297,6 +290,7 @@ setspace:	sta (f40_runtime_memory.TEMPAL),y				// [6]		set character
 			beq scroll										// [2/3]	scroll the screen if so
 
 			// insert line
+.break
 			jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
 			jsr insert_blank_line 							// [6]		insert blank line for continuation
 			jmp refresh										// [3]		refresh updated lines
@@ -504,19 +498,18 @@ loop:		lda f40_runtime_memory.LINECONT-206,x			// [5]		get byte
 
 			// clear text bytes for bottom two lines
 			ldx #f40_runtime_constants.SCREEN_ROWS-1		// [2]		first line to clear
-			jsr set_temp_line_pointer						// [6]		set address of line in TEMPAL/H
 			jsr clear_text_bytes 							// [6]		clear row in TEMPAL/H
 			inx												// [2]		increment for next line to clear
-			jsr set_temp_line_pointer						// [6]		set address of line in TEMPAL/H
 // Fall-through into clear_text_bytes
 }
 
 
 // Set bytes of text buffer to spaces
-// => TEMPAL/H	Pointer to text buffer line start
+// => X			Text buffer line index
 clear_text_bytes:
 .pc = * "clear_text_bytes"
 {
+			jsr set_temp_line_pointer						// [6]		set address of row in TEMPAL/H
 			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
 			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		text buffer bytes to clear
 clearloop:	sta (f40_runtime_memory.TEMPAL),y				// [6]		clear text buffer byte
