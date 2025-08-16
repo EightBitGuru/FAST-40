@@ -271,7 +271,7 @@ shuffle:	lda (f40_runtime_memory.TEMPAL),y				// [5]		get character from work bu
 			cpx #f40_runtime_constants.LINE_1_OVERRUN		// [2]		check for line overrun
 			beq addline										// [2/3]	do insert/scroll
 			cpx #f40_runtime_constants.LINE_2_OVERRUN		// [2]		check for line overrun
-			bne refresh										// [3/2]	no extension so just refresh
+			bne refresh										// [3/2]	no extension so just refresh updated lines
 			iny 											// [2]		work buffer line index (.Y = 2)
 
 			// clear extended line in work buffer ready for insert/scroll
@@ -283,21 +283,17 @@ setspace:	sta (f40_runtime_memory.TEMPAL),y				// [6]		set character
 			dey												// [2]		decrement index
 			bpl setspace									// [3/2] 	loop until done
 
-			// check whether insert or scroll
-			inc f40_runtime_memory.DRAWROWE					// [5]		increment for line extension
+			// do insert or scroll
 			ldx f40_runtime_memory.DRAWROWE					// [3]		get last line of block
+			inx 											// [2]		increment for line extension
 			cpx #f40_runtime_constants.SCREEN_ROWS+1		// [2]		check if beyond the last screen line
 			beq scroll										// [2/3]	scroll the screen if so
-
-			// insert line
-.break
 			jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
 			jsr insert_blank_line 							// [6]		insert blank line for continuation
-			jmp refresh										// [3]		refresh updated lines
+			jmp refreshall									// [3]		refresh to end of screen
 
 			// scroll screen
 			// here we at
-.break
 scroll:		jsr scroll_lines_up								// [6]		scroll the screen
 .break
 			ldx vic20.os_zpvars.CRSRROW						// [3]		get cursor row
@@ -310,23 +306,21 @@ scroll:		jsr scroll_lines_up								// [6]		scroll the screen
 //  setline:	jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
 
 			// Copy work buffer back to screen lines and refresh them
-//.break
+refreshall:	ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		use bottom of screen for lower line limit
+			stx f40_runtime_memory.DRAWROWE					// [3]		set redraw end row
 refresh:	jsr transfer_buffer_to_lines					// [6]		transfer work buffer to text buffer lines
-			lda f40_runtime_memory.DRAWROWS					// [3]		get redraw start row
 			ldx f40_runtime_memory.DRAWROWE					// [3]		get redraw end row
-			//jmp redraw_line_range							// [3]		redraw changed lines
 // Fall-through into redraw_line_range
 }
 
 
 // Redraw text buffer line range
-// => A			Redraw start line
+// => DRAWROWS	Redraw start line
 // => X			Redraw end line
 // TODO: optimise this
 redraw_line_range:
 .pc = * "redraw_line_range"
 {
-			sta f40_runtime_memory.DRAWROWS					// [3]		stash redraw upper line limit
 setrow:		stx f40_runtime_memory.REGXSAVE					// [3]		stash line for later
 			jsr set_temp_line_pointer						// [6]		set address of line in TEMPAL/H
 			txa												// [2]		copy line index to .A for divide
