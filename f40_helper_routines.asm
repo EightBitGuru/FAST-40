@@ -33,7 +33,7 @@ set_temp_line_pointer:
 }
 
 
-// Initialise all screen tables
+// Initialise screen tables
 initialise_screen:
 .pc = * "initialise_screen"
 {
@@ -171,6 +171,8 @@ copyloop:	lda f40_runtime_memory.TXTBUFSQ,x 				// [5]		get buffer key byte
 			dey												// [2]		decrement loop counter
 			bpl copyloop									// [3/2]	loop until shuffle complete
 
+// here we at - scroll events are inserting zero instead of the correct sequence number for the first of the two lines
+
 			// set continuation byte and text buffer for inserted line
  			ldx f40_runtime_memory.REGXSAVE 				// [3]		get stashed row
 			lda f40_runtime_memory.TXTBUFOF 				// [4]		get text buffer sequence overflow byte
@@ -288,26 +290,24 @@ setspace:	sta (f40_runtime_memory.TEMPAL),y				// [6]		set character
 			inx 											// [2]		increment for line extension
 			cpx #f40_runtime_constants.SCREEN_ROWS+1		// [2]		check if beyond the last screen line
 			beq scroll										// [2/3]	scroll the screen if so
+
 			jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
 			jsr insert_blank_line 							// [6]		insert blank line for continuation
-			jmp refreshall									// [3]		refresh to end of screen
+			ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		bottom of screen for lower line limit
+			stx f40_runtime_memory.DRAWROWE					// [3]		set redraw end row
+			bne refresh										// [3/3]	refresh to end of screen
 
 			// scroll screen
-			// here we at
 scroll:		jsr scroll_lines_up								// [6]		scroll the screen
-.break
-			ldx vic20.os_zpvars.CRSRROW						// [3]		get cursor row
-			dex												// [2]		decrement for scroll ...
-			dex												// [2]		... twice
+			dex												// [2]		decrement row (.X = 23)
+			jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
+			jsr insert_blank_line 							// [6]		insert blank line for continuation
+			dex												// [2]		decrement row for scroll ...
+			dex												// [2]		... twice (.X = 21)
 			stx vic20.os_zpvars.CRSRROW						// [3]		reset cursor row
 			stx f40_runtime_memory.DRAWROWS					// [3]		reset redraw start row
-//			ldx #f40_runtime_constants.SCREEN_ROWS-1		// [2]		set current row
-// 			jsr set_continuation_previous					// [6]		set continuation byte for new line
-//  setline:	jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
 
 			// Copy work buffer back to screen lines and refresh them
-refreshall:	ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		use bottom of screen for lower line limit
-			stx f40_runtime_memory.DRAWROWE					// [3]		set redraw end row
 refresh:	jsr transfer_buffer_to_lines					// [6]		transfer work buffer to text buffer lines
 			ldx f40_runtime_memory.DRAWROWE					// [3]		get redraw end row
 // Fall-through into redraw_line_range
