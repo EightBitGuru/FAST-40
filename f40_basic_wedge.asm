@@ -67,6 +67,8 @@ setptrs:	cmp #8											// [2]		check if 8K+ reset requested
 			bne nextbit										// [3/3]	continue with reset processing
 
 			// 8K+ pointers
+.break
+// here we at - always assumes 8K in BLK1 but might not be
 setptrs8:	ldx #$12										// [2]		8K+ memory start
 			stx vic20.os_vars.BASICH						// [4]		set Start-of-BASIC pointer hi-byte
 			ldx #$10										// [2]		8K+ screen start

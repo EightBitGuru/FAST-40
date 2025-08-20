@@ -171,8 +171,6 @@ copyloop:	lda f40_runtime_memory.TXTBUFSQ,x 				// [5]		get buffer key byte
 			dey												// [2]		decrement loop counter
 			bpl copyloop									// [3/2]	loop until shuffle complete
 
-// here we at - scroll events are inserting zero instead of the correct sequence number for the first of the two lines
-
 			// set continuation byte and text buffer for inserted line
  			ldx f40_runtime_memory.REGXSAVE 				// [3]		get stashed row
 			lda f40_runtime_memory.TXTBUFOF 				// [4]		get text buffer sequence overflow byte
@@ -482,13 +480,13 @@ loop:		lda f40_runtime_memory.LINECONT-206,x			// [5]		get byte
 			stx f40_runtime_memory.LINECONT 				// [4]		clear first row line continuation
 			stx f40_runtime_memory.LINECONT+22				// [4]		clear last two rows line continuation
 			stx f40_runtime_memory.LINECONT+23				// [4]
-			stx f40_runtime_memory.LINCNTOF 				// [4]		clear overflow line continuation
 
 			// loop buffer sequence bytes around to end of table
 			lda f40_runtime_memory.TXTBUFUF					// [4]		get old first entry
 			sta f40_runtime_memory.TXTBUFSQ+22				// [4]		stash in line 22
 			lda f40_runtime_memory.TXTBUFUF+1				// [4]		get old second entry
 			sta f40_runtime_memory.TXTBUFSQ+23				// [4]		stash in line 23
+			stx f40_runtime_memory.LINCNTOF 				// [4]		clear overflow line continuation
 
 			// clear text bytes for bottom two lines
 			ldx #f40_runtime_constants.SCREEN_ROWS-1		// [2]		first line to clear
