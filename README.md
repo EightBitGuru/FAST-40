@@ -187,6 +187,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Tweaked SHIFT/RUNSTOP keypress behaviour to align with JiffyDOS Kernal presence
 * Tweaked startup colours back to stock blue-on-white for NTSC visual clarity (prompted by **gunner@denial**)
 * Removed the superfluous bitmap refresh for case-switch events which caused a race condition crash (reported by **boray@denial**)
+* ##Added case-switch cursor indicator
 * ##Added .D64 image to package containing .PRG version of the binary (prompted by **boray@denial**)
 
 ## The Wishlist

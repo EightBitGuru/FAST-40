@@ -413,6 +413,30 @@ exit:		dec vic20.os_zpvars.CRSRMODE					// [5]		reset cursor blink mode
 }
 
 
+// Calculate logical line length (with trailing spaces removed) and continuation group start/end lines
+// <= A		Line length
+// <= X		Continuation group start line
+// <= Y		Continuation group end line
+get_line_details:
+.pc = * "get_line_details"
+{
+			ldx vic20.os_zpvars.CRSRROW						// [3]		get cursor row
+			jsr transfer_lines_to_buffer					// [6]		populate work buffer
+			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for last line in block
+			ldx f40_static_data.LINESUM,y					// [4]		get line length sum for last line in block
+			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
+checkspace:	cmp f40_runtime_memory.InsDel_Buffer,x			// [4]		check character in buffer
+			bne done										// [2/3]	stop if not [SPACE]
+			dex												// [2]		decrement character index
+			bpl checkspace									// [3/2]	loop for next character
+done:		inx												// [2]		add 1 to length
+			txa 											// [2]		set line length
+			ldx f40_runtime_memory.DRAWROWS					// [3]		get first line of block
+			ldy f40_runtime_memory.DRAWROWE					// [3]		get last line of block
+			rts												// [6]
+}
+
+
 // Zap lines 0/1 and insert blank lines at 22/23
 scroll_lines_up:
 .pc = * "scroll_lines_up"
@@ -551,30 +575,6 @@ reset_wedge:
 			sta vic20.os_vars.NEWCODEL						// [4]		set decode vector lo-byte
 			lda #>f40_basic_wedge.decode_command			// [2]		get BASIC decode handler hi-byte
 			sta vic20.os_vars.NEWCODEH						// [4]		set decode vector hi-byte
-			rts												// [6]
-}
-
-
-// Calculate logical line length (with trailing spaces removed) and continuation group start/end lines
-// <= A		Line length
-// <= X		Continuation group start line
-// <= Y		Continuation group end line
-get_line_details:
-.pc = * "get_line_details"
-{
-			ldx vic20.os_zpvars.CRSRROW						// [3]		get cursor row
-			jsr transfer_lines_to_buffer					// [6]		populate work buffer
-			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for last line in block
-			ldx f40_static_data.LINESUM,y					// [4]		get line length sum for last line in block
-			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
-checkspace:	cmp f40_runtime_memory.InsDel_Buffer,x			// [4]		check character in buffer
-			bne done										// [2/3]	stop if not [SPACE]
-			dex												// [2]		decrement character index
-			bpl checkspace									// [3/2]	loop for next character
-done:		inx												// [2]		add 1 to length
-			txa 											// [2]		set line length
-			ldx f40_runtime_memory.DRAWROWS					// [3]		get first line of block
-			ldy f40_runtime_memory.DRAWROWE					// [3]		get last line of block
 			rts												// [6]
 }
 
