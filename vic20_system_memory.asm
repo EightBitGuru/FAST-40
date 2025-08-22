@@ -648,6 +648,7 @@
     .label IRQEXIT	= $EB15			//	IRQ Exit
     .label SCNKEY	= $EB1E			//	Scan Keyboard
     .label SCNKEY2	= $EB74			//	Keyboard scan logic (check for key repeat)
+    .label NOREPEAT	= $EBBA			//	Keyboard scan logic (skip key repeat)
     .label STOPKEY	= $EBD6			//	Enable VIA for RUN/STOP key
     .label DECODE	= $EBDC			//	SHIFT/CTRL/C= key decode logic
     .label DECODE2J	= $EBF8			//	JiffyDOS ROM entry after SHIFT/C= logic

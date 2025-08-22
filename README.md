@@ -185,9 +185,9 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Restructured memory usage so FAST-40 only uses 3K in BLK0 and leaves all 8K blocks free for BASIC
 * Refactored INS/DEL keypress logic to reduce complexity and eliminate Stack usage
 * Tweaked SHIFT/RUNSTOP keypress behaviour to align with JiffyDOS Kernal presence
+* Tweaked SHIFT/C= kepress behavior so it doesn't auto-repeat
 * Tweaked startup colours back to stock blue-on-white for NTSC visual clarity (prompted by **gunner@denial**)
 * Removed the superfluous bitmap refresh for case-switch events which caused a race condition crash (reported by **boray@denial**)
-* ##Added case-switch cursor indicator
 * ##Added .D64 image to package containing .PRG version of the binary (prompted by **boray@denial**)
 
 ## The Wishlist

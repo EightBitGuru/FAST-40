@@ -164,7 +164,7 @@ switch_case:
 .pc = * "switch_case"
 {
 			lda vic20.basic.OROP+19,x						// [4]		get case value for switch ($00=upper-case, $08=lower-case)
-// Fall-through into set_colour_byte
+// Fall-through into set_case
 }
 
 
