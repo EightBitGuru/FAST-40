@@ -4,7 +4,7 @@ FAST-40 is a cartridge ROM program for the Commodore VIC-20 which reconfigures t
 
 No hardware modification is required.
 
-Other (vintage) 40-column programs typically suffer from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the ground up to render an artifact-free 40x24 text mode with performance comparable to the hardware-assisted 22x23 display, whilst faithfully reproducing standard screen-editor functionality. In tests, FAST-40 character output rates match or exceed stock speeds.
+Other (vintage) 40-column programs typically suffer from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the ground up to render an artifact-free 40x24 text mode with performance comparable to the hardware-assisted 22x23 display, whilst faithfully reproducing standard screen-editor functionality. In tests, FAST-40 character output rates actually *exceed* stock speeds by at least 7% and often reach speeds almost 40% faster than stock.
 
 FAST-40 works under emulation and on real VIC-20 hardware - it can be attached as an auto-start cartridge in VICE (see below) or burned/flashed/loaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
 
@@ -179,15 +179,13 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 
 ### Release v1.1 (?? August 2025)
 * Fixed a bug where line continuation markers were not correctly reset after a screen-scroll event
-* Improved glyph rendering performance to 107% of stock speed (FAST-40 draws 40x24 mode faster than the stock ROM draws 22x23)
-* Improved INS/DEL bitmap line-refresh performance by 30%
-* Improved logical line extension performance by 15%
-* Restructured memory usage so FAST-40 only uses 3K in BLK0 and leaves all 8K blocks free for BASIC
-* Refactored INS/DEL keypress logic to reduce complexity and eliminate Stack usage
+* Fixed a bug in the SHIFT/C= keypress handler where it bounced due to auto-repeat
 * Tweaked SHIFT/RUNSTOP keypress behaviour to align with JiffyDOS Kernal presence
-* Tweaked SHIFT/C= kepress behavior so it doesn't auto-repeat
 * Tweaked startup colours back to stock blue-on-white for NTSC visual clarity (prompted by **gunner@denial**)
-* Removed the superfluous bitmap refresh for case-switch events which caused a race condition crash (reported by **boray@denial**)
+* Restructured memory usage so FAST-40 only needs 3K in BLK0 and leaves all 8K blocks free for BASIC
+* Refactored bitmap rendering path logic (FAST-40 draws 40x24 mode faster than the stock ROM draws 22x23)
+* Refactored logic in INS/DEL keypress, bitmap line-refresh, and logical line extension routines
+* Removed superfluous case-switch bitmap refresh which caused a race condition crash (reported by **boray@denial**)
 * ##Added .D64 image to package containing .PRG version of the binary (prompted by **boray@denial**)
 
 ## The Wishlist

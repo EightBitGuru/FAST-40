@@ -156,7 +156,7 @@ notspace:	tya 											// [2]		move to .A to set flags
 setbyte:	ldy f40_runtime_memory.LINECONT-1,x				// [4]		get continuation byte for previous line
 			iny												// [2]		increment byte for next line
 			shy f40_runtime_memory.LINECONT,x				// [5]		set continuation byte for next line
-@exit:		rts												// [6]
+exit:		rts												// [6]
 
 			// shuffle continuation table and text buffer sequence table 'down' a row
 shuffle:	lax f40_controlcode_handlers.dispatch_page		// [4]		get screen line constant (22) to .A and .X
@@ -230,6 +230,7 @@ shuffle:	lda (f40_runtime_memory.TEMPAL),y				// [5]		get character from work bu
 			ldx f40_runtime_memory.DRAWROWE					// [3]		get redraw end row
 			jsr redraw_line_range							// [6]		redraw changed lines
 movecrsr:	jmp f40_controlcode_handlers.cursor_left		// [3]		move cursor left
+@exit:		rts												// [6]
 }
 
 
@@ -242,17 +243,20 @@ insert_character:
 			beq exit										// [2/3]	scram if no inserts possible
 
 			// set shuffle pointers
-			tax 											// [2]		stash line length
+			inc vic20.os_zpvars.INSRTCNT					// [5]		increment pending INSERT count
+			tax 											// [2]		stash line length in .X
 			jsr f40_interrupt_handlers.undraw_cursor		// [6]		undraw cursor if required
 			lda #>f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer hi-byte
 			sta f40_runtime_memory.TEMPAH					// [3]		set source pointer hi-byte
 			lda #<f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer lo-byte
+			clc												// [2]		clear Carry for addition
 			adc f40_runtime_memory.LINECHAR					// [3]		add cursor position in work buffer
 			sta f40_runtime_memory.TEMPAL					// [3]		set source pointer lo-byte
 			adc #1											// [2]		add 1 for shuffle
 			sta f40_runtime_memory.TEMPBL					// [3]		set destination pointer lo-byte
-			txa 											// [2]		get line length
+			txa 											// [2]		get line length back
 			sbc f40_runtime_memory.LINECHAR					// [3]		subtract cursor position
+			bmi exit										// [2/3]	scram if beyond end of line
 			tay	 											// [2]		set shuffle count
 
 			// shuffle bytes up at cursor position and insert space
@@ -265,7 +269,6 @@ shuffle:	lda (f40_runtime_memory.TEMPAL),y				// [5]		get character from work bu
 			sta (f40_runtime_memory.TEMPAL),y				// [6]		set character
 
 			// check if we have extended a logical line
-			inc vic20.os_zpvars.INSRTCNT					// [5]		increment pending INSERT count
 			iny 											// [2]		work buffer line index (.Y = 1)
 			inx 											// [2]		increment line length
 			cpx #f40_runtime_constants.LINE_1_OVERRUN		// [2]		check for line overrun
