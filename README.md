@@ -4,7 +4,7 @@ FAST-40 is a cartridge ROM program for the Commodore VIC-20 which reconfigures t
 
 No hardware modification is required.
 
-Other (vintage) 40-column programs typically suffer from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the ground up to render an artifact-free 40x24 text mode with performance comparable to the hardware-assisted 22x23 display, whilst faithfully reproducing standard screen-editor functionality. In tests, FAST-40 character output rates actually *exceed* stock speeds by at least 7% and often reach speeds almost 40% faster than stock.
+Other (vintage) 40-column programs typically suffer from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the ground up to render an artifact-free 40x24 text mode with performance comparable to the hardware-assisted 22x23 display, whilst faithfully reproducing standard screen-editor functionality. In tests, FAST-40 character output rates *exceed* stock speeds by at least 7% and often reach speeds almost 40% faster than stock.
 
 FAST-40 works under emulation and on real VIC-20 hardware - it can be attached as an auto-start cartridge in VICE (see below) or burned/flashed/loaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
 
@@ -21,6 +21,25 @@ Creation of modified or derivative works using, in whole or in part, any sourcec
 #### Who is 8-Bit Guru?
 
 8-Bit Guru (also: Eight-Bit Guru, 8BitGuru, 8BG) is the *nom de guerre* of Mark Johnson. I'm a professional coder from the UK who has been telling computers what to do since 1981. My day job is all about C# and Azure, whilst my hobby projects mostly involve writing 6502 assembly language for the VIC-20 (my first computer, back in '81).
+
+## How to run FAST-40 from the package
+
+The package contains three objects:
+
+* an binary cartridge image (.bin) intended for use as a ROM
+* an program image (.prg) for LOADing as a program
+* a disk image (.d64) containing the program image
+
+Using the PRG file with VICE (xvic):
+. enable Block 0 & Block 5 as RAM
+. attach the FAST-40.d64 disk image 
+. load the FAST-40 PRG and start it
+
+  LOAD"FAST-40",8,1
+  SYS64802
+
+Or invoke xvic from the commandline
+  xvic.exe -memory 1,4 fast40.prg
 
 ## How to build and run FAST-40
 
@@ -41,13 +60,21 @@ The code builds a binary cartridge image which can be used with ***xvic***, the 
 
 The sourcecode produces a standard BLK5 ($A000-$BFFF) 8K cartridge ROM binary image.
 
-Execute KickAssembler in your working copy directory to build the image:
+Execute KickAssembler in your working copy directory to build the image (8192 bytes):
  
     java -jar [Your_KickAssembler_Path]\KickAss.jar main.asm -o fast40.bin -binfile
 
-To use the image with ***xvic***:
+To use this image with ***xvic***:
 
     [Your_VICE_Path]\bin\xvic.exe -memory 1 -cartA fast40.bin
+
+Or build a PRG with the load address prefix (8194 bytes):
+
+    java -jar [Your_KickAssembler_Path]\KickAss.jar main.asm -o fast40.prg
+
+To use this program with ***xvic***:
+
+    [Your_VICE_Path]\bin\xvic.exe -memory 1,4 fast40.prg
 
 * The cartridge auto-starts via the standard Commodore **A0CBM** signature-detection mechanism.
 
@@ -61,7 +88,7 @@ To use the image with ***xvic***:
 
 FAST-40 uses all of the 4K unexpanded RAM area for video display reconfiguration and requires a minimum of 3K expansion RAM in BLK0 (of which just under 2K is left free for BASIC).
 
-If 8K (or 16K/24K) expansion RAM is also present in BLK1/2/3 then FAST-40 will make all 8K blocks available for BASIC and the 'lost' 2K in BLK0 available for machine-code programs.
+If 8K (or 16K/24K) expansion RAM is also present in BLK1/2/3 then FAST-40 will make all 8K blocks available for BASIC and the 'lost' 2K in BLK0 remains available for machine-code programs.
 
 ### New RESET Command
 
@@ -86,7 +113,7 @@ FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands t
 
 On a stock VIC-20 the SHIFT/COMMODORE key combination (or programmatic equivalent) causes the VIC to switch between two charactersets stored in ROM at $8000 and $8800. The first set contains upper-case letters and a wide selection of PETSCII graphics characters, whereas the second contains both upper- and lower-case letters and a smaller choice of PETSCII characters. Switching charactersets instantly affects all visible characters on the screen, not just those which are displayed after the switch occurs. The initial FAST-40 release took pains to reproduce this behaviour, ensuring that the entire screen was refreshed whenever a characterset switch occurred.
 
-However since characterset switches typically happen before any characters are output (rarely being useful otherwise) the engineering overhead to drive the refresh and the associated rendering throughput performance impact was largely suboptimal. In fact the intrinsic capability of FAST-40 to switch between charactersets _without_ forcing a screen refresh (and thus allow simultaneous display of glyphs from both) is a desirable feature. The refresh feature was therefore dropped in the second release of FAST-40.
+However since characterset switches typically happen before any characters are output (rarely being useful otherwise) the engineering overhead to drive the refresh and the associated rendering throughput performance impact was largely suboptimal. In fact the intrinsic capability of FAST-40 to switch between charactersets _without_ forcing a screen refresh (and thus allow simultaneous display of glyphs from both) is a desirable feature. The refresh feature was therefore dropped in the 1.1 release.
 
 ### System Reconfiguration
 
@@ -97,7 +124,7 @@ Memory areas:
     $0003-$0004     Not normally used by BASIC/KERNAL.     [only used if BRK debugging is enabled on build]
     $00D9-$00F1     Normally used as the BASIC screen editor line-link table.
     $02B4-$02FF     Not normally used by BASIC/KERNAL.
-    $0C40-$0FFF     Top of 3K RAM expansion (BLK0).
+    $0BC7-$0FFF     Top of 3K RAM expansion (BLK0).
     $1000-$1FFF     Normally used as the unexpanded screen and RAM area.
     $9400-$95FF     Normally used as colour memory when RAM is in BLK1/2/3.
 
@@ -157,7 +184,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Fixed a bug where data fed to the INPUT command included the prompt in the returned value and therefore broke it (reported by **mathom@denial**)
 * Fixed a bug where inserting a character into a long line would sometimes erroneously insert a blank line after it
 * Fixed a bug where doing a character insert in column 40 erroneously placed the inserted space character into column 39
-* Fixed a bug in the screen-scrolling logic where it forgot that text buffer lines were not always contiguous in memory
+* Fixed a bug in the screen-scrolling logic where it forgot that the text buffer layout is not linear
 * Fixed a bug where RUNSTOP/RESTORE didn't reset the default text colour and character-case
 * Added a BRK handler to display CPU registers (to help debug a JiffyDOS showstopper crash reported by **mathom@denial**)
 * Added an alternate build option to do LOAD"$",8 / LIST on SHIFT/RUNSTOP
@@ -165,7 +192,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Tweaked the cursor blink phase timings to help cursor visibility during rapid/repeated movement (reported by **mathom@denial**)
 
 ### Beta 2A (22nd April 2025)
-* Fixed a bug introduced in Beta 2 which totally broke the character insert and delete routines (reported by **tokra@denial**)
+* Fixed a bug introduced in Beta 2 which corrupted the Stack and broke the INS/DEL routines (reported by **tokra@denial**)
 
 ### Beta 3 (24th April 2025)
 * Fixed a bug where deleting a character from column 1 replaced the character in column 39 on the previous line instead of column 40
@@ -174,19 +201,19 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 
 ### Release v1.0 (2nd May 2025)
 * Fixed a bug where the startup RAM detection wasn't triggering a clean system reset if BLK1 is empty
-* Fixed the JiffyDOS showstopper crash (JiffyDOS rearranges some code in the SHIFT/CTRL/C= keypress logic)
+* Fixed the JiffyDOS showstopper crash (JiffyDOS rearranges some code in the SHIFT/CTRL/C= ROM keypress logic)
 * Added the JiffyDOS banner to the startup message (if present)
 
 ### Release v1.1 (?? August 2025)
 * Fixed a bug where line continuation markers were not correctly reset after a screen-scroll event
 * Fixed a bug in the SHIFT/C= keypress handler where it bounced due to auto-repeat
-* Tweaked SHIFT/RUNSTOP keypress behaviour to align with JiffyDOS Kernal presence
+* Tweaked SHIFT/RUNSTOP keypress behaviour to better suit JiffyDOS users
 * Tweaked startup colours back to stock blue-on-white for NTSC visual clarity (prompted by **gunner@denial**)
 * Restructured memory usage so FAST-40 only needs 3K in BLK0 and leaves all 8K blocks free for BASIC
 * Refactored bitmap rendering path logic (FAST-40 draws 40x24 mode faster than the stock ROM draws 22x23)
 * Refactored logic in INS/DEL keypress, bitmap line-refresh, and logical line extension routines
 * Removed superfluous case-switch bitmap refresh which caused a race condition crash (reported by **boray@denial**)
-* ##Added .D64 image to package containing .PRG version of the binary (prompted by **boray@denial**)
+* Added .D64 image containing .PRG version of the binary (prompted by **boray@denial**)
 
 ## The Wishlist
 
