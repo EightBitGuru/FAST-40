@@ -1,43 +1,48 @@
-# FAST-40
-# Copyright © 2025 [8-Bit Guru](mailto:the8bitguru@gmail.com).
+# <div><div>FAST-40</div><div>Copyright © 2025 [8-Bit Guru](mailto:the8bitguru@gmail.com)</div></div>
 
-FAST-40 is a cartridge ROM program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language and requires a 3K RAM expansion to run.
+FAST-40 is a utility program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language and requires a 3K RAM expansion.
 
-No hardware modification is required.
+No video output hardware modification is required.
 
-Other (vintage) 40-column programs typically suffer from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the ground up to render an artifact-free 40x24 text mode with performance comparable to the hardware-assisted 22x23 display, whilst faithfully reproducing standard screen-editor functionality. In tests, FAST-40 character output rates *exceed* stock speeds by at least 7% and often reach speeds almost 40% faster than stock.
+Other (vintage) 40-column programs typically suffer from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the start to render an artifact-free 40x24 text mode whilst faithfully reproducing standard screen-editor functionality, with performance intended to be tolerably close to the native 22x23 display.
 
-FAST-40 works under emulation and on real VIC-20 hardware - it can be attached as an auto-start cartridge in VICE (see below) or burned/flashed/loaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
+Pleasingly, FAST-40 performance generally *exceeds* stock speeds by at least 7% and often rises to almost 40% faster than the standard display mode.
 
-Creation of modified or derivative works using, in whole or in part, any sourcecode, assets, or binary package originating from this project is subject to the following:
+FAST-40 works equally well on real VIC-20 hardware or under emulation - it can be attached as an auto-start cartridge in VICE, LOADed as a program into BLK5 (if configured as RAM) and run manually, or burned/flashed/uploaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
+
+Both PAL and NTSC video standards are supported.
+
+The JiffyDOS v6.01 Kernal ROM is supported if detected.
+
+The program auto-starts via the standard Commodore *A0CBM* signature-detection mechanism.
+
+**NOTE:** FAST-40 expects to run on a real or emulated VIC-20 with an NMOS 6502 and makes use of several undocumented opcodes. It will not operate correctly on later 6502 variants (e.g. the CMOS 65C02) which disable or replace these opcodes.
+
+## License
+
+The FAST-40 project is hosted on [GitHub](https://github.com/EightBitGuru/FAST-40).
+
+Creation of modified or derivative works using, in whole or in part, any sourcecode, assets, or binary artifact originating from this project is subject to the following:
 
 * **Free for non-commercial use** (you must clearly include a credit link to this project within your project).
 
 * **Commercial use is expressly forbidden** except by explicit consent from the copyright holder.
 
-* The FAST-40 project is hosted on [GitHub](https://github.com/EightBitGuru/FAST-40).
-
-* Both PAL and NTSC video standards are supported.
-
-* The JiffyDOS v6.01 Kernal ROM is supported, if present.
-
-* FAST-40 expects to run on a real or emulated VIC-20 with an NMOS 6502 and makes use of several undocumented opcodes. It will not operate correctly on later 6502 variants (e.g. the CMOS 65C02) which disable or replace these opcodes.
-
 ## VICE Quickstart
 
-Detailed build and run instructions can be found below, but if you're familar with [VICE](https://vice-emu.sourceforge.io/) and just want to dive straight in:
+Instructions for how to build and run the project are given below, but if you're familar with [VICE](https://vice-emu.sourceforge.io/) and just want to dive in...
 
-* download the [package](https://github.com/EightBitGuru/FAST-40) containing
+* clone the repository, which includes an **artifacts** folder containing:
 
-    FAST-40 built as an autostart cartridge (.bin)
-    FAST-40 built as a LOADable program (.prg)
-    a disk image (.d64) containing the program (.prg)
+    * FAST-40 built as an autostart cartridge (fast40.bin)
+    * FAST-40 built as a LOADable program     (fast40.prg)
+    * a disk image (fast40.d64) containing the program build
 
-* invoke ***xvic*** with **xvic.exe -memory 1,2,3,4 -cartA fast40.bin**
+* invoke ***xvic*** with **xvic.exe -memory all -cartA fast40.bin**
 
 This will start the emulator with the FAST-40 cartridge installed and 24K for BASIC to play with.
 
-## How to build and run FAST-40
+## Build / Run Instructions
 
 ### Suggested Toolchain
 
@@ -54,47 +59,36 @@ The code builds a binary cartridge image which can be used with ***xvic***, the 
 
 ### Build with KickAssembler
 
-To generate the autostart cartridge ROM (.bin):
+To generate the autostart cartridge ROM artifact (fast40.bin):
  
     java -jar [Your_KickAssembler_Path]\KickAss.jar main.asm -o fast40.bin -binfile
 
-To generate the LOADable program (.prg):
+To generate the LOADable program artifact (fast40.prg):
 
     java -jar [Your_KickAssembler_Path]\KickAss.jar main.asm -o fast40.prg
 
 ### Run with VICE
 
-To start ***xvic*** with the cartridge ROM:
+To start ***xvic*** with the cartridge ROM from the commandline:
 
-    [Your_VICE_Path]\bin\xvic.exe -memory 1,2,3,4 -cartA fast40.bin
+    [Your_VICE_Path]\bin\xvic.exe -memory all -cartA fast40.bin
 
-    The cartridge auto-starts via the standard Commodore **A0CBM** signature-detection mechanism.
+To use the LOADable program within ***xvic***, enable all RAM blocks, attach the **fast40.d64** disk image, and type:
 
-To use this program with ***xvic***:
+    LOAD"FAST40",8,1
+    SYS64802
 
-    [Your_VICE_Path]\bin\xvic.exe -memory 1,4 fast40.prg
+Consult the VICE documentation for full details regarding commandline options associated with attachment and autostarting of disk images and programs.
 
- How to run FAST-40 from the package
+## Usage
 
-Using the PRG file with VICE (xvic):
-. enable Block 0 & Block 5 as RAM
-. attach the FAST-40.d64 disk image 
-. load the FAST-40 PRG and start it
-
-  LOAD"FAST-40",8,1
-  SYS64802
-
-Or invoke xvic from the commandline
-  xvic.exe -memory 1,4 fast40.prg
-
+FAST-40 supports all VIC-20 character glyphs and control characters, including those for cursor positioning, colour selection, reverse-mode, etc. The VIC-20 keyboard does not emit characters for the SHIFT/C= key combination which performs the toggle between upper-case and lower-case character sets, but these non-printing characters do exist - generated with CHR$(14) and CHR$(142) - and are supported.
 
 ### Memory Requirements
 
-FAST-40 is a standard 8K autostart cartridge occupying the BLK5 ($A000-$BFFF) ROM/RAM area.
+The FAST-40 program occupies the BLK5 ($A000-$BFFF) ROM/RAM area and uses areas of pages zero and two as working storage. Additionally all of the 4K unexpanded RAM area is needed for video display reconfiguration, and the text buffer is placed in the 3K expansion RAM area in BLK0. Slightly less than 2K of this block is left free for BASIC ($0400-0BC6).
 
-It uses all of the 4K unexpanded RAM area for video display reconfiguration and requires a minimum of 3K expansion RAM in BLK0 (of which just under 2K is left free for BASIC).
-
-If 8K (or 16K/24K) expansion RAM is also present in BLK1/2/3 then FAST-40 will make all 8K blocks available for BASIC and the 'lost' 2K in BLK0 remains available for machine-code programs.
+If 8K (or 16K or 24K) expansion RAM is also present in BLK1/2/3 then FAST-40 will make these blocks entirely available for BASIC and the 'lost' memory in BLK0 remains available for machine-code programs.
 
 ### New RESET Command
 
@@ -129,7 +123,7 @@ Memory areas:
 
     $0003-$0004     Not normally used by BASIC/KERNAL.     [only used if BRK debugging is enabled on build]
     $00D9-$00F1     Normally used as the BASIC screen editor line-link table.
-    $02B4-$02FF     Not normally used by BASIC/KERNAL.
+    $02A1-$02FF     Not normally used by BASIC/KERNAL.
     $0BC7-$0FFF     Top of 3K RAM expansion (BLK0).
     $1000-$1FFF     Normally used as the unexpanded screen and RAM area.
     $9400-$95FF     Normally used as colour memory when RAM is in BLK1/2/3.
@@ -160,8 +154,6 @@ The VIC-20 has no memory protection hardware and therefore FAST-40 cannot 'lock'
 * Programs should not read/write video or colour memory directly, but instead use the PRINT statement (in BASIC) or call the CHROUT vector at $FFD2 (in machine-code). Both are configured to route their output through to the custom display logic within FAST-40, and thereby allow it to manage screen output.
 
 * Common programming techniques such as switching character-case by altering the value at address 36869 ($9005), adjusting cursor blink phase, frequency, or position by altering the relevant zero-page values at $CC/$CD/$CF/$D3/$D6, or otherwise directly interacting with screen editor functionality via zero-page or other addresses is discouraged. Such interactions are unlikely to yield the expected result or (more likely) will disrupt FAST-40 operation.
-
-* All PRINTable control characters are supported, including those for cursor positioning, colour selection, reverse-mode, etc. The VIC-20 keyboard does not emit characters for the SHIFT/C= key combination which performs the toggle between upper-case and lower-case character sets, but these non-printing characters do exist - generated with CHR$(14) and CHR$(142) - and are supported by FAST-40.
 
 * Limitations in the VIC design mean there is no way to preserve the usual 1:1 relationship between individual text-mode characters and their respective colour attribute when in 40x24 mode. All text colours are supported but they operate on 2x2 blocks of characters; in other words, the colour resolution is half that of the text resolution and colour layout should therefore be planned accordingly to avoid attribute clash.
 
@@ -208,18 +200,21 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 ### Release v1.0 (2nd May 2025)
 * Fixed a bug where the startup RAM detection wasn't triggering a clean system reset if BLK1 is empty
 * Fixed the JiffyDOS showstopper crash (JiffyDOS rearranges some code in the SHIFT/CTRL/C= ROM keypress logic)
-* Added the JiffyDOS banner to the startup message (if present)
+* Added the JiffyDOS banner to the startup message (if JiffyDOS is detected)
 
-### Release v1.1 (?? August 2025)
+### Release v1.1 (28th August 2025)
 * Fixed a bug where line continuation markers were not correctly reset after a screen-scroll event
-* Fixed a bug in the SHIFT/C= keypress handler where it bounced due to auto-repeat
+* Fixed a bug in the SHIFT/C= keypress handler to prevent keybounce
 * Tweaked SHIFT/RUNSTOP keypress behaviour to better suit JiffyDOS users
 * Tweaked startup colours back to stock blue-on-white for NTSC visual clarity (prompted by **gunner@denial**)
 * Restructured memory usage so FAST-40 only needs 3K in BLK0 and leaves all 8K blocks free for BASIC
 * Refactored bitmap rendering path logic (FAST-40 draws 40x24 mode faster than the stock ROM draws 22x23)
 * Refactored logic in INS/DEL keypress, bitmap line-refresh, and logical line extension routines
 * Removed superfluous case-switch bitmap refresh which caused a race condition crash (reported by **boray@denial**)
-* Added .D64 image containing .PRG version of the binary (prompted by **boray@denial**)
+* Added ***\artifacts*** folder to the repository, containing
+    * fast40.bin - pre-built cartridge version
+    * fast40.prg - pre-built LOADable version (prompted by **boray@denial**)
+    * fast40.d64 - disk image containing fast40.prg
 
 ## The Wishlist
 
@@ -234,6 +229,6 @@ The following improvements and enhancements may make it into the project if time
 
 Other suggestions and/or pull requests will be reviewed periodically.
 
-#### Who is 8-Bit Guru?
+# Who is 8-Bit Guru?
 
 8-Bit Guru (also: Eight-Bit Guru, 8BitGuru, 8BG) is the *nom de guerre* of Mark Johnson. I'm a professional coder from the UK who has been telling computers what to do since 1981. My day job is all about C# and Azure, whilst my hobby projects mostly involve writing 6502 assembly language for the VIC-20 (my first computer, back in '81).
