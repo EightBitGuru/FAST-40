@@ -1,4 +1,5 @@
 # FAST-40
+# Copyright © 2025 [8-Bit Guru](mailto:the8bitguru@gmail.com).
 
 FAST-40 is a cartridge ROM program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language and requires a 3K RAM expansion to run.
 
@@ -8,8 +9,6 @@ Other (vintage) 40-column programs typically suffer from some combination of slu
 
 FAST-40 works under emulation and on real VIC-20 hardware - it can be attached as an auto-start cartridge in VICE (see below) or burned/flashed/loaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
 
-#### FAST-40 is copyright © 2025 [8-Bit Guru](mailto:the8bitguru@gmail.com).
-
 Creation of modified or derivative works using, in whole or in part, any sourcecode, assets, or binary package originating from this project is subject to the following:
 
 * **Free for non-commercial use** (you must clearly include a credit link to this project within your project).
@@ -18,28 +17,25 @@ Creation of modified or derivative works using, in whole or in part, any sourcec
 
 * The FAST-40 project is hosted on [GitHub](https://github.com/EightBitGuru/FAST-40).
 
-#### Who is 8-Bit Guru?
+* Both PAL and NTSC video standards are supported.
 
-8-Bit Guru (also: Eight-Bit Guru, 8BitGuru, 8BG) is the *nom de guerre* of Mark Johnson. I'm a professional coder from the UK who has been telling computers what to do since 1981. My day job is all about C# and Azure, whilst my hobby projects mostly involve writing 6502 assembly language for the VIC-20 (my first computer, back in '81).
+* The JiffyDOS v6.01 Kernal ROM is supported, if present.
 
-## How to run FAST-40 from the package
+* FAST-40 expects to run on a real or emulated VIC-20 with an NMOS 6502 and makes use of several undocumented opcodes. It will not operate correctly on later 6502 variants (e.g. the CMOS 65C02) which disable or replace these opcodes.
 
-The package contains three objects:
+## VICE Quickstart
 
-* an binary cartridge image (.bin) intended for use as a ROM
-* an program image (.prg) for LOADing as a program
-* a disk image (.d64) containing the program image
+Detailed build and run instructions can be found below, but if you're familar with [VICE](https://vice-emu.sourceforge.io/) and just want to dive straight in:
 
-Using the PRG file with VICE (xvic):
-. enable Block 0 & Block 5 as RAM
-. attach the FAST-40.d64 disk image 
-. load the FAST-40 PRG and start it
+* download the [package](https://github.com/EightBitGuru/FAST-40) containing
 
-  LOAD"FAST-40",8,1
-  SYS64802
+    FAST-40 built as an autostart cartridge (.bin)
+    FAST-40 built as a LOADable program (.prg)
+    a disk image (.d64) containing the program (.prg)
 
-Or invoke xvic from the commandline
-  xvic.exe -memory 1,4 fast40.prg
+* invoke ***xvic*** with **xvic.exe -memory 1,2,3,4 -cartA fast40.bin**
+
+This will start the emulator with the FAST-40 cartridge installed and 24K for BASIC to play with.
 
 ## How to build and run FAST-40
 
@@ -56,37 +52,47 @@ Note that KickAssembler is written in Java and requires a Java runtime to operat
 * **Emulator**  
 The code builds a binary cartridge image which can be used with ***xvic***, the VIC-20 emulator shipped with [VICE](https://vice-emu.sourceforge.io/).
 
-### Build / Run
+### Build with KickAssembler
 
-The sourcecode produces a standard BLK5 ($A000-$BFFF) 8K cartridge ROM binary image.
-
-Execute KickAssembler in your working copy directory to build the image (8192 bytes):
+To generate the autostart cartridge ROM (.bin):
  
     java -jar [Your_KickAssembler_Path]\KickAss.jar main.asm -o fast40.bin -binfile
 
-To use this image with ***xvic***:
-
-    [Your_VICE_Path]\bin\xvic.exe -memory 1 -cartA fast40.bin
-
-Or build a PRG with the load address prefix (8194 bytes):
+To generate the LOADable program (.prg):
 
     java -jar [Your_KickAssembler_Path]\KickAss.jar main.asm -o fast40.prg
+
+### Run with VICE
+
+To start ***xvic*** with the cartridge ROM:
+
+    [Your_VICE_Path]\bin\xvic.exe -memory 1,2,3,4 -cartA fast40.bin
+
+    The cartridge auto-starts via the standard Commodore **A0CBM** signature-detection mechanism.
 
 To use this program with ***xvic***:
 
     [Your_VICE_Path]\bin\xvic.exe -memory 1,4 fast40.prg
 
-* The cartridge auto-starts via the standard Commodore **A0CBM** signature-detection mechanism.
+ How to run FAST-40 from the package
 
-* Both PAL and NTSC video standards are supported.
+Using the PRG file with VICE (xvic):
+. enable Block 0 & Block 5 as RAM
+. attach the FAST-40.d64 disk image 
+. load the FAST-40 PRG and start it
 
-* The JiffyDOS v6.01 Kernal ROM is supported, if present.
+  LOAD"FAST-40",8,1
+  SYS64802
 
-* FAST-40 expects to run on a real or emulated VIC-20 fitted with an NMOS 6502, and makes use of several undocumented opcodes. It will not operate correctly on later variants such as the CMOS 65C02 which disable or replace these opcodes.
+Or invoke xvic from the commandline
+  xvic.exe -memory 1,4 fast40.prg
+
 
 ### Memory Requirements
 
-FAST-40 uses all of the 4K unexpanded RAM area for video display reconfiguration and requires a minimum of 3K expansion RAM in BLK0 (of which just under 2K is left free for BASIC).
+FAST-40 is a standard 8K autostart cartridge occupying the BLK5 ($A000-$BFFF) ROM/RAM area.
+
+It uses all of the 4K unexpanded RAM area for video display reconfiguration and requires a minimum of 3K expansion RAM in BLK0 (of which just under 2K is left free for BASIC).
 
 If 8K (or 16K/24K) expansion RAM is also present in BLK1/2/3 then FAST-40 will make all 8K blocks available for BASIC and the 'lost' 2K in BLK0 remains available for machine-code programs.
 
@@ -227,3 +233,7 @@ The following improvements and enhancements may make it into the project if time
 * Add PEEK/POKE intercepts to allow screen/colour memory access akin to the stock 22x23 text mode
 
 Other suggestions and/or pull requests will be reviewed periodically.
+
+#### Who is 8-Bit Guru?
+
+8-Bit Guru (also: Eight-Bit Guru, 8BitGuru, 8BG) is the *nom de guerre* of Mark Johnson. I'm a professional coder from the UK who has been telling computers what to do since 1981. My day job is all about C# and Azure, whilst my hobby projects mostly involve writing 6502 assembly language for the VIC-20 (my first computer, back in '81).
