@@ -590,6 +590,7 @@ reset_wedge:
 transfer_lines_to_buffer:
 .pc = * "transfer_lines_to_buffer"
 {
+.break
 			lda #>f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer hi-byte
 			sta f40_runtime_memory.TEMPBH					// [3]		set buffer pointer hi-byte
 

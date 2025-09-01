@@ -4,9 +4,7 @@ FAST-40 is a utility program for the Commodore VIC-20 which reconfigures the sto
 
 No video output hardware modification is required.
 
-Other (vintage) 40-column programs typically suffer from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the start to render an artifact-free 40x24 text mode whilst faithfully reproducing standard screen-editor functionality, with performance intended to be tolerably close to the native 22x23 display.
-
-Pleasingly, FAST-40 performance generally *exceeds* stock speeds by at least 7% and often rises to almost 40% faster than the standard display mode.
+Earlier 40-column programs typically suffered from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the start to render an artifact-free 40x24 text mode whilst faithfully reproducing standard screen-editor functionality, with performance intended to be comparable to (or better than) the native 22x23 display.
 
 FAST-40 works equally well on real VIC-20 hardware or under emulation - it can be attached as an auto-start cartridge in VICE, LOADed as a program into BLK5 (if configured as RAM) and run manually, or burned/flashed/uploaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
 
@@ -83,6 +81,8 @@ Consult the VICE documentation for full details regarding commandline options as
 ## Usage
 
 FAST-40 supports all VIC-20 character glyphs and control characters, including those for cursor positioning, colour selection, reverse-mode, etc. The VIC-20 keyboard does not emit characters for the SHIFT/C= key combination which performs the toggle between upper-case and lower-case character sets, but these non-printing characters do exist - generated with CHR$(14) and CHR$(142) - and are supported.
+
+Performance tests yield a character output rate superior to the native 22x23 mode - ranging between 7% to 40% faster, depending on the workload complexity.
 
 ### Memory Requirements
 
