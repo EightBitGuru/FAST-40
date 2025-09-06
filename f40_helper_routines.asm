@@ -269,29 +269,37 @@ shuffle:	lda (f40_runtime_memory.TEMPAL),y				// [5]		get character from work bu
 			sta (f40_runtime_memory.TEMPAL),y				// [6]		set character
 
 			// check if we have extended a logical line
-			iny 											// [2]		work buffer line index (.Y = 1)
 			inx 											// [2]		increment line length
 			cpx #f40_runtime_constants.LINE_1_OVERRUN		// [2]		check for line overrun
 			beq addline										// [2/3]	do insert/scroll
 			cpx #f40_runtime_constants.LINE_2_OVERRUN		// [2]		check for line overrun
 			bne refresh										// [3/2]	no extension so just refresh updated lines
-			iny 											// [2]		work buffer line index (.Y = 2)
-
-			// clear extended line in work buffer ready for insert/scroll
-addline:	ldx f40_static_data.IDBUFFLO,y					// [4]		get work buffer line 2 or 3 address
-			inx												// [2]		increment lo-byte for 39 bytes
-			stx f40_runtime_memory.TEMPAL					// [3]		set buffer pointer lo-byte
-			ldy #f40_runtime_constants.SCREEN_COLUMNS-1		// [2]		set byte count
-setspace:	sta (f40_runtime_memory.TEMPAL),y				// [6]		set character
-			dey												// [2]		decrement index
-			bpl setspace									// [3/2] 	loop until done
 
 			// do insert or scroll
-			ldx f40_runtime_memory.DRAWROWE					// [3]		get last line of block
+			// TODO: does not work when inserting on line exactly 40 or 80 characters with blank continuation line
+.break
+addline:	ldx f40_runtime_memory.DRAWROWE					// [3]		get last line of block
+
+			// TODO: test me
+			jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
+			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set index to end of line
+checkspace:	cmp (vic20.os_zpvars.SCRNLNL),y					// [6]		find last non-space character on line
+			bne notspace									// [2/3]	exit if not a space
+			dey												// [2]		decrement character index
+			bpl checkspace									// [3/2]	loop for next character
+notspace:	tya 											// [2]		move to .A to set flags
+
+			bmi refresh
+
+
 			inx 											// [2]		increment for line extension
+
+
+
 			cpx #f40_runtime_constants.SCREEN_ROWS+1		// [2]		check if beyond the last screen line
 			beq scroll										// [2/3]	scroll the screen if so
 
+			// insert line
 			jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
 			jsr insert_blank_line 							// [6]		insert blank line for continuation
 			ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		bottom of screen for lower line limit
@@ -302,9 +310,12 @@ setspace:	sta (f40_runtime_memory.TEMPAL),y				// [6]		set character
 scroll:		jsr scroll_lines_up								// [6]		scroll the screen
 			dex												// [2]		decrement row (.X = 23)
 			jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
-			jsr insert_blank_line 							// [6]		insert blank line for continuation
-			dex												// [2]		decrement row for scroll ...
-			dex												// [2]		... twice (.X = 21)
+			jsr insert_blank_line 							// [6]		set continuation on blank line after scroll
+			lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row
+			cmp #f40_runtime_constants.SCREEN_ROWS			// [2]		check if on the last screen line
+			beq setrow										// [2/3]	skip row adjustment if so
+			dex												// [2]		adjustment if not on last line
+setrow:		dex												// [2]		decrement row after scroll
 			stx vic20.os_zpvars.CRSRROW						// [3]		reset cursor row
 			stx f40_runtime_memory.DRAWROWS					// [3]		reset redraw start row
 
@@ -590,9 +601,15 @@ reset_wedge:
 transfer_lines_to_buffer:
 .pc = * "transfer_lines_to_buffer"
 {
-.break
 			lda #>f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer hi-byte
 			sta f40_runtime_memory.TEMPBH					// [3]		set buffer pointer hi-byte
+
+			// clear work buffer
+			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
+			ldy #f40_runtime_constants.WORK_BUFFER_LEN		// [2]		set buffer index
+clearloop:	sta f40_runtime_memory.InsDel_Buffer,y			// [5]		clear buffer byte
+			dey												// [2]		decrement index
+			bpl clearloop									// [3/2]	loop until done
 
 			// compute work buffer cursor position and find first line of continuation block
 			lda vic20.os_zpvars.CRSRLPOS					// [3]		get cursor column (0-39)
@@ -606,22 +623,16 @@ transfer_lines_to_buffer:
 			tax												// [2]		first line of block
 			stx f40_runtime_memory.DRAWROWS					// [3]		stash first line of block
 
-			// set copy pointers and trailing space
+			// set pointers and copy text buffer lines to work buffer
 setline:	jsr set_temp_line_pointer						// [6]		set TEMPAL/H to address of line in .X
 			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for current line
 			lda f40_static_data.IDBUFFLO,y					// [4]		get work buffer offset lo-byte
 			sta f40_runtime_memory.TEMPBL					// [3]		set buffer pointer lo-byte
-			lda f40_static_data.LINEADD+1,y					// [4]		get length addition as buffer extent
-			tay												// [2]		stash extent in .Y
-			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
-			sta f40_runtime_memory.InsDel_Buffer,y			// [5]		set trailing [SPACE]
-
-			// copy text buffer lines to work buffer
 			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set byte copy count
-loop:		lda (f40_runtime_memory.TEMPAL),y				// [5]		get byte from text buffer
+copyloop:	lda (f40_runtime_memory.TEMPAL),y				// [5]		get byte from text buffer
 			sta (f40_runtime_memory.TEMPBL),y				// [6]		set byte in work buffer
 			dey												// [2]		decrement count
-			bpl loop										// [3/2]	loop until done
+			bpl copyloop									// [3/2]	loop until done
 			inx												// [2]		increment line index
 			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
 			bne	setline 									// [3/2]	loop until all lines copied

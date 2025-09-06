@@ -8,3 +8,4 @@
 .label BITMAP_OFFSET    = 191       // Bitmap address column offset
 .label LINE_1_OVERRUN   = 41        // First column of second line of block
 .label LINE_2_OVERRUN   = 81        // First column of third line of block
+.label WORK_BUFFER_LEN  = 120       // Length of INS/DEL work buffer
