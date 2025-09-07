@@ -143,14 +143,8 @@ insert_blank_line:
 			bne exit										// [2/3]	scram if already a continuation
 
 			// check for any non-space on the line
-			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
-			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set index to end of line
-checkspace:	cmp (vic20.os_zpvars.SCRNLNL),y					// [6]		find last non-space character on line
-			bne notspace									// [2/3]	exit if not a space
-			dey												// [2]		decrement character index
-			bpl checkspace									// [3/2]	loop for next character
-notspace:	tya 											// [2]		move to .A to set flags
-			bpl shuffle										// [2/3]	shuffle tables if line is not spaces
+			jsr find_nonspace								// [6]		find last non-space character on line
+			bpl shuffle										// [2/3]	shuffle tables if line is not all spaces
 
 			// set continuation byte
 setbyte:	ldy f40_runtime_memory.LINECONT-1,x				// [4]		get continuation byte for previous line
@@ -179,6 +173,23 @@ copyloop:	lda f40_runtime_memory.TXTBUFSQ,x 				// [5]		get buffer key byte
 			sta f40_runtime_memory.LINCNTOF 				// [4]		clear line continuation overflow
 			sta f40_runtime_memory.REGXSAVE 				// [3]		clear stashed row
 			beq setbyte										// [3/3]	set continuation for inserted row
+}
+
+
+// Find last non-space character on screen line
+// => SCRNLNL/H		Pointer to specified line
+// <= A				$00-$27 (0-39) position of last non-space character; $FF = all spaces
+find_nonspace:
+.pc = * "find_nonspace"
+{
+			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
+			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set index to end of line
+checkspace:	cmp (vic20.os_zpvars.SCRNLNL),y					// [6]		find last non-space character on line
+			bne notspace									// [2/3]	exit if not a space
+			dey												// [2]		decrement character index
+			bpl checkspace									// [3/2]	loop for next character
+notspace:	tya 											// [2]		move to .A to set flags
+			rts												// [6]
 }
 
 
@@ -276,26 +287,11 @@ shuffle:	lda (f40_runtime_memory.TEMPAL),y				// [5]		get character from work bu
 			bne refresh										// [3/2]	no extension so just refresh updated lines
 
 			// do insert or scroll
-			// TODO: does not work when inserting on line exactly 40 or 80 characters with blank continuation line
-.break
 addline:	ldx f40_runtime_memory.DRAWROWE					// [3]		get last line of block
-
-			// TODO: test me
 			jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
-			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set index to end of line
-checkspace:	cmp (vic20.os_zpvars.SCRNLNL),y					// [6]		find last non-space character on line
-			bne notspace									// [2/3]	exit if not a space
-			dey												// [2]		decrement character index
-			bpl checkspace									// [3/2]	loop for next character
-notspace:	tya 											// [2]		move to .A to set flags
-
-			bmi refresh
-
-
+			jsr find_nonspace								// [6]		look for anything other than a space
+			bmi refresh										// [2/3]	skip insert if line is all spaces
 			inx 											// [2]		increment for line extension
-
-
-
 			cpx #f40_runtime_constants.SCREEN_ROWS+1		// [2]		check if beyond the last screen line
 			beq scroll										// [2/3]	scroll the screen if so
 
@@ -604,7 +600,7 @@ transfer_lines_to_buffer:
 			lda #>f40_runtime_memory.InsDel_Buffer			// [2]		get work buffer hi-byte
 			sta f40_runtime_memory.TEMPBH					// [3]		set buffer pointer hi-byte
 
-			// clear work buffer
+			// clear work buffer to spaces
 			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
 			ldy #f40_runtime_constants.WORK_BUFFER_LEN		// [2]		set buffer index
 clearloop:	sta f40_runtime_memory.InsDel_Buffer,y			// [5]		clear buffer byte
