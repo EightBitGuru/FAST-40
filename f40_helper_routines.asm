@@ -143,6 +143,7 @@ insert_blank_line:
 			bne exit										// [2/3]	scram if already a continuation
 
 			// check for any non-space on the line
+			jsr set_temp_line_pointer 						// [6]		set line buffer pointer to line in .X
 			jsr find_nonspace								// [6]		find last non-space character on line
 			bpl shuffle										// [2/3]	shuffle tables if line is not all spaces
 
@@ -184,7 +185,7 @@ find_nonspace:
 {
 			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
 			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set index to end of line
-checkspace:	cmp (vic20.os_zpvars.SCRNLNL),y					// [6]		find last non-space character on line
+checkspace:	cmp (f40_runtime_memory.TEMPAL),y				// [6]		find last non-space character on line
 			bne notspace									// [2/3]	exit if not a space
 			dey												// [2]		decrement character index
 			bpl checkspace									// [3/2]	loop for next character
@@ -288,7 +289,7 @@ shuffle:	lda (f40_runtime_memory.TEMPAL),y				// [5]		get character from work bu
 
 			// do insert or scroll
 addline:	ldx f40_runtime_memory.DRAWROWE					// [3]		get last line of block
-			jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
+			jsr set_temp_line_pointer 						// [6]		set line buffer pointer to line in .X
 			jsr find_nonspace								// [6]		look for anything other than a space
 			bmi refresh										// [2/3]	skip insert if line is all spaces
 			inx 											// [2]		increment for line extension
@@ -296,7 +297,6 @@ addline:	ldx f40_runtime_memory.DRAWROWE					// [3]		get last line of block
 			beq scroll										// [2/3]	scroll the screen if so
 
 			// insert line
-			jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
 			jsr insert_blank_line 							// [6]		insert blank line for continuation
 			ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		bottom of screen for lower line limit
 			stx f40_runtime_memory.DRAWROWE					// [3]		set redraw end row
@@ -305,7 +305,6 @@ addline:	ldx f40_runtime_memory.DRAWROWE					// [3]		get last line of block
 			// scroll screen
 scroll:		jsr scroll_lines_up								// [6]		scroll the screen
 			dex												// [2]		decrement row (.X = 23)
-			jsr set_line_pointer 							// [6]		set line buffer pointer to line in .X
 			jsr insert_blank_line 							// [6]		set continuation on blank line after scroll
 			lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row
 			cmp #f40_runtime_constants.SCREEN_ROWS			// [2]		check if on the last screen line
