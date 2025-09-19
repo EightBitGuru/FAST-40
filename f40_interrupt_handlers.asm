@@ -3,7 +3,7 @@
 
 .filenamespace f40_interrupt_handlers
 
-// IRQ handler (called via IRQVECL vector)
+// IRQ handler (called via IRQVECL vector at $0314/0315 => $EABF)
 irq_handler:
 .pc = * "irq_handler"
 {

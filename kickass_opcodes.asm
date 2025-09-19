@@ -30,6 +30,11 @@
 			.word $00AB												// [2]		LAX Immediate #$00 (Load .A and .X with zero, unstable with non-zero operands)
 }
 
+.pseudocommand skp													// Skip (BIT Absolute trick)
+{
+			.byte $2C												// [4]		Skip 2 bytes
+}
+
 /*.pseudocommand aac												// AND A and set Carry (ANC)
 {
 			.byte $0B												// [2]

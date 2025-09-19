@@ -44,6 +44,7 @@
     .label CRSRLEFT = $9D
     .label YELLOW   = $9E
     .label CYAN     = $9F
+    .label INVSPACE = $A0
     .label PICHAR   = $DE
     .label PITOKEN  = $FF
 }
@@ -62,4 +63,11 @@
 {
     .label KEYBOARD = 0
     .label SCREEN   = 3
+}
+
+
+// Screen constants
+.namespace screen
+{
+    .label MAX_LINE_LENGTH = 88
 }

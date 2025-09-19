@@ -1,36 +1,52 @@
-# FAST-40
+# <div><div>FAST-40</div><div>Copyright © 2025 [8-Bit Guru](mailto:the8bitguru@gmail.com)</div></div>
 
-FAST-40 is a cartridge ROM program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language and requires a minimum of 8K expansion RAM to run.
+FAST-40 is a utility program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language and requires a 3K RAM expansion.
 
-No hardware modification is required.
+No video output hardware modification is required.
 
-Other (vintage) 40-column programs typically suffer from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the ground up to render an artifact-free 40x24 text mode with performance as close to the hardware-generated 22x23 speeds as possible, whilst faithfully reproducing standard screen-editor functionality.
+Earlier 40-column programs typically suffered from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the start to render an artifact-free 40x24 text mode whilst faithfully reproducing standard screen-editor functionality, with performance intended to be comparable to (or better than) the native 22x23 display.
 
-Despite processing almost twice as much text data, FAST-40 throughput rates are approximatekly 90% of stock hardware speeds for fully-populated lines containing combinations of display and control characters. Where the rendering engine has lower-complexity lines to process it can achieve rates of up to 96% even when scrolling the entire screen.
+FAST-40 works equally well on real VIC-20 hardware or under emulation - it can be attached as an auto-start cartridge in VICE, LOADed as a program into BLK5 (if configured as RAM) and run manually, or burned/flashed/uploaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
 
-FAST-40 works under emulation and on real VIC-20 hardware - it can be attached as an auto-start cartridge in VICE (see below) or burned/flashed/loaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
+Both PAL and NTSC video standards are supported.
 
-#### FAST-40 is copyright © 2025 [8-Bit Guru](mailto:the8bitguru@gmail.com).
+The JiffyDOS v6.01 Kernal ROM is supported if detected.
 
-Creation of modified or derivative works using, in whole or in part, any sourcecode, assets, or binary package originating from this project is subject to the following:
+The program auto-starts via the standard Commodore *A0CBM* signature-detection mechanism.
+
+**NOTE:** FAST-40 expects to run on a real or emulated VIC-20 with an NMOS 6502 and makes use of several undocumented opcodes. It will not operate correctly on later 6502 variants (e.g. the CMOS 65C02) which disable or replace these opcodes.
+
+## License
+
+The FAST-40 project is hosted on [GitHub](https://github.com/EightBitGuru/FAST-40).
+
+Creation of modified or derivative works using, in whole or in part, any sourcecode, assets, or binary artifact originating from this project is subject to the following:
 
 * **Free for non-commercial use** (you must clearly include a credit link to this project within your project).
 
 * **Commercial use is expressly forbidden** except by explicit consent from the copyright holder.
 
-* The FAST-40 project is hosted on [GitHub](https://github.com/EightBitGuru/FAST-40).
+## VICE Quickstart
 
-#### Who is 8-Bit Guru?
+Instructions for how to build and run the project are given below, but if you're familar with [VICE](https://vice-emu.sourceforge.io/) and just want to dive in...
 
-8-Bit Guru (also: Eight-Bit Guru, 8BitGuru, 8BG) is the *nom de guerre* of Mark Johnson. I'm a professional coder from the UK who has been telling computers what to do since 1981. My day job is all about C# and Azure, whilst my hobby projects mostly involve writing 6502 assembly language for the VIC-20 (my first computer).
+* clone the repository, which includes an **artifacts** folder containing:
 
-## How to build and run FAST-40
+    * FAST-40 built as an autostart cartridge (fast40.bin)
+    * FAST-40 built as a LOADable program     (fast40.prg)
+    * a disk image (fast40.d64) containing the program build, a simple performance-comparison program written in BASIC, and a copy of the BASIC adventure game CITADEL adjusted for a 40-column display
+
+* invoke ***xvic*** with **xvic.exe -memory all -cartA fast40.bin**
+
+This will start the emulator with the FAST-40 cartridge installed and 24K for BASIC to play with.
+
+## Build / Run Instructions
 
 ### Suggested Toolchain
 
 * **Editor**  
 My personal choice is [Visual Studio Code](https://code.visualstudio.com/), but any editor you're comfortable with will suffice.
-I use a 3rd-party VSCode extension called [Kick Assembler 8-Bit Retro Studio 0.23.3](https://gitlab.com/retro-coder/commodore/kick-assembler-vscode-ext) which provides a bunch of useful functionality including syntax highlighting and automated invocation of KickAssembler and VICE without needing to switch out to a command prompt.
+I also use a 3rd-party VSCode extension called [Kick Assembler 8-Bit Retro Studio 0.23.3](https://gitlab.com/retro-coder/commodore/kick-assembler-vscode-ext) which provides a bunch of useful functionality including syntax highlighting and automated invocation of KickAssembler and VICE without needing to switch out to a command prompt.
 
 * **Assembler**  
 The sourcecode syntax targets [KickAssembler 5.25](https://theweb.dk/KickAssembler/Main.html#frontpage). No other build tool is required.  
@@ -39,31 +55,40 @@ Note that KickAssembler is written in Java and requires a Java runtime to operat
 * **Emulator**  
 The code builds a binary cartridge image which can be used with ***xvic***, the VIC-20 emulator shipped with [VICE](https://vice-emu.sourceforge.io/).
 
-### Build / Run
+### Build with KickAssembler
 
-The sourcecode produces a standard BLK5 ($A000-$BFFF) 8K cartridge ROM binary.
-
-Execute KickAssembler in your working copy directory to build the binary:
+To generate the autostart cartridge ROM artifact (fast40.bin):
  
     java -jar [Your_KickAssembler_Path]\KickAss.jar main.asm -o fast40.bin -binfile
 
-To use the binary with ***xvic***:
+To generate the LOADable program artifact (fast40.prg):
 
-    [Your_VICE_Path]\bin\xvic.exe -memory 0,1 -cartA fast40.bin
+    java -jar [Your_KickAssembler_Path]\KickAss.jar main.asm -o fast40.prg
 
-* The cartridge auto-starts via the standard Commodore **A0CBM** signature-detection mechanism.
+### Run with VICE
 
-* Both PAL and NTSC video standards are supported.
+To start ***xvic*** with the cartridge ROM from the commandline:
 
-* The JiffyDOS v6.01 ROM is supported, if present.
+    [Your_VICE_Path]\bin\xvic.exe -memory all -cartA fast40.bin
 
-* FAST-40 expects to run on a real or emulated VIC-20 fitted with an NMOS 6502, and makes use of several undocumented opcodes. It will not operate correctly on later variants such as the CMOS 65C02 which disable or replace these opcodes.
+To use the LOADable program within ***xvic***, enable all RAM blocks, attach the **fast40.d64** disk image, and type:
+
+    LOAD"FAST40",8,1
+    SYS64802
+
+Consult the VICE documentation for full details regarding commandline options associated with attachment and autostarting of disk images and programs.
+
+## Usage
+
+FAST-40 supports all VIC-20 character glyphs and control characters, including those for cursor positioning, colour selection, reverse-mode, etc. The VIC-20 keyboard does not emit characters for the SHIFT/C= key combination which performs the toggle between upper-case and lower-case character sets, but these non-printing characters do exist - generated with CHR$(14) and CHR$(142) - and are supported.
+
+Performance tests yield a character output rate superior to the native 22x23 mode - ranging between 7% to 40% faster, depending on the workload complexity.
 
 ### Memory Requirements
 
-FAST-40 uses all of the 4K unexpanded RAM area ($1000-$1FFF) for video display reconfiguration and requires a minimum of 8K expansion RAM in BLK1 ($2000-$3FFF). Just under 1K is reserved at the top of the highest available 8K block, leaving the rest free for BASIC.
+The FAST-40 program occupies the BLK5 ($A000-$BFFF) ROM/RAM area and uses areas of pages zero and two as working storage. Additionally all of the 4K unexpanded RAM area is needed for video display reconfiguration, and the text buffer is placed in the 3K expansion RAM area in BLK0. Slightly less than 2K of this block is left free for BASIC ($0400-0BC6).
 
-If the 3K expansion RAM area in BLK0 ($0400-$0FFF) is *also* populated then FAST-40 will preferentially use that instead, leaving the lower 2K of it ($0400-$0BFF) available for machine-code programs and all of BLK1 (and BLK2/BLK3 if populated) available to BASIC.
+If 8K (or 16K or 24K) expansion RAM is also present in BLK1/2/3 then FAST-40 will make these blocks entirely available for BASIC and the 'lost' memory in BLK0 remains available for machine-code programs.
 
 ### New RESET Command
 
@@ -71,18 +96,24 @@ FAST-40 provides a new BASIC command to easily reset the system and switch betwe
 
     RESET [0|3|8]   Switch to specified video/memory configuration
     
-        RESET		Switch to 40x24 8K+ mode
+        RESET		Switch to 40x24 3K/8K+ mode
         RESET 0		Switch to 22x23 unexpanded mode
-        RESET 3		Switch to 22x23 3K mode (if RAM is present in BLK0)
-        RESET 8		Switch to 22x23 8K+ mode
+        RESET 3		Switch to 22x23 3K mode
+        RESET 8		Switch to 22x23 8K+ mode (if RAM is present in BLK1/2/3)
 
-### SHIFT/RUNSTOP Behaviour
+### SHIFT/RUNSTOP Keypress Behaviour
 
-On a stock VIC-20 the SHIFT/RUNSTOP key combination causes the commands `LOAD` and `RUN` to be injected into the keyboard buffer to initiate an automatic start of the next program found on tape. Modern users now prefer to use disk devices (or modern pseudo-disk devices such as SD cards) for storage instead of tape, and will often make use of the JiffyDOS replacement Kernal ROM which disables tape operations in order to provide extended disk functionality.
+On a stock VIC-20 the SHIFT/RUNSTOP key combination causes the commands `LOAD` and `RUN` to be injected into the keyboard buffer to initiate an automatic start of the next program found on tape. Modern users prefer to use disk devices (or modern pseudo-disk devices such as SD cards) for storage instead of tape, and will often make use of the JiffyDOS Kernal ROM which disables tape operations in order to provide extended disk functionality.
 
 FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands to favour disk users as follows:
-* If JiffyDOS is _not_ present, the sequence `LOAD"$",8` and `LIST` is initiated to read and display the directory of the disk
-* If it _is_ present then `@$` is likely the preferred command to view the disk directory, so a more useful action is to load the first program on the disk by initiating `LOAD"*",8` and `RUN`
+* If JiffyDOS is _not_ present, the sequence `LOAD"$",8` and `LIST` is executed to read and display the directory of the disk
+* If JiffyDOS _is_ present then its `@$` command is the preferred method to view the disk directory; therefore the sequence `LOAD"*",8` and `RUN` is executed to auto-start the first program on the disk
+
+### SHIFT/COMMODORE Keypress Behaviour
+
+On a stock VIC-20 the SHIFT/COMMODORE key combination (or programmatic equivalent) causes the VIC to switch between two charactersets stored in ROM at $8000 and $8800. The first set contains upper-case letters and a wide selection of PETSCII graphics characters, whereas the second contains both upper- and lower-case letters and a smaller choice of PETSCII characters. Switching charactersets instantly affects all visible characters on the screen, not just those which are displayed after the switch occurs. The initial FAST-40 release took pains to reproduce this behaviour, ensuring that the entire screen was refreshed whenever a characterset switch occurred.
+
+However since characterset switches typically happen before any characters are output (rarely being useful otherwise) the engineering overhead to drive the refresh and the associated rendering throughput performance impact was largely suboptimal. In fact the intrinsic capability of FAST-40 to switch between charactersets _without_ forcing a screen refresh (and thus allow simultaneous display of glyphs from both) is a desirable feature. The refresh feature was therefore dropped in the 1.1 release.
 
 ### System Reconfiguration
 
@@ -93,11 +124,8 @@ Memory areas:
     $0003-$0004     Not normally used by BASIC/KERNAL.     [only used if BRK debugging is enabled on build]
     $00D9-$00F1     Normally used as the BASIC screen editor line-link table.
     $02A1-$02FF     Not normally used by BASIC/KERNAL.
-    $0C00-$0FFF     Reserved for the FAST-40 text buffer if there is 3K RAM in BLK0.
+    $0BC7-$0FFF     Top of 3K RAM expansion (BLK0).
     $1000-$1FFF     Normally used as the unexpanded screen and RAM area.
-    $3C00-$3FFF     Reserved for the FAST-40 text buffer if BLK0 is empty and 8K in BLK1.
-    $5C00-$5FFF     Reserved for the FAST-40 text buffer if BLK0 is empty and 16K in BLK1/2.
-    $7C00-$7FFF     Reserved for the FAST-40 text buffer if BLK0 is empty and 24K in BLK1/2/3.
     $9400-$95FF     Normally used as colour memory when RAM is in BLK1/2/3.
 
 VIC registers:
@@ -127,8 +155,6 @@ The VIC-20 has no memory protection hardware and therefore FAST-40 cannot 'lock'
 
 * Common programming techniques such as switching character-case by altering the value at address 36869 ($9005), adjusting cursor blink phase, frequency, or position by altering the relevant zero-page values at $CC/$CD/$CF/$D3/$D6, or otherwise directly interacting with screen editor functionality via zero-page or other addresses is discouraged. Such interactions are unlikely to yield the expected result or (more likely) will disrupt FAST-40 operation.
 
-* All PRINTable control characters are supported, including those for cursor positioning, colour selection, reverse-mode, etc. The VIC-20 keyboard does not emit characters for the SHIFT/C= key combination which performs the toggle between upper-case and lower-case character sets, but these non-printing characters do exist - generated with CHR$(14) and CHR$(142) - and are supported by FAST-40.
-
 * Limitations in the VIC design mean there is no way to preserve the usual 1:1 relationship between individual text-mode characters and their respective colour attribute when in 40x24 mode. All text colours are supported but they operate on 2x2 blocks of characters; in other words, the colour resolution is half that of the text resolution and colour layout should therefore be planned accordingly to avoid attribute clash.
 
 ### Accidental Breakage
@@ -139,7 +165,7 @@ In the event that a program inadvertantly 'breaks' FAST-40 by overwriting someth
 
 * Writes to the VIC registers, system vectors, and/or other runtime memory structures can almost always be repaired via a RUNSTOP/RESTORE 'soft' reset.
 
-* Writes to the display character matrix and any other critical areas will require a system reset to trigger a repair. A system reset can be achieved by power-cycling the machine, hitting a hardware reset button if one has fitted, or by using the new RESET command. **Note that memory is cleared during a system reset.**
+* Writes to the display character matrix and any other critical areas will require a system reset to trigger a repair. A system reset can be achieved by power-cycling the machine, hitting a hardware reset button if one is fitted, or by using the new RESET command. **Note that memory is cleared during a system reset.**
 
 ## Beta testing, and credit where it's due
 
@@ -156,7 +182,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Fixed a bug where data fed to the INPUT command included the prompt in the returned value and therefore broke it (reported by **mathom@denial**)
 * Fixed a bug where inserting a character into a long line would sometimes erroneously insert a blank line after it
 * Fixed a bug where doing a character insert in column 40 erroneously placed the inserted space character into column 39
-* Fixed a bug in the screen-scrolling logic where it forgot that text buffer lines were not always contiguous in memory
+* Fixed a bug in the screen-scrolling logic where it forgot that the text buffer layout is not linear
 * Fixed a bug where RUNSTOP/RESTORE didn't reset the default text colour and character-case
 * Added a BRK handler to display CPU registers (to help debug a JiffyDOS showstopper crash reported by **mathom@denial**)
 * Added an alternate build option to do LOAD"$",8 / LIST on SHIFT/RUNSTOP
@@ -164,29 +190,45 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Tweaked the cursor blink phase timings to help cursor visibility during rapid/repeated movement (reported by **mathom@denial**)
 
 ### Beta 2A (22nd April 2025)
-* Fixed a bug introduced in Beta 2 which totally broke the character insert and delete routines (reported by **tokra@denial**)
+* Fixed a bug introduced in Beta 2 which corrupted the Stack and broke the INS/DEL routines (reported by **tokra@denial**)
 
 ### Beta 3 (24th April 2025)
 * Fixed a bug where deleting a character from column 1 replaced the character in column 39 on the previous line instead of column 40
 * Fixed a bug where deleting a character from column 1 of an unlinked line produced an unwanted side-effect on the previous line
 * Fixed a bug where the screen-scroll CTRL-delay code intermittently failed to execute properly (reported by **tokra@denial**)
 
-### Release (2nd May 2025)
+### Release v1.0 (2nd May 2025)
 * Fixed a bug where the startup RAM detection wasn't triggering a clean system reset if BLK1 is empty
-* Fixed the JiffyDOS showstopper crash (JiffyDOS rearranges some code in the SHIFT/CTRL/C= keypress logic)
-* Added the JiffyDOS banner to the startup message (if present)
+* Fixed the JiffyDOS showstopper crash (JiffyDOS rearranges some code in the SHIFT/CTRL/C= ROM keypress logic)
+* Added the JiffyDOS banner to the startup message (if JiffyDOS is detected)
+
+### Release v1.1 (19th September 2025)
+* Fixed a bug where line continuation markers were not correctly reset after a screen-scroll event
+* Fixed a bug in the SHIFT/C= keypress handler to prevent keybounce
+* Tweaked SHIFT/RUNSTOP keypress behaviour to better suit JiffyDOS users
+* Tweaked startup colours back to stock blue-on-white for NTSC visual clarity (prompted by **gunner@denial**)
+* Restructured memory usage so FAST-40 only needs 3K in BLK0 and leaves all 8K blocks free for BASIC
+* Refactored bitmap rendering path logic (FAST-40 draws 40x24 mode faster than the stock ROM draws 22x23)
+* Refactored logic in INS/DEL keypress, bitmap line-refresh, and logical line extension routines
+* Removed superfluous case-switch bitmap refresh which caused a race condition crash (reported by **boray@denial**)
+* Added ***\artifacts*** folder to the repository, containing
+    * fast40.bin - pre-built cartridge version
+    * fast40.prg - pre-built LOADable version (prompted by **boray@denial**)
+    * fast40.d64 - disk image containing fast40.prg plus a simple performance-comparison program written in BASIC and a copy of the BASIC adventure game CITADEL adjusted for a 40-column display
 
 ## The Wishlist
 
-The following improvements and enhancements may make it into the project if time, motivation, and code space permit:
+The following improvements and enhancements may make it into the project if time, motivation, and memory availability permit:
 
-* Optimise the line-redraw logic, which is currently somewhat inefficient
-* Integrate the display matrix setup logic into the RUNSTOP/RESTORE handler
-* Add a SHIFT modifier to the CTRL-delay function to toggle a full hold on scrolling until released
-* Redesign the text buffer to use an intrinsic page+offset index rather than a discrete lookup table
+* Integrate the display matrix setup logic into the RUNSTOP/RESTORE handler for better breakage recovery
+* Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a full hold until released
+* Add a CTRL-key modifier to the cursor control logic to allow jumping to the start/end of physical/logical lines
+* Refactor the bitmap line-refresh routine to use the same self-modifying code as the core renderer
 * Add a bitmap point-plotting routine and an accompanying PLOT command to BASIC
 * Add PEEK/POKE intercepts to allow screen/colour memory access akin to the stock 22x23 text mode
-* Add CTRL-key modifier to the cursor control logic to allow jumping to the start/end of physical/logical lines
-* If more space for code is needed, swap the turbocharged FAST-40 memory test for a simpler block-detection routine and let the stock RAMTAS code at $FD8D 'handle' testing in the usual (not very quick or thorough) way
 
 Other suggestions and/or pull requests will be reviewed periodically.
+
+# Who is 8-Bit Guru?
+
+8-Bit Guru (also: Eight-Bit Guru, 8BitGuru, 8BG) is the *nom de guerre* of Mark Johnson. I'm a professional coder from the UK who has been telling computers what to do since 1981. My day job is all about C# and Azure, whilst my hobby projects mostly involve writing 6502 assembly language for the VIC-20 (my first computer, back in '81).

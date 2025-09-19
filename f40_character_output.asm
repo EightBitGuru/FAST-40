@@ -23,15 +23,23 @@ screen:		txa												// [2]		save .X and .Y to Stack
 			sta vic20.os_zpvars.INPUTSRC					// [3]		set input source
 			lax vic20.os_zpvars.CHARBYTE					// [3]		get output character to .A and .X
 
-			// check if character is a control code
-			ldy #34											// [2]		control code table index
-findcode:	cmp f40_static_data.CONCODEC,y					// [4]		check for control character code
+			// check if character is in a control code range
+			cmp #vic20.screencodes.INVSPACE					// [2]		check if greater or equal to [INVERSE-SPACE]
+			bcs notcode										// [2/3]	skip control code lookup if so
+			cmp #vic20.screencodes.F1						// [2]		check if greater or equal to [F1]
+			bcs checkcode									// [2/3]	do control code lookup if so
+			cmp #vic20.screencodes.SPACE					// [2]		check if greater or equal to [SPACE]
+			bcs notcode										// [2/3]	skip control code lookup if so
+
+			// lookup character in control codes
+checkcode:	ldy #34											// [2]		control code table index
+testcode:	cmp f40_static_data.CONCODEC,y					// [4]		check for control character code
 			beq iscode										// [3/2]	go handle control code
 			dey												// [2]		decrement table index
-			bpl findcode									// [3/2]	loop until done
+			bpl testcode									// [3/2]	loop until done
 
 			// character is not a control code
-			txa												// [2]		transfer from .X to set flags
+notcode:	txa												// [2]		transfer from .X to set flags
 			bpl notshifted									// [3/2]	not shifted if b7 is clear
 			cmp #%11000000									// [2]		check b7/b6
 			bcs clearb7										// [3/2]	SHIFTed glyph if both set
@@ -125,12 +133,15 @@ line_continuation:
 			lsr												// [2]		shift right
 			bne character_output_tidyup						// [2/3]	skip continuation if at maximum
 
-			// insert line
+			// extend (and possibly insert) line
 			jsr f40_helper_routines.insert_blank_line		// [6]		insert blank line for continuation
-			bpl character_output_tidyup						// [2/3]	skip redraw if no line inserted (.Y is +ve)
-			txa 											// [2]		get current line for redraw limit
-			jsr f40_helper_routines.redraw_lines_to_bottom	// [6]		redraw changed lines to bottom of screen
-			jsr f40_controlcode_handlers.reset_pointers		// [6]		reset line pointers
+ 			lda f40_runtime_memory.REGXSAVE 				// [3]		get stashed row
+			bne character_output_tidyup						// [2/3]	skip redraw if no line inserted
+			jsr f40_helper_routines.clear_text_bytes 		// [6]		clear text buffer row in .X
+			stx f40_runtime_memory.DRAWROWS					// [3]		set redraw start row
+			ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		use bottom of screen for lower line limit
+			jsr f40_helper_routines.redraw_line_range		// [6]		redraw changed lines to bottom of screen
+			jsr f40_controlcode_handlers.reset_text_pointer	// [6]		reset line pointers
 // Fall-through into character_output_tidyup
 }
 
@@ -140,9 +151,6 @@ character_output_tidyup:
 .pc = * "character_output_tidyup"
 {
 			jsr f40_interrupt_handlers.undraw_cursor 		// [6]		undraw cursor if required
-			lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
-			lsr												// [2]		divide by two for character matrix row
-			tax												// [2]		stash in .X for index into row offset table
 			lda vic20.os_zpvars.CRSRLPOS					// [3]		get cursor position on logical line (0-87)
 			lsr												// [2]		divide by two for character matrix column
 			tay												// [2]		stash matrix column in .Y for later
@@ -150,14 +158,20 @@ character_output_tidyup:
 			bcs setmask										// [3/2]	skip switch to right character if odd
 			lda #%11110000									// [2]		set mask for right character (odd column)
 setmask:	sta f40_runtime_memory.CRSRMASK					// [3]		set cursor blink mask
+			lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
+			lsr												// [2]		divide by two for character matrix row
+			tax												// [2]		stash in .X for index into row offset table
 			tya												// [2]		get matrix column back from .Y
 			clc												// [2]		clear Carry for addition
 			adc f40_static_data.CROWOFFS,x					// [4]		add character matrix offset
 			tay												// [2]		set character matrix index
 			ldx f40_runtime_memory.Character_Matrix,y		// [4]		get matrix character
-			ldy vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
-			lda f40_static_data.BITADDRL-16,x				// [4]		get bitmap address lo-byte
-			adc f40_static_data.BROWOFFS,y					// [4]		add bitmap row offset (0 or 8)
+			lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row (0-23)
+			and #%00000001									// [2]		mask LSB (odd/even)
+			asl												// [2]		multiply by 2...
+			asl												// [2]		... by 4 ...
+			asl												// [2]		... by 8
+			adc f40_static_data.BITADDRL-16,x				// [5]		add bitmap address lo-byte
 			sta f40_runtime_memory.CRSRBITL					// [3]		set cursor draw address lo-byte
 			lda f40_static_data.BITADDRH-16,x				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.CRSRBITH					// [3]		set cursor draw address hi-byte
