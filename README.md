@@ -34,7 +34,7 @@ Instructions for how to build and run the project are given below, but if you're
 
     * FAST-40 built as an autostart cartridge (fast40.bin)
     * FAST-40 built as a LOADable program     (fast40.prg)
-    * a disk image (fast40.d64) containing the program build
+    * a disk image (fast40.d64) containing the program build, a simple performance-comparison program written in BASIC, and a copy of the BASIC adventure game CITADEL adjusted for a 40-column display
 
 * invoke ***xvic*** with **xvic.exe -memory all -cartA fast40.bin**
 
@@ -202,7 +202,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Fixed the JiffyDOS showstopper crash (JiffyDOS rearranges some code in the SHIFT/CTRL/C= ROM keypress logic)
 * Added the JiffyDOS banner to the startup message (if JiffyDOS is detected)
 
-### Release v1.1 (28th August 2025)
+### Release v1.1 (19th September 2025)
 * Fixed a bug where line continuation markers were not correctly reset after a screen-scroll event
 * Fixed a bug in the SHIFT/C= keypress handler to prevent keybounce
 * Tweaked SHIFT/RUNSTOP keypress behaviour to better suit JiffyDOS users
@@ -214,7 +214,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Added ***\artifacts*** folder to the repository, containing
     * fast40.bin - pre-built cartridge version
     * fast40.prg - pre-built LOADable version (prompted by **boray@denial**)
-    * fast40.d64 - disk image containing fast40.prg
+    * fast40.d64 - disk image containing fast40.prg plus a simple performance-comparison program written in BASIC and a copy of the BASIC adventure game CITADEL adjusted for a 40-column display
 
 ## The Wishlist
 
