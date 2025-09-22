@@ -216,6 +216,9 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
     * fast40.prg - pre-built LOADable version (prompted by **boray@denial**)
     * fast40.d64 - disk image containing fast40.prg plus a simple performance-comparison program written in BASIC and a copy of the BASIC adventure game CITADEL adjusted for a 40-column display
 
+### Release v1.1a (22nd September 2025)
+* Fixed a bug where the BRK handler wasn't being set properly (reported by **mike@denial**)
+
 ## The Wishlist
 
 The following improvements and enhancements may make it into the project if time, motivation, and memory availability permit:

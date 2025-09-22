@@ -469,11 +469,16 @@ reset_vectors:
 			sta vic20.os_vars.OUTVEC2H						// [4]		set output vector hi-byte
 .if(EnableBRKDebugging)
 {
-			lda #<vic20_debug_handler.brk_handler			// [2]		get BRK handler lo-byte
-			sta vic20.os_vars.BRKVECL						// [4]		set BRK vector lo-byte
-			lda #>vic20_debug_handler.brk_handler			// [2]		get BRK handler hi-byte
-			sta vic20.os_vars.BRKVECH						// [4]		set BRK vector hi-byte
+			lda #<vic20_debug_handler.brk_handler			// [2]		get debug-assist BRK handler lo-byte
+			ldx #>vic20_debug_handler.brk_handler			// [2]		get debug-assist BRK handler hi-byte
 }
+else
+{
+			lda #<f40_interrupt_handlers.brk_handler		// [2]		get BRK handler lo-byte
+			ldx #>f40_interrupt_handlers.brk_handler		// [2]		get BRK handler hi-byte
+}
+			sta vic20.os_vars.BRKVECL						// [4]		set BRK vector lo-byte
+			stx vic20.os_vars.BRKVECH						// [4]		set BRK vector hi-byte
 // Fall-through into reset_wedge
 }
 
