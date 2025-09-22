@@ -219,7 +219,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 ### Release v1.1a (22nd September 2025)
 * Fixed a bug where the BRK handler wasn't being set properly (reported by **mike@denial**)
 
-### Release v1.2 (??????????????? 2025)
+### Release v1.2 (tbc)
 * Refactored startup logic so the RUNSTOP/RESTORE handler can do better breakage recovery
 
 ## The Wishlist
