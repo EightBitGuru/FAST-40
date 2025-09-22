@@ -59,10 +59,17 @@ nmi_handler:
 			bit vic20.via1.V1PORTAO 						// [3]		tickle VIA1 Port A to acknowledge NMI
 			jsr vic20.kernal.UDTIM							// [6]		update clock ($F734)
 			jsr vic20.kernal.CHKSTOP 						// [6]		check if [RUN/STOP] pressed
-			beq rsrestore									// [2/3]	do RS/RESTORE if so
+			beq brk_handler									// [2/3]	handle RS/RESTORE if so
 			jmp vic20.kernal.INTEXIT						// [3]		jump to stock NMI exit
 stocknmi:	jmp vic20.kernal.NMINOA0						// [3]		jump to stock NMI handler (no cartridge)
-rsrestore:	jsr vic20.kernal.INITIO							// [6]		reset VIA interrupts
+}
+
+
+// BRK handler (called from BRKVECL vector)
+brk_handler:
+.pc = * "brk_handler"
+{
+			jsr vic20.kernal.INITIO							// [6]		reset VIA interrupts
 			jsr f40_helper_routines.reset_vectors			// [6]		reset KERNAL and FAST-40 vectors
 			jsr f40_helper_routines.configure_vic			// [6]		reset 40x24 mode
 			jsr f40_controlcode_handlers.clear_screen 		// [6]		clear screen
