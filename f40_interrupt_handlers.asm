@@ -69,9 +69,6 @@ stocknmi:	jmp vic20.kernal.NMINOA0						// [3]		jump to stock NMI handler (no ca
 brk_handler:
 .pc = * "brk_handler"
 {
-			jsr vic20.kernal.INITIO							// [6]		reset VIA interrupts
-			jsr f40_helper_routines.reset_vectors			// [6]		reset KERNAL and FAST-40 vectors
-			jsr f40_helper_routines.configure_vic			// [6]		reset 40x24 mode
-			jsr f40_controlcode_handlers.clear_screen 		// [6]		clear screen
+			jsr f40_runtime_setup.warm_start				// [6]		re-initialise everything
 			jmp (vic20.basic.BASICWRM)						// [5]		do BASIC warm-start
 }

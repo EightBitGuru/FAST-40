@@ -293,6 +293,7 @@ insert_character:
 			txa 											// [2]		get line length back
 			sbc f40_runtime_memory.LINECHAR					// [3]		subtract cursor position
 			bmi exit										// [2/3]	scram if beyond end of line
+			inx 											// [2]		increment line length
 			tay	 											// [2]		set shuffle count
 
 			// shuffle bytes up at cursor position and insert space
@@ -305,7 +306,6 @@ shuffle:	lda (f40_runtime_memory.TEMPAL),y				// [5]		get character from work bu
 			sta (f40_runtime_memory.TEMPAL),y				// [6]		set character
 
 			// check if we have extended a logical line
-			inx 											// [2]		increment line length
 			cpx #f40_runtime_constants.LINE_1_OVERRUN		// [2]		check for line overrun
 			beq addline										// [2/3]	do insert/scroll
 			cpx #f40_runtime_constants.LINE_2_OVERRUN		// [2]		check for line overrun

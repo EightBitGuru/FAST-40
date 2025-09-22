@@ -163,9 +163,9 @@ In the event that a program inadvertantly 'breaks' FAST-40 by overwriting someth
 
 * Writes to the text buffer, display bitmap, colour memory, and screen-editor management areas will be repaired whenever the screen is cleared with SHIFT/CLRHOME or PRINT CHR$(147).
 
-* Writes to the VIC registers, system vectors, and/or other runtime memory structures can almost always be repaired via a RUNSTOP/RESTORE 'soft' reset.
+* Writes to the VIC registers, system vectors, and/or most other runtime memory structures can almost always be repaired via a RUNSTOP/RESTORE 'soft' reset.
 
-* Writes to the display character matrix and any other critical areas will require a system reset to trigger a repair. A system reset can be achieved by power-cycling the machine, hitting a hardware reset button if one is fitted, or by using the new RESET command. **Note that memory is cleared during a system reset.**
+* Any catastrophic breakage that exceeds the capacity of FAST-40 to repair itself will require a system reset to resolve. This can be achieved by power-cycling the machine, hitting a hardware reset button if available, or by using the new RESET command. **Note that memory is cleared during a system reset.**
 
 ## Beta testing, and credit where it's due
 
@@ -219,11 +219,13 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 ### Release v1.1a (22nd September 2025)
 * Fixed a bug where the BRK handler wasn't being set properly (reported by **mike@denial**)
 
+### Release v1.2 (tbc)
+* Refactored startup logic so the RUNSTOP/RESTORE handler can do better breakage recovery
+
 ## The Wishlist
 
 The following improvements and enhancements may make it into the project if time, motivation, and memory availability permit:
 
-* Integrate the display matrix setup logic into the RUNSTOP/RESTORE handler for better breakage recovery
 * Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a full hold until released
 * Add a CTRL-key modifier to the cursor control logic to allow jumping to the start/end of physical/logical lines
 * Refactor the bitmap line-refresh routine to use the same self-modifying code as the core renderer
