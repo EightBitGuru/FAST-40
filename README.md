@@ -12,7 +12,7 @@ Both PAL and NTSC video standards are supported.
 
 The JiffyDOS v6.01 Kernal ROM is supported if detected.
 
-The program auto-starts via the standard Commodore *A0CBM* signature-detection mechanism.
+The cartridge auto-starts via the standard Commodore *A0CBM* signature-detection mechanism.
 
 **NOTE:** FAST-40 expects to run on a real or emulated VIC-20 with an NMOS 6502 and makes use of several undocumented opcodes. It will not operate correctly on later 6502 variants (e.g. the CMOS 65C02) which disable or replace these opcodes.
 
@@ -86,7 +86,7 @@ Performance tests yield a character output rate superior to the native 22x23 mod
 
 ### Memory Requirements
 
-The FAST-40 program occupies the BLK5 ($A000-$BFFF) ROM/RAM area and uses areas of pages zero and two as working storage. Additionally all of the 4K unexpanded RAM area is needed for video display reconfiguration, and the text buffer is placed in the 3K expansion RAM area in BLK0. Slightly less than 2K of this block is left free for BASIC ($0400-0BC6).
+The FAST-40 program occupies the BLK5 ($A000-$BFFF) ROM/RAM area and uses areas of pages zero and two as working storage. Additionally all of the 4K unexpanded RAM area is needed for video display reconfiguration, and the text buffer is placed in the 3K expansion RAM area in BLK0. Slightly less than 2K of this block is left free for BASIC ($0400-$0AFF).
 
 If 8K (or 16K or 24K) expansion RAM is also present in BLK1/2/3 then FAST-40 will make these blocks entirely available for BASIC and the 'lost' memory in BLK0 remains available for machine-code programs.
 
@@ -124,7 +124,7 @@ Memory areas:
     $0003-$0004     Not normally used by BASIC/KERNAL.     [only used if BRK debugging is enabled on build]
     $00D9-$00F1     Normally used as the BASIC screen editor line-link table.
     $02A1-$02FF     Not normally used by BASIC/KERNAL.
-    $0BC7-$0FFF     Top of 3K RAM expansion (BLK0).
+    $0B00-$0FFF     Top of 3K RAM expansion (BLK0).
     $1000-$1FFF     Normally used as the unexpanded screen and RAM area.
     $9400-$95FF     Normally used as colour memory when RAM is in BLK1/2/3.
 
@@ -141,7 +141,7 @@ System vectors:
     $028F/$0290     SHIFT/CTRL/C= key decode
     $0308/$0309     BASIC decode
     $0314/$0315     IRQ interrupt
-    $0316/$0317     BRK interrupt                          [only used if BRK debugging is enabled on build]
+    $0316/$0317     BRK interrupt
     $0324/$0325     Character input
     $0326/$0327     Character output
 
@@ -151,11 +151,11 @@ These vectors may be modified by other programs wishing to provide additional fu
 
 The VIC-20 has no memory protection hardware and therefore FAST-40 cannot 'lock' the various memory areas, vectors, and VIC registers it uses. The following cautions apply for other programs wishing to operate in the 40x24 mode:
 
-* Programs should not read/write video or colour memory directly, but instead use the PRINT statement (in BASIC) or call the CHROUT vector at $FFD2 (in machine-code). Both are configured to route their output through to the custom display logic within FAST-40, and thereby allow it to manage screen output.
+* Programs should not read/write video or colour memory directly, but instead use the PRINT statement (in BASIC) or call the CHROUT vector at $FFD2 (in machine-code). Both are designed to route their output through the character input/output vectors which point to the custom display logic within FAST-40, and thereby allow it to manage screen output.
 
-* Common programming techniques such as switching character-case by altering the value at address 36869 ($9005), adjusting cursor blink phase, frequency, or position by altering the relevant zero-page values at $CC/$CD/$CF/$D3/$D6, or otherwise directly interacting with screen editor functionality via zero-page or other addresses is discouraged. Such interactions are unlikely to yield the expected result or (more likely) will disrupt FAST-40 operation.
+* Common programming techniques such as switching character-case by altering the value at address 36869 ($9005), adjusting cursor blink phase, frequency, or position by altering the relevant zero-page values at $CC/$CD/$CF/$D3/$D6, or otherwise directly interacting with screen editor functionality via zero-page or other addresses is discouraged. Such interactions are unlikely to yield the expected result and will likely disrupt FAST-40 operation.
 
-* Limitations in the VIC design mean there is no way to preserve the usual 1:1 relationship between individual text-mode characters and their respective colour attribute when in 40x24 mode. All text colours are supported but they operate on 2x2 blocks of characters; in other words, the colour resolution is half that of the text resolution and colour layout should therefore be planned accordingly to avoid attribute clash.
+* Limitations in the VIC design mean there is no way to preserve the usual 1:1 relationship between individual text-mode characters and their respective colour attributes when in 40x24 mode. All text colours are supported but they operate on 2x2 blocks of characters; in other words, the colour resolution is half that of the text resolution and colour layout should therefore be planned accordingly to avoid attribute clash.
 
 ### Accidental Breakage
 
@@ -169,7 +169,7 @@ In the event that a program inadvertantly 'breaks' FAST-40 by overwriting someth
 
 ## Beta testing, and credit where it's due
 
-The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-web/bulletin/bb/index.php) actively participated in the beta-test phase. Their time and effort spent testing, sending bug reports, and assisting with crash diagnosis is greatly appreciated.
+The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-web/bulletin/bb/index.php) actively participated in the beta-test phase. Their time and effort spent testing, sending bug reports, and assisting with crash diagnosis is greatly appreciated:
 
 * tokra
 * mathom
