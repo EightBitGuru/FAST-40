@@ -499,12 +499,16 @@ reset_wedge:
 scroll_lines_up:
 .pc = * "scroll_lines_up"
 {
-			lda vic20.os_vars.SHFTCTRL						// [4]		get SHIFT/CTRL flag
-			and #%00000100									// [2]		mask CTRL bit
-			beq nodelay										// [3/2]	skip delay if [CTRL] not pressed
-
+			lax vic20.os_vars.SHFTCTRL						// [4]		get SHIFT/CTRL flag
+			and #%00000100									// [2]		mask CTRL bit for delay/lock
+			beq nokey										// [3/2]	skip delay/lock if [CTRL] not pressed
+			txa 											// [2]		get SHIFT/CTRL flag back
+			and #%00000001									// [2]		mask SHIFT bit for lock
+			bne scroll_lines_up								// [2/3]	loop back for lock
+			
 			// do [CTRL] scroll delay
-			ldy #0											// [2]		outer loop delay counter
+ctrldelay:	ldy #0											// [2]		outer loop delay counter
+			ldx #13											// [2]		inner loop delay counter
 delayloop:	dex												// [2]		decrement inner loop counter
 			nop												// [2]		waste a couple of cycles
 			bne delayloop									// [3/2]	do inner loop
@@ -513,7 +517,7 @@ delayloop:	dex												// [2]		decrement inner loop counter
 			sty vic20.os_zpvars.KEYCOUNT 					// [2]		reset key count
 
 			// stash matrix character pointer for top row
-nodelay:	lda f40_runtime_memory.Character_Matrix			// [4]		get first character from first matrix row
+nokey:		lda f40_runtime_memory.Character_Matrix			// [4]		get first character from first matrix row
 			and #$0F										// [2]		mask top nybble
 			tay												// [2]		set matrix lookup row offset
 			lda f40_static_data.CROWOFFS,y					// [4]		get matrix lookup row pointer lo-byte
