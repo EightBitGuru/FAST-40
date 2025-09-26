@@ -221,12 +221,12 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 
 ### Release v1.2 (tbc)
 * Refactored startup logic so the RUNSTOP/RESTORE handler can do better breakage recovery
+* Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a full hold until released
 
 ## The Wishlist
 
 The following improvements and enhancements may make it into the project if time, motivation, and memory availability permit:
 
-* Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a full hold until released
 * Add a CTRL-key modifier to the cursor control logic to allow jumping to the start/end of physical/logical lines
 * Refactor the bitmap line-refresh routine to use the same self-modifying code as the core renderer
 * Add a bitmap point-plotting routine and an accompanying PLOT command to BASIC
