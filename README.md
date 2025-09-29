@@ -210,7 +210,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Restructured memory usage so FAST-40 only needs 3K in BLK0 and leaves all 8K blocks free for BASIC
 * Refactored bitmap rendering path logic (FAST-40 draws 40x24 mode faster than the stock ROM draws 22x23)
 * Refactored logic in INS/DEL keypress, bitmap line-refresh, and logical line extension routines
-* Removed superfluous case-switch bitmap refresh which caused a race condition crash (reported by **boray@denial**)
+* Removed case-switch bitmap refresh which caused a race condition crash (reported by **boray@denial**)
 * Added ***\artifacts*** folder to the repository, containing
     * fast40.bin - pre-built cartridge version
     * fast40.prg - pre-built LOADable version (prompted by **boray@denial**)
