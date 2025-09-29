@@ -219,20 +219,9 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 ### Release v1.1a (22nd September 2025)
 * Fixed a bug where the BRK handler wasn't being set properly (reported by **mike@denial**)
 
-### Release v1.2 (tbc)
+### Release v1.2 (29th September 2025)
 * Refactored startup logic so the RUNSTOP/RESTORE handler can do better breakage recovery
 * Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a full hold until released
-
-## The Wishlist
-
-The following improvements and enhancements may make it into the project if time, motivation, and memory availability permit:
-
-* Add a CTRL-key modifier to the cursor control logic to allow jumping to the start/end of physical/logical lines
-* Refactor the bitmap line-refresh routine to use the same self-modifying code as the core renderer
-* Add a bitmap point-plotting routine and an accompanying PLOT command to BASIC
-* Add PEEK/POKE intercepts to allow screen/colour memory access akin to the stock 22x23 text mode
-
-Other suggestions and/or pull requests will be reviewed periodically.
 
 # Who is 8-Bit Guru?
 
