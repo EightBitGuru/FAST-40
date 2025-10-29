@@ -83,7 +83,7 @@ IDMSG2:
 .byte vic20.screencodes.CR
 IDMSG3:					// Must be followed by NULL (zero)
 .byte vic20.screencodes.RED
-.text @"FAST-40 1.1 (C) 2025 8BG\$0d\$0d"
+.text @"FAST-40 1.3 (C) 2025 8BG\$0d\$0d"
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 

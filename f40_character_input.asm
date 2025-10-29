@@ -39,6 +39,15 @@ waitkey:	lda vic20.os_zpvars.KEYCOUNT					// [3]		get keyboard buffer character 
 			// check for [SHIFT]+[RUN/STOP]
 			cmp #vic20.screencodes.SHIFTRUN					// [2]		check for key
 			bne checkcr 									// [3/2]	go check for [CR] if not
+.break
+// something is b0rking the BASIC pointers after a line has been entered
+			lda vic20.os_vars.BASICL						// [4]		get Start-of-BASIC lo-byte
+			sta f40_runtime_memory.TEMPAL 					// [3]		stash for lookup
+			lda vic20.os_vars.BASICH						// [4]		get Start-of-BASIC hi-byte
+			sta f40_runtime_memory.TEMPAH 					// [3]		stash for lookup
+			ldy #1											// [2]		set offset into BASIC area
+			lda (f40_runtime_memory.TEMPAL),y				// [5]		get byte
+			bne checkcr 									// [3/2]	skip if program is present
 
 			// handle [SHIFT]+[RUN/STOP]
 			sei												// [2]		disable IRQ whilst we stuff the buffer
