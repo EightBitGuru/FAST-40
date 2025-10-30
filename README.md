@@ -2,7 +2,7 @@
 
 FAST-40 is a utility program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language and requires a 3K RAM expansion.
 
-No video output hardware modification is required.
+No video hardware modification is required.
 
 Earlier 40-column programs typically suffered from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the start to render an artifact-free 40x24 text mode whilst faithfully reproducing standard screen-editor functionality, with performance intended to be comparable to (or better than) the native 22x23 display.
 
@@ -12,9 +12,7 @@ Both PAL and NTSC video standards are supported.
 
 The JiffyDOS v6.01 Kernal ROM is supported if detected.
 
-The cartridge auto-starts via the standard Commodore *A0CBM* signature-detection mechanism.
-
-**NOTE:** FAST-40 expects to run on a real or emulated VIC-20 with an NMOS 6502 and makes use of several undocumented opcodes. It will not operate correctly on later 6502 variants (e.g. the CMOS 65C02) which disable or replace these opcodes.
+**NOTE:** FAST-40 expects to run on a real or emulated VIC-20 with an NMOS 6502 and makes use of several undocumented opcodes. It will not operate correctly on later 6502 variants (e.g. the CMOS 65C02) which disable or repurpose these opcodes.
 
 ## License
 
@@ -28,7 +26,7 @@ Creation of modified or derivative works using, in whole or in part, any sourcec
 
 ## VICE Quickstart
 
-Instructions for how to build and run the project are given below, but if you're familar with [VICE](https://vice-emu.sourceforge.io/) and just want to dive in...
+If you're familar with [VICE](https://vice-emu.sourceforge.io/) and just want to dive straight in...
 
 * clone the repository, which includes an **artifacts** folder containing:
 
@@ -78,9 +76,11 @@ To use the LOADable program within ***xvic***, enable all RAM blocks, attach the
 
 Consult the VICE documentation for full details regarding commandline options associated with attachment and autostarting of disk images and programs.
 
-## Usage
+## Compatibility
 
-FAST-40 supports all VIC-20 character glyphs and control characters, including those for cursor positioning, colour selection, reverse-mode, etc. The VIC-20 keyboard does not emit characters for the SHIFT/C= key combination which performs the toggle between upper-case and lower-case character sets, but these non-printing characters do exist - generated with CHR$(14) and CHR$(142) - and are supported.
+FAST-40 supports all VIC-20 character glyphs and control characters, including those for cursor positioning, colour selection, reverse-mode, etc. The VIC-20 keyboard does not emit visible characters for the SHIFT/C= key combination (which performs the toggle between upper-case and lower-case character sets) but these non-printing characters do exist and are supported.
+
+Unlike the stock VIC-20, FAST-40 allows both upper- and lower-case graphics charactersets to be displayed simultaneously.
 
 Performance tests yield a character output rate superior to the native 22x23 mode - ranging between 7% to 40% faster, depending on the workload complexity.
 
@@ -103,17 +103,17 @@ FAST-40 provides a new BASIC command to easily reset the system and switch betwe
 
 ### SHIFT/RUNSTOP Keypress Behaviour
 
-On a stock VIC-20 the SHIFT/RUNSTOP key combination causes the commands `LOAD` and `RUN` to be injected into the keyboard buffer to initiate an automatic start of the next program found on tape. Modern users prefer to use disk devices (or modern pseudo-disk devices such as SD cards) for storage instead of tape, and will often make use of the JiffyDOS Kernal ROM which disables tape operations in order to provide extended disk functionality.
+On a stock VIC-20 the SHIFT/RUNSTOP key combination causes the commands `LOAD` and `RUN` to be injected into the keyboard buffer to initiate an automatic start of the next program found on tape. Modern users prefer to use disk (or pseudo-disk devices such as SD cards) for storage instead of tape, and will often make use of the JiffyDOS Kernal ROM which disables tape operations in order to provide extended disk functionality.
 
 FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands to favour disk users as follows:
-* If JiffyDOS is _not_ present, the sequence `LOAD"$",8` and `LIST` is executed to read and display the directory of the disk
-* If JiffyDOS _is_ present then its `@$` command is the preferred method to view the disk directory; therefore the sequence `LOAD"*",8` and `RUN` is executed to auto-start the first program on the disk
+* If JiffyDOS is _not_ present, the sequence `LOAD"$",8` is executed to read the directory of the disk
+* If JiffyDOS _is_ present (featuring the preferred `@$` command to view the directory) the sequence `LOAD"*",8` is executed to load the first program on the disk
 
-### SHIFT/COMMODORE Keypress Behaviour
+### SHIFT/C= Keypress Behaviour
 
-On a stock VIC-20 the SHIFT/COMMODORE key combination (or programmatic equivalent) causes the VIC to switch between two charactersets stored in ROM at $8000 and $8800. The first set contains upper-case letters and a wide selection of PETSCII graphics characters, whereas the second contains both upper- and lower-case letters and a smaller choice of PETSCII characters. Switching charactersets instantly affects all visible characters on the screen, not just those which are displayed after the switch occurs. The initial FAST-40 release took pains to reproduce this behaviour, ensuring that the entire screen was refreshed whenever a characterset switch occurred.
+On a stock VIC-20 the SHIFT/C= key combination (or programmatic equivalent) causes the VIC to switch between two charactersets stored in ROM at $8000 and $8800. The first set contains upper-case letters and a wide selection of PETSCII graphics characters, whereas the second contains both upper- and lower-case letters and a smaller choice of PETSCII characters. Switching charactersets instantly affects all visible characters on the screen, not just those which are displayed after the switch occurs.
 
-However since characterset switches typically happen before any characters are output (rarely being useful otherwise) the engineering overhead to drive the refresh and the associated rendering throughput performance impact was largely suboptimal. In fact the intrinsic capability of FAST-40 to switch between charactersets _without_ forcing a screen refresh (and thus allow simultaneous display of glyphs from both) is a desirable feature. The refresh feature was therefore dropped in the 1.1 release.
+The initial FAST-40 release took pains to reproduce this behaviour, ensuring that the entire screen was refreshed whenever a characterset switch occurred. However since characterset switches typically happen before any characters are output (rarely being useful otherwise) the engineering overhead to drive the refresh and the associated rendering throughput performance impact was largely suboptimal. The refresh feature was therefore dropped in later releases.
 
 ### System Reconfiguration
 
@@ -153,7 +153,7 @@ The VIC-20 has no memory protection hardware and therefore FAST-40 cannot 'lock'
 
 * Programs should not read/write video or colour memory directly, but instead use the PRINT statement (in BASIC) or call the CHROUT vector at $FFD2 (in machine-code). Both are designed to route their output through the character input/output vectors which point to the custom display logic within FAST-40, and thereby allow it to manage screen output.
 
-* Common programming techniques such as switching character-case by altering the value at address 36869 ($9005), adjusting cursor blink phase, frequency, or position by altering the relevant zero-page values at $CC/$CD/$CF/$D3/$D6, or otherwise directly interacting with screen editor functionality via zero-page or other addresses is discouraged. Such interactions are unlikely to yield the expected result and will likely disrupt FAST-40 operation.
+* Common programming techniques such as switching character-case by altering the value at address 36869 ($9005), adjusting cursor blink phase, frequency, or position by altering the relevant zero-page values at $CC/$CD/$CF/$D3/$D6, or otherwise directly interacting with screen editor functionality via zero-page or other addresses is discouraged. Such interactions are unlikely to yield the expected result and will probably disrupt FAST-40 operation.
 
 * Limitations in the VIC design mean there is no way to preserve the usual 1:1 relationship between individual text-mode characters and their respective colour attributes when in 40x24 mode. All text colours are supported but they operate on 2x2 blocks of characters; in other words, the colour resolution is half that of the text resolution and colour layout should therefore be planned accordingly to avoid attribute clash.
 
@@ -221,7 +221,11 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 
 ### Release v1.2 (29th September 2025)
 * Refactored startup logic so the RUNSTOP/RESTORE handler can do better breakage recovery
-* Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a full hold until released
+* Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a scroll-lock until released
+
+### Release v1.3 (30th October 2025)
+* Added overwrite protection so SHIFT/RUNSTOP actions trigger LOAD ERROR if there is a BASIC program in memory
+* Removed the queued LIST and RUN commands from SHIFT/RUNSTOP actions as they were not processed correctly
 
 # Who is 8-Bit Guru?
 

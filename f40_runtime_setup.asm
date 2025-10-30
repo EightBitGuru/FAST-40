@@ -85,7 +85,6 @@ notjiffy:	tya	 											// [2]		get JiffyDOS bit
 			lda #<f40_static_data.IDMSG3					// [2]		pointer to FAST-40 message string lo-byte
 			ldy #>f40_static_data.IDMSG3					// [2]		pointer to FAST-40 message string hi-byte
 f40msg:		jsr vic20.basic.STROUT							// [6]		display string
-
 			jsr vic20.basic.INITMEM2						// [6]		output 'XXXX BYTES FREE' and reset BASIC pointers
 			ldx #$fb										// [2]
 			txs												// [2]		set .SP for BASIC
