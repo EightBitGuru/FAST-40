@@ -39,21 +39,25 @@ waitkey:	lda vic20.os_zpvars.KEYCOUNT					// [3]		get keyboard buffer character 
 			// check for [SHIFT]+[RUN/STOP]
 			cmp #vic20.screencodes.SHIFTRUN					// [2]		check for key
 			bne checkcr 									// [3/2]	go check for [CR] if not
-.break
-// something is b0rking the BASIC pointers after a line has been entered
+
+			// check if program in memory
 			lda vic20.os_vars.BASICL						// [4]		get Start-of-BASIC lo-byte
 			sta f40_runtime_memory.TEMPAL 					// [3]		stash for lookup
 			lda vic20.os_vars.BASICH						// [4]		get Start-of-BASIC hi-byte
 			sta f40_runtime_memory.TEMPAH 					// [3]		stash for lookup
 			ldy #1											// [2]		set offset into BASIC area
 			lda (f40_runtime_memory.TEMPAL),y				// [5]		get byte
-			bne checkcr 									// [3/2]	skip if program is present
+			beq dosrs 										// [3/2]	continue if no program present
+
+			// issue error
+			ldx #$1d										// [2]		set error code (load)
+			jmp (vic20.os_vars.ERRMSG)						// [5]		issue error and do BASIC warm-start
 
 			// handle [SHIFT]+[RUN/STOP]
-			sei												// [2]		disable IRQ whilst we stuff the buffer
-			ldx #13											// [2]		command data length
+dosrs:		sei												// [2]		disable IRQ whilst we stuff the buffer
+			ldx #8											// [2]		command data length
  			stx vic20.os_zpvars.KEYCOUNT					// [3]		set keyboard buffer character count
-loadloop:	lda f40_static_data.SRSLOAD-1,x					// [4]		get LOAD"$*",8 / LIST bytes
+loadloop:	lda f40_static_data.SRSLOAD-1,x					// [4]		get LOAD"$*",8 bytes
 			sta vic20.os_vars.KEYBUFF-1,x					// [5]		inject into keyboard buffer
 			dex												// [2]		decrement index
 			bne loadloop									// [3/2]	loop for next character
@@ -61,11 +65,6 @@ loadloop:	lda f40_static_data.SRSLOAD-1,x					// [4]		get LOAD"$*",8 / LIST byte
 			bvc waitkey										// [3/2]	execute if JiffyDOS not present
 			lda #'*'										// [2]		overwrite '$' with '*'
 			sta vic20.os_vars.KEYBUFF+3						// [4]		inject into keyboard buffer
-			ldx #4											// [2]		command data length
-runloop:	lda f40_static_data.SRSRUN-1,x					// [4]		get RUN bytes
-			sta vic20.os_vars.KEYBUFF+7,x					// [5]		inject into keyboard buffer
-			dex												// [2]		decrement index
-			bne runloop										// [3/2]	loop for next character
 			beq waitkey										// [3/3]	execute
 
 			// check for [CR] and output character if not

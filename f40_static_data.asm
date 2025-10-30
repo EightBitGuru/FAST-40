@@ -55,15 +55,10 @@ TROWADD:
 TROWADDR:
 .lohifill 24,f40_runtime_memory.Text_Buffer+(40*i)
 
-SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8 / LIST
-.pc = * "SRSLOAD"		// Command text (13 bytes)
+SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8
+.pc = * "SRSLOAD"		// Command text (8 bytes)
 .byte 'L','O'+64		// LOAD
 .text @"\"$\",8\$0d"	// "$",8 [CR]
-.text @"LIST\$0d"		// LIST
-
-SRSRUN:					// SHIFT+RUNSTOP bytes for RUN
-.pc = * "SRSRUN"		// Command text (4 bytes)
-.text @"RUN "
 
 WEDGECMD:				// BASIC wedge command
 .pc = * "WEDGECMD"		// Command text (5 bytes)
@@ -73,7 +68,7 @@ BLNKTIME:				// Cursor blink timers
 .pc = * "BLNKTIME"		// Cursor phase on/off timer values (2 bytes)
 .byte 19,13
 
-.fill 28,$aa 			// Spare bytes
+.fill 37,$aa 			// Spare bytes
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message

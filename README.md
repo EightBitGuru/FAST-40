@@ -103,11 +103,11 @@ FAST-40 provides a new BASIC command to easily reset the system and switch betwe
 
 ### SHIFT/RUNSTOP Keypress Behaviour
 
-On a stock VIC-20 the SHIFT/RUNSTOP key combination causes the commands `LOAD` and `RUN` to be injected into the keyboard buffer to initiate an automatic start of the next program found on tape. Modern users prefer to use disk devices (or modern pseudo-disk devices such as SD cards) for storage instead of tape, and will often make use of the JiffyDOS Kernal ROM which disables tape operations in order to provide extended disk functionality.
+On a stock VIC-20 the SHIFT/RUNSTOP key combination causes the commands `LOAD` and `RUN` to be injected into the keyboard buffer to initiate an automatic start of the next program found on tape. Modern users prefer to use disk (or pseudo-disk devices such as SD cards) for storage instead of tape, and will often make use of the JiffyDOS Kernal ROM which disables tape operations in order to provide extended disk functionality.
 
 FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands to favour disk users as follows:
-* If JiffyDOS is _not_ present, the sequence `LOAD"$",8` and `LIST` is executed to read and display the directory of the disk
-* If JiffyDOS _is_ present then the `@$` command is the preferred method to view the disk directory; therefore the sequence `LOAD"*",8` and `RUN` is executed to auto-start the first program on the disk
+* If JiffyDOS is _not_ present, the sequence `LOAD"$",8` is executed to read the directory of the disk
+* If JiffyDOS _is_ present (featuring the preferred `@$` command to view the directory) the sequence `LOAD"*",8` is executed to load the first program on the disk
 
 ### SHIFT/C= Keypress Behaviour
 
@@ -223,8 +223,9 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Refactored startup logic so the RUNSTOP/RESTORE handler can do better breakage recovery
 * Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a scroll-lock until released
 
-### Release v1.3 (xxxxxxxxxxxxxx)
-* Added overwrite protection so SHIFT/RUNSTOP actions do not trigger if there is a BASIC program in memory.
+### Release v1.3 (30th October 2025)
+* Added overwrite protection so SHIFT/RUNSTOP actions trigger LOAD ERROR if there is a BASIC program in memory
+* Removed the queued LIST and RUN commands from SHIFT/RUNSTOP actions as they were not processed correctly
 
 # Who is 8-Bit Guru?
 
