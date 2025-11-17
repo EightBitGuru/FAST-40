@@ -37,7 +37,7 @@
 .label TXTBUFSQ         = $02D0		//	Text row key sequence bytes (24 bytes to $02E7)
 .label TXTBUFOF         = $02E8		//	Text row key sequence overflow byte (1 byte to $02E8)
 .label MERGROUT	        = $02E9		//	Self-modifying bitmap merge routine (22 bytes to $02FE)
-.label Memory_Bitmap    = $02FF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5-0->RAM bitmap
+.label Memory_Bitmap    = $02FF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5->write-protect(1=OFF), b4-0->RAM bitmap
 
 // 3K BLK0
 .label Text_Buffer	    = $0BC7		//	Text buffer (960 bytes to 0F86)

@@ -109,6 +109,13 @@ FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands t
 * If JiffyDOS is _not_ present, the sequence `LOAD"$",8` is executed to read the directory of the disk
 * If JiffyDOS _is_ present (featuring the preferred `@$` command to view the directory) the sequence `LOAD"*",8` is executed to load the first program on the disk
 
+Note that FAST-40 adds a 'write-protect' mechanism to SHIFT/RUNSTOP which will issue a **?LOAD ERROR** message if there is a BASIC program already in memory. This prevents accidental overwriting of the program if SHIFT/RUNSTOP is accidentally triggered; in tape-based systems the user has ample time to cancel the action before any new program is found and loaded, but disk-based systems are likely to action the LOAD much more quickly.
+
+Since the write-protection may interfere with chain-loading of multi-part programs, it can be disabled by setting its control bit:
+
+    Assembler:  LDA $02FF : ORA #%00100000 : STA $02FF
+    BASIC:      POKE 767, PEEK(767) OR 32
+
 ### SHIFT/C= Keypress Behaviour
 
 On a stock VIC-20 the SHIFT/C= key combination (or programmatic equivalent) causes the VIC to switch between two charactersets stored in ROM at $8000 and $8800. The first set contains upper-case letters and a wide selection of PETSCII graphics characters, whereas the second contains both upper- and lower-case letters and a smaller choice of PETSCII characters. Switching charactersets instantly affects all visible characters on the screen, not just those which are displayed after the switch occurs.
@@ -224,8 +231,12 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a scroll-lock until released
 
 ### Release v1.3 (30th October 2025)
-* Added overwrite protection so SHIFT/RUNSTOP actions trigger LOAD ERROR if there is a BASIC program in memory
-* Removed the queued LIST and RUN commands from SHIFT/RUNSTOP actions as they were not processed correctly
+* Added write-protection so SHIFT/RUNSTOP actions trigger **?LOAD ERROR** if there is a BASIC program in memory
+
+### Release v1.4 (???????????? 2025)
+* Added write-protection control bit so it can be disabled if necessary (e.g. for chain-loaded multi-part programs)
+* Optimised the line-refresh logic to call the same self-modifying render code that the main render pipeline uses
+* Added PLOT command for 'hi-res graphics mode' pixel plotting
 
 # Who is 8-Bit Guru?
 

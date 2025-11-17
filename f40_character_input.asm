@@ -40,6 +40,11 @@ waitkey:	lda vic20.os_zpvars.KEYCOUNT					// [3]		get keyboard buffer character 
 			cmp #vic20.screencodes.SHIFTRUN					// [2]		check for key
 			bne checkcr 									// [3/2]	go check for [CR] if not
 
+			// check if write-protect is disabled
+			lda f40_runtime_memory.Memory_Bitmap 			// [4]		get bitmap byte
+			and #%00100000									// [2]		test bit 5 (BLK5 bit not used by FAST-40)
+			bne dosrs 										// [2/3]	skip write-protect test if b5 set
+
 			// check if program in memory
 			lda vic20.os_vars.BASICL						// [4]		get Start-of-BASIC lo-byte
 			sta f40_runtime_memory.TEMPAL 					// [3]		stash for lookup
@@ -55,11 +60,11 @@ waitkey:	lda vic20.os_zpvars.KEYCOUNT					// [3]		get keyboard buffer character 
 
 			// handle [SHIFT]+[RUN/STOP]
 dosrs:		sei												// [2]		disable IRQ whilst we stuff the buffer
-			ldx #8											// [2]		command data length
- 			stx vic20.os_zpvars.KEYCOUNT					// [3]		set keyboard buffer character count
-loadloop:	lda f40_static_data.SRSLOAD-1,x					// [4]		get LOAD"$*",8 bytes
-			sta vic20.os_vars.KEYBUFF-1,x					// [5]		inject into keyboard buffer
-			dex												// [2]		decrement index
+			ldy #8											// [2]		command data length
+ 			sty vic20.os_zpvars.KEYCOUNT					// [3]		set keyboard buffer character count
+loadloop:	lda f40_static_data.SRSLOAD-1,y					// [4]		get LOAD"$*",8 bytes
+			sta vic20.os_vars.KEYBUFF-1,y					// [5]		inject into keyboard buffer
+			dey												// [2]		decrement index
 			bne loadloop									// [3/2]	loop for next character
 			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b6 for JiffyDOS
 			bvc waitkey										// [3/2]	execute if JiffyDOS not present
