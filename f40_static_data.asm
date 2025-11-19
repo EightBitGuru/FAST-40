@@ -68,7 +68,16 @@ BLNKTIME:				// Cursor blink timers
 .pc = * "BLNKTIME"		// Cursor phase on/off timer values (2 bytes)
 .byte 19,13
 
-.fill 37,$aa 			// Spare bytes
+//.fill 37,$aa 			// Spare bytes
+// An alternate approach for smaller bitmap address lookup tables
+B2TADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
+.pc = * "B2TADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
+.byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
+B2TADDRH:
+.pc = * "B2TADDRH"
+//.fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*(i-1))]	// $00 - $0F plus Screen_Bitmap start address hi-byte
+.fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
+.fill 5,$aa 			// Spare bytes
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
@@ -78,7 +87,7 @@ IDMSG2:
 .byte vic20.screencodes.CR
 IDMSG3:					// Must be followed by NULL (zero)
 .byte vic20.screencodes.RED
-.text @"FAST-40 1.3 (C) 2025 8BG\$0d\$0d"
+.text @"FAST-40 1.4 (C) 2025 8BG\$0d\$0d"
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
@@ -92,13 +101,6 @@ BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
 		.byte y			// 16 * $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
 	}
 }
-// An alternate approach for smaller bitmap address lookup tables
-// B2TADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
-// .pc = * "B2TADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
-// .byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
-// B2TADDRH:
-// .pc = * "B2TADDRH"
-// .fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*(i-1))]	// $00 - $0F plus Screen_Bitmap start address hi-byte
 
 // Primary Screen Matrix is 20x12 chars  ->  240 bytes at $1000-$10EF (double-height chars)
 // Primary Colour Matrix is 20x12 chars  ->  240 bytes at $9600-$96EF (double-height chars)
