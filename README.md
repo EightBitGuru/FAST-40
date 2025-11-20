@@ -235,6 +235,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 
 ### Release v1.4 (???????????? 2025)
 * Added write-protection control bit so it can be disabled if necessary (e.g. for chain-loaded multi-part programs)
+* Refactored bitmap address lookup tables to reduce memory footprint by 80%
 * Optimised the line-refresh logic to call the same self-modifying render code that the main render pipeline uses
 * Added PLOT command for 'hi-res graphics mode' pixel plotting
 

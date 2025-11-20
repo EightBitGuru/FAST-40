@@ -354,26 +354,27 @@ redraw_line_range:
 {
 setrow:		stx f40_runtime_memory.REGXSAVE					// [3]		stash line for later
 			jsr set_temp_line_pointer						// [6]		set address of line in TEMPAL/H
+
 			txa												// [2]		copy line index to .A for divide
 			lsr												// [2]		divide by two for character matrix row
-			tay												// [2]		stash in .Y for index into row offset table
+			tay												// [2]		stash index into row offset table
 
-			// get matrix character for column 19 of matrix row in .Y
 			lda #19											// [2]		matrix column
 			clc												// [2]		clear Carry for addition
 			adc f40_static_data.CROWOFFS,y					// [4]		calculate character matrix index
-			tay												// [2]		stash index in .Y for lookup
-			lda f40_runtime_memory.Character_Matrix,y		// [4]		get matrix character
-			tay												// [2]		stash character in .Y
+			tay												// [2]		set character matrix index
 
-			// calculate bitmap draw address using matrix character
-			txa 											// [2]		get current line
-			and #%00000001									// [2]		mask LSB (odd/even)
-			asl												// [2]		multiply by 2...
-			asl												// [2]		... by 4 ...
-			asl												// [2]		... by 8
-			adc f40_static_data.BITADDRL-16,y				// [5]		add bitmap address lo-byte
+			lda f40_runtime_memory.Character_Matrix,y		// [4]		get matrix character
+			sta f40_runtime_memory.REGASAVE					// [3]		stash matrix character
+			and #%00001111									// [2]		mask low nybble for table index
+			tay												// [2]		set bitmap lo-byte table index
+
+			lda f40_character_output.ROWOFFS,x				// [4]		get bitmap row offset for row
+			adc f40_static_data.B2TADDRL,y					// [4]		add bitmap address lo-byte
 			sta f40_runtime_memory.TEMPBL					// [3]		set draw address lo-byte
+
+			ldy f40_runtime_memory.REGASAVE					// [3]		get matrix character
+
 			lda f40_static_data.BITADDRH-16,y				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.TEMPBH					// [3]		set draw address hi-byte
 			ldy #38											// [2]		column index
@@ -536,6 +537,7 @@ matrixup:	lda f40_runtime_memory.Character_Matrix-16,y	// [4]		get character mat
 			ldy #19											// [2]		set character matrix index
 resetchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash character matrix index
 			lax (f40_runtime_memory.MATROWL),y				// [5]		get matrix character
+// This is the last reference to BITADDRL which needs optimising out
 			lda f40_static_data.BITADDRL-16,x				// [4]		get associated bitmap address lo-byte
 			sta f40_runtime_memory.TEMPAL					// [3]		set bitmap draw address lo-byte
 			lda f40_static_data.BITADDRH-16,x				// [4]		get associated bitmap address hi-byte

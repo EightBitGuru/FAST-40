@@ -154,43 +154,28 @@ character_output_tidyup:
 
 			lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row
 			lsr												// [2]		divide by two for character matrix row
-			tax												// [2]		stash in .X for index into row offset table
+			tay												// [2]		stash index into row offset table
 
-			lda vic20.os_zpvars.CRSRLPOS					// [3]		get cursor position on logical line
-			lsr												// [2]		divide by two for character matrix column
-			ldy #%00001111									// [2]		set mask for left character (even column)
-			bcs setmask										// [3/2]	skip switch to right character if odd
-			ldy #%11110000									// [2]		set mask for right character (odd column)
-setmask:	sty f40_runtime_memory.CRSRMASK					// [3]		set cursor blink mask for column
+			lax vic20.os_zpvars.CRSRLPOS					// [3]		get cursor position on logical line
+			lda COLOFFS,x									// [4]		get cursor blink mask for column
+			sta f40_runtime_memory.CRSRMASK					// [3]		set cursor blink mask
 
+			txa												// [2]		get cursor position back
+ 			lsr												// [2]		divide by two for character matrix column
 			clc												// [2]		clear Carry for addition
-			adc f40_static_data.CROWOFFS,x					// [4]		add character matrix offset
+			adc f40_static_data.CROWOFFS,y					// [4]		add character matrix offset
 			tay												// [2]		set character matrix index
-//			ldx f40_runtime_memory.Character_Matrix,y		// [4]		get matrix character
+			sty f40_runtime_memory.REGYSAVE					// [3]		stash character matrix index
 
-			// lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row
-			// and #%00000001									// [2]		mask LSB (odd/even)
-			// asl												// [2]		multiply by 2...
-			// asl												// [2]		... by 4 ...
-			// asl												// [2]		... by 8
-			// adc f40_static_data.BITADDRL-16,x				// [5]		add bitmap address lo-byte
-			// sta f40_runtime_memory.CRSRBITL					// [3]		set cursor draw address lo-byte
-
-//.break
-// So this uses the smaller B2TADDRL table but takes moar bytes/cycles - can we improve this, maybe a lookup table for the CRSRROW adjust?
 			lda f40_runtime_memory.Character_Matrix,y		// [4]		get matrix character
 			and #%00001111									// [2]		mask low nybble for table index
 			tax												// [2]		set bitmap lo-byte table index
-			lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row
-			and #%00000001									// [2]		mask LSB (odd/even)
-			asl												// [2]		multiply by 2...
-			asl												// [2]		... by 4 ...
-			asl												// [2]		... by 8
+			ldy vic20.os_zpvars.CRSRROW						// [3]		get cursor row
+			lda ROWOFFS,y									// [4]		get bitmap row offset for row
 			adc f40_static_data.B2TADDRL,x					// [4]		add bitmap address lo-byte
 			sta f40_runtime_memory.CRSRBITL					// [3]		set cursor draw address lo-byte
 
-
-
+			ldy f40_runtime_memory.REGYSAVE					// [3]		get character matrix index
 			ldx f40_runtime_memory.Character_Matrix,y		// [4]		get matrix character
 			lda f40_static_data.BITADDRH-16,x				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.CRSRBITH					// [3]		set cursor draw address hi-byte
@@ -202,3 +187,11 @@ setmask:	sty f40_runtime_memory.CRSRMASK					// [3]		set cursor blink mask for c
 			pla												// [4]
 			rts												// [6]
 }
+
+ROWOFFS:				// Bitmap address row offsets
+.pc = * "ROWOFFS"		// Zero-based row offsets (24 bytes)
+.fill 12,[0,8]
+
+COLOFFS:				// Bitmap address column offsets
+.pc = * "COLOFFS"		// Zero-based column offsets (40 bytes)
+.fill 20,[%11110000,%00001111]
