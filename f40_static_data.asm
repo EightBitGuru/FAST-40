@@ -68,15 +68,14 @@ BLNKTIME:				// Cursor blink timers
 .pc = * "BLNKTIME"		// Cursor phase on/off timer values (2 bytes)
 .byte 19,13
 
-//.fill 37,$aa 			// Spare bytes
-// An alternate approach for smaller bitmap address lookup tables
-B2TADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
-.pc = * "B2TADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
+BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
+.pc = * "BITADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
 .byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
 B2TADDRH:
 .pc = * "B2TADDRH"
 //.fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*(i-1))]	// $00 - $0F plus Screen_Bitmap start address hi-byte
 .fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
+
 .fill 5,$aa 			// Spare bytes
 
 IDMSG1:					// FAST-40 startup banner
@@ -92,15 +91,15 @@ IDMSG3:					// Must be followed by NULL (zero)
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256
-BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
-.pc = * "BITADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
-.for(var x=0;x<15;x++)
-{
-	.for(var y=0;y<256;y+=16)
-	{
-		.byte y			// 16 * $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
-	}
-}
+ROWOFFS:				// Bitmap address row offsets
+.pc = * "ROWOFFS"		// Zero-based row offsets (24 bytes)
+.fill 12,[0,8]
+
+COLOFFS:				// Bitmap address column offsets
+.pc = * "COLOFFS"		// Zero-based column offsets (40 bytes)
+.fill 20,[%11110000,%00001111]
+
+.fill 176,$aa 			// Spare bytes
 
 // Primary Screen Matrix is 20x12 chars  ->  240 bytes at $1000-$10EF (double-height chars)
 // Primary Colour Matrix is 20x12 chars  ->  240 bytes at $9600-$96EF (double-height chars)

@@ -152,12 +152,14 @@ character_output_tidyup:
 {
 			jsr f40_interrupt_handlers.undraw_cursor 		// [6]		undraw cursor if required
 
+// TODO: this definitely feels like we can do better here - the code feels clunky
+
 			lda vic20.os_zpvars.CRSRROW						// [3]		get cursor row
 			lsr												// [2]		divide by two for character matrix row
 			tay												// [2]		stash index into row offset table
 
 			lax vic20.os_zpvars.CRSRLPOS					// [3]		get cursor position on logical line
-			lda COLOFFS,x									// [4]		get cursor blink mask for column
+			lda f40_static_data.COLOFFS,x					// [4]		get cursor blink mask for column
 			sta f40_runtime_memory.CRSRMASK					// [3]		set cursor blink mask
 
 			txa												// [2]		get cursor position back
@@ -171,9 +173,11 @@ character_output_tidyup:
 			and #%00001111									// [2]		mask low nybble for table index
 			tax												// [2]		set bitmap lo-byte table index
 			ldy vic20.os_zpvars.CRSRROW						// [3]		get cursor row
-			lda ROWOFFS,y									// [4]		get bitmap row offset for row
-			adc f40_static_data.B2TADDRL,x					// [4]		add bitmap address lo-byte
+			lda f40_static_data.ROWOFFS,y					// [4]		get bitmap row offset for row
+			adc f40_static_data.BITADDRL,x					// [4]		add bitmap address lo-byte
 			sta f40_runtime_memory.CRSRBITL					// [3]		set cursor draw address lo-byte
+
+// TODO: Optimise the hi-byte table lookup
 
 			ldy f40_runtime_memory.REGYSAVE					// [3]		get character matrix index
 			ldx f40_runtime_memory.Character_Matrix,y		// [4]		get matrix character
@@ -187,11 +191,3 @@ character_output_tidyup:
 			pla												// [4]
 			rts												// [6]
 }
-
-ROWOFFS:				// Bitmap address row offsets
-.pc = * "ROWOFFS"		// Zero-based row offsets (24 bytes)
-.fill 12,[0,8]
-
-COLOFFS:				// Bitmap address column offsets
-.pc = * "COLOFFS"		// Zero-based column offsets (40 bytes)
-.fill 20,[%11110000,%00001111]

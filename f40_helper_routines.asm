@@ -369,14 +369,17 @@ setrow:		stx f40_runtime_memory.REGXSAVE					// [3]		stash line for later
 			and #%00001111									// [2]		mask low nybble for table index
 			tay												// [2]		set bitmap lo-byte table index
 
-			lda f40_character_output.ROWOFFS,x				// [4]		get bitmap row offset for row
-			adc f40_static_data.B2TADDRL,y					// [4]		add bitmap address lo-byte
+			lda f40_static_data.ROWOFFS,x					// [4]		get bitmap row offset for row
+			adc f40_static_data.BITADDRL,y					// [4]		add bitmap address lo-byte
 			sta f40_runtime_memory.TEMPBL					// [3]		set draw address lo-byte
 
 			ldy f40_runtime_memory.REGASAVE					// [3]		get matrix character
 
+// TODO: Optimise the hi-byte table lookup
+
 			lda f40_static_data.BITADDRH-16,y				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.TEMPBH					// [3]		set draw address hi-byte
+
 			ldy #38											// [2]		column index
 getchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash column index for later
 
@@ -537,9 +540,17 @@ matrixup:	lda f40_runtime_memory.Character_Matrix-16,y	// [4]		get character mat
 			ldy #19											// [2]		set character matrix index
 resetchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash character matrix index
 			lax (f40_runtime_memory.MATROWL),y				// [5]		get matrix character
-// This is the last reference to BITADDRL which needs optimising out
-			lda f40_static_data.BITADDRL-16,x				// [4]		get associated bitmap address lo-byte
+			tay												// [2]		stash for later
+			and #%00001111									// [2]		mask low nybble for table index
+			tax												// [2]		set bitmap lo-byte table index
+			lda f40_static_data.BITADDRL,x					// [4]		add bitmap address lo-byte
 			sta f40_runtime_memory.TEMPAL					// [3]		set bitmap draw address lo-byte
+
+			tya												// [2]		get matrix character back
+			tax												// [2]		set bitmap hi-byte table index
+
+// TODO: Optimise the hi-byte table lookup
+
 			lda f40_static_data.BITADDRH-16,x				// [4]		get associated bitmap address hi-byte
 			sta f40_runtime_memory.TEMPAH					// [3]		set bitmap draw address hi-byte
 			lda #0											// [2]
