@@ -529,8 +529,13 @@ nokey:		lda f40_runtime_memory.Character_Matrix			// [4]		get first character fr
 
 			// shuffle character and colour matrices 'up' a row
 			ldy #36											// [2]		set character matrix index
-matrixup:	lda f40_runtime_memory.Character_Matrix-16,y	// [4]		get character matrix byte (from #22 onwards)
-			sta f40_runtime_memory.Character_Matrix-36,y	// [5]		set character one row back (to #0 onwards)
+matrixup:	lda f40_runtime_memory.Character_Matrix-16,y	// [4]		get character matrix byte (1st)
+			sta f40_runtime_memory.Character_Matrix-36,y	// [5]		set character one row back
+			lda vic20.colour_ram.COLOUR1-16,y				// [5]		get byte at offset in colour matrix
+			sta vic20.colour_ram.COLOUR1-36,y				// [5]		set byte at offset in colour matrix
+			iny												// [2]		increment index
+			lda f40_runtime_memory.Character_Matrix-16,y	// [4]		get character matrix byte (2nd)
+			sta f40_runtime_memory.Character_Matrix-36,y	// [5]		set character one row back
 			lda vic20.colour_ram.COLOUR1-16,y				// [5]		get byte at offset in colour matrix
 			sta vic20.colour_ram.COLOUR1-36,y				// [5]		set byte at offset in colour matrix
 			iny												// [2]		increment index
@@ -539,32 +544,35 @@ matrixup:	lda f40_runtime_memory.Character_Matrix-16,y	// [4]		get character mat
 			// set bottom row bitmap pointer and clear for matrix character
 			ldy #19											// [2]		set character matrix index
 resetchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash character matrix index
-			lax (f40_runtime_memory.MATROWL),y				// [5]		get matrix character
+			lax (f40_runtime_memory.MATROWL),y				// [5]		get matrix character (A=X=char, Y=col)
+			sta f40_runtime_memory.Character_Matrix+220,y	// [5]		store in character matrix
+			lda vic20.os_vars.CURRCOLR						// [4]		get current text colour
+			sta vic20.colour_ram.COLOUR1+220,y				// [5]		set byte at offset in colour matrix
+			txa												// [2]		recover matrix character from X
 			tay												// [2]		stash for later
 			and #%00001111									// [2]		mask low nybble for table index
 			tax												// [2]		set bitmap lo-byte table index
-			lda f40_static_data.BITADDRL,x					// [4]		add bitmap address lo-byte
+
+			lda f40_static_data.BITADDRL,x					// [4]		get bitmap address lo-byte
 			sta f40_runtime_memory.TEMPAL					// [3]		set bitmap draw address lo-byte
 
 			tya												// [2]		get matrix character back
-			tax												// [2]		set bitmap hi-byte table index
+			lsr												// [2]		shift hi-nybble down
+			lsr												// [2]
+			lsr												// [2]
+			lsr												// [2]		.A = hi-nybble of matrix character (1-15 for $10-$FF)
+			tax												// [2]		set hi-byte table index
 
-// TODO: Optimise the hi-byte table lookup
-
-			lda f40_static_data.BITADDRH-16,x				// [4]		get associated bitmap address hi-byte
+			lda f40_static_data.B2TADDRH-1,x				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.TEMPAH					// [3]		set bitmap draw address hi-byte
+
 			lda #0											// [2]
 			ldy #15											// [2]		bitmap row index
 zapbitmap:	sta (f40_runtime_memory.TEMPAL),y				// [6]		clear bitmap row byte
 			dey												// [2]		decrement row index
 			bpl zapbitmap									// [3/2]	loop until done
-
-			// set bottom row matrix character and colour
+			
 			ldy f40_runtime_memory.REGYSAVE					// [3]		get character matrix index
-			txa												// [2]		get matrix character
-			sta f40_runtime_memory.Character_Matrix+220,y	// [5]		store in character matrix
-			lda vic20.os_vars.CURRCOLR						// [4]		get current text colour
-			sta vic20.colour_ram.COLOUR1+220,y				// [5]		set byte at offset in colour matrix
 			dey												// [2]		decrement index
 			bpl resetchars									// [3/2]	loop until done
 
