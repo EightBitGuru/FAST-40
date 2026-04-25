@@ -373,11 +373,13 @@ setrow:		stx f40_runtime_memory.REGXSAVE					// [3]		stash line for later
 			adc f40_static_data.BITADDRL,y					// [4]		add bitmap address lo-byte
 			sta f40_runtime_memory.TEMPBL					// [3]		set draw address lo-byte
 
-			ldy f40_runtime_memory.REGASAVE					// [3]		get matrix character
-
-// TODO: Optimise the hi-byte table lookup
-
-			lda f40_static_data.BITADDRH-16,y				// [4]		get bitmap address hi-byte
+			lda f40_runtime_memory.REGASAVE					// [3]		get matrix character
+			lsr												// [2]		shift hi-nybble down
+			lsr												// [2]
+			lsr												// [2]
+			lsr												// [2]		.A = hi-nybble (1-15 for $10-$FF)
+			tax												// [2]		set hi-byte table index
+			lda f40_static_data.B2TADDRH-1,x				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.TEMPBH					// [3]		set draw address hi-byte
 
 			ldy #38											// [2]		column index
