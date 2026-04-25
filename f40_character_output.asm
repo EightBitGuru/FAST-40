@@ -23,20 +23,42 @@ screen:		txa												// [2]		save .X and .Y to Stack
 			sta vic20.os_zpvars.INPUTSRC					// [3]		set input source
 			lax vic20.os_zpvars.CHARBYTE					// [3]		get output character to .A and .X
 
-			// check if character is in a control code range
-			cmp #vic20.screencodes.INVSPACE					// [2]		check if greater or equal to [INVERSE-SPACE]
-			bcs notcode										// [2/3]	skip control code lookup if so
-			cmp #vic20.screencodes.F1						// [2]		check if greater or equal to [F1]
-			bcs checkcode									// [2/3]	do control code lookup if so
-			cmp #vic20.screencodes.SPACE					// [2]		check if greater or equal to [SPACE]
-			bcs notcode										// [2/3]	skip control code lookup if so
+			// check if character in control code range (linear search - 35 entry worst case)
+//			cmp #vic20.screencodes.INVSPACE					// [2]		check if greater or equal to [INVERSE-SPACE]
+//			bcs notcode										// [2/3]	skip control code lookup if so
+//			cmp #vic20.screencodes.F1						// [2]		check if greater or equal to [F1]
+//			bcs checkcode									// [2/3]	do control code lookup if so
+//			cmp #vic20.screencodes.SPACE					// [2]		check if greater or equal to [SPACE]
+//			bcs notcode										// [2/3]	skip control code lookup if so
+//
+//			// lookup character in control codes
+//checkcode:	ldy #34										// [2]		control code table index
+//testcode:	cmp f40_static_data.CONCODEC,y				// [4]		check for control character code
+//			beq iscode										// [3/2]	go handle control code
+//			dey												// [2]		decrement table index
+//			bpl testcode									// [3/2]	loop until done
 
-			// lookup character in control codes
-checkcode:	ldy #34											// [2]		control code table index
-testcode:	cmp f40_static_data.CONCODEC,y					// [4]		check for control character code
-			beq iscode										// [3/2]	go handle control code
-			dey												// [2]		decrement table index
-			bpl testcode									// [3/2]	loop until done
+			// check character range and dispatch to direct lookup tables
+			// TODO: review this code
+			// Note that CODEIDXL/H are indexes into the CONCODEL table to get the handler address lo-byte
+			bpl notbit7										// [2/3]	char < $80: skip to low-range check
+			cmp #vic20.screencodes.INVSPACE					// [2]		high range: >= $A0?
+			bcs notcode										// [2/3]	$A0-$FF: inverse chars
+			cmp #vic20.screencodes.F1						// [2]		>= $85?
+			bcc notcode										// [2/3]	$80-$84: not control codes
+			and #$1F										// [2]		$85-$9F: strip to 5-bit index
+			tay												// [2]
+			lda f40_static_data.CODEIDXH,y					// [4]
+			bmi notcode										// [2/3]	$FF = not a control code
+			tay												// [2]		Y = CONCODEL index
+			bpl iscode										// [2/3]	always (indices 0-34, N always clear)
+notbit7:	cmp #vic20.screencodes.SPACE					// [2]		low range: >= $20?
+			bcs notcode										// [2/3]	$20-$7F: printable chars
+			tay												// [2]		$00-$1F: char is direct index
+			lda f40_static_data.CODEIDXL,y					// [4]
+			bmi notcode										// [2/3]	$FF = not a control code
+			tay												// [2]		Y = CONCODEL index
+			bpl iscode										// [2/3]	always (indices 0-34, N always clear)
 
 			// character is not a control code
 notcode:	txa												// [2]		transfer from .X to set flags

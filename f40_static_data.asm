@@ -20,18 +20,6 @@ mergebit:	ora #$FF										// [2]		merge glyph byte with bitmap byte
 }
 .label RAMCODE_LENGTH = *-RAMCODE-1							// Length of self-modifying routine
 
-CONCODEC:
-.pc = * "CONCODEC"		// CHROUT control character codes (sorted in ascending likely-usage-frequency order)
-.byte vic20.screencodes.NULL,vic20.screencodes.F1,vic20.screencodes.F2,vic20.screencodes.F3
-.byte vic20.screencodes.F4,vic20.screencodes.F5,vic20.screencodes.F6,vic20.screencodes.F7
-.byte vic20.screencodes.F8,vic20.screencodes.RUNSTOP,vic20.screencodes.LF,vic20.screencodes.CBMOFF
-.byte vic20.screencodes.CBMON,vic20.screencodes.SHIFTCR,vic20.screencodes.CRSRHOME,vic20.screencodes.UCASE
-.byte vic20.screencodes.LCASE,vic20.screencodes.RVSOFF,vic20.screencodes.RVSON,vic20.screencodes.RED
-.byte vic20.screencodes.WHITE,vic20.screencodes.PURPLE,vic20.screencodes.YELLOW,vic20.screencodes.CYAN
-.byte vic20.screencodes.BLACK,vic20.screencodes.GREEN,vic20.screencodes.BLUE,vic20.screencodes.INSERT
-.byte vic20.screencodes.CLRSCRN,vic20.screencodes.CRSRDOWN,vic20.screencodes.CRSRLEFT,vic20.screencodes.CRSRRGHT
-.byte vic20.screencodes.CRSRUP,vic20.screencodes.DELETE,vic20.screencodes.CR
-
 CONCODEL:
 .pc = * "CONCODEL"		// CHROUT control character handler address lo-bytes (all hi-bytes are the same)
 .var concode_lo_bytes = List().add(
@@ -50,10 +38,26 @@ CONCODEL:
 	.byte concode_lo_bytes.get(i)-1		// Subtract 1 for RTS offset
 }
 
+CODEIDXL:
+.pc = * "CODEIDXL"		// CHROUT low-range ($00-$1F) -> CONCODEL index ($FF = no match)
+.byte $00,$FF,$FF,$09,$FF,$14,$FF,$FF,$0B,$0C,$0A,$FF,$FF,$22,$10,$FF	// $00=NULL,$03=RUNSTOP,$05=WHITE,$08=CBMOFF,$09=CBMON,$0A=LF,$0D=CR,$0E=LCASE
+.byte $FF,$1D,$12,$0E,$21,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$13,$1F,$19,$1A	// $11=CRSRDOWN,$12=RVSON,$13=CRSRHOME,$14=DELETE,$1C=RED,$1D=CRSRRGHT,$1E=GREEN,$1F=BLUE
+
+CODEIDXH:
+.pc = * "CODEIDXH"		// CHROUT high-range ($85-$9F, indexed by char & $1F) -> CONCODEL index ($FF = no match)
+.byte $FF,$FF,$FF,$FF,$FF,$01,$03,$05,$07,$02,$04,$06,$08,$0D,$0F,$FF	// $85=F1,$86=F3,$87=F5,$88=F7,$89=F2,$8A=F4,$8B=F6,$8C=F8,$8D=SHIFTCR,$8E=UCASE
+.byte $18,$20,$11,$1C,$1B,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$15,$1E,$16,$17	// $90=BLACK,$91=CRSRUP,$92=RVSOFF,$93=CLRSCRN,$94=INSERT,$9C=PURPLE,$9D=CRSRLEFT,$9E=YELLOW,$9F=CYAN
+
 TROWADD:
 .pc = * "TROWADD"		// Text row address hi/lo bytes
 TROWADDR:
 .lohifill 24,f40_runtime_memory.Text_Buffer+(40*i)
+
+IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
+.pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
+.byte <f40_runtime_memory.InsDel_Buffer
+.byte <f40_runtime_memory.InsDel_Buffer+40
+.byte <f40_runtime_memory.InsDel_Buffer+80
 
 SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8
 .pc = * "SRSLOAD"		// Command text (8 bytes)
@@ -67,13 +71,6 @@ WEDGECMD:				// BASIC wedge command
 BLNKTIME:				// Cursor blink timers
 .pc = * "BLNKTIME"		// Cursor phase on/off timer values (2 bytes)
 .byte 19,13
-
-BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
-.pc = * "BITADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
-.byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
-BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
-.pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
-.fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
 
 JIFFYID:				// JiffyDOS identifier
 .pc = * "JIFFYID"		// Identifier string (5 bytes)
@@ -104,12 +101,6 @@ CROWOFFS:				// Character row offsets
 .pc = * "CROWOFFS"		// Character row offsets (13 bytes)
 .byte 0,20,40,60,80,100,120,140,160,180,200,220,240
 
-IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
-.pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
-.byte <f40_runtime_memory.InsDel_Buffer
-.byte <f40_runtime_memory.InsDel_Buffer+40
-.byte <f40_runtime_memory.InsDel_Buffer+80
-
 LINELEN:				// Maximum line length for each line in a continuation group
 .pc = * "LINELEN"		// Zero-based logical line lengths (3 bytes)
 .byte 39,39,7
@@ -127,7 +118,14 @@ VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
 .byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
 .byte %00100100			// $9001 - b7-0 = screen y-pos
 
-.fill 164, $aa
+BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
+.pc = * "BITADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
+.byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
+BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
+.pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
+.fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
+
+.fill 135, $aa
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256
@@ -175,6 +173,3 @@ GLYPHADD:				// Character glyph pixel address data
 .pc = * "GLYPHADD"
 GLPHADDR:
 .lohifill 256,CHARDATA+(8*i)		// Glyph pixel address lo/hi-bytes
-// TODO: might be able to optimise this as:
-//		the lo-byte pattern is 8 rows of 32 bytes, 00-f8, in 8-byte steps (so a fill formula will probably work)
-//  	the hi-byte pattern is 8 rows of 32 bytes, b0-b7 (so we might be able to determine the value in code somehow and eliminate 256 bytes)

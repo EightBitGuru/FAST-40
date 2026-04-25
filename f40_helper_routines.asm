@@ -348,7 +348,6 @@ refresh:	jsr transfer_buffer_to_lines					// [6]		transfer work buffer to text b
 // Redraw text buffer line range
 // => DRAWROWS	Redraw start line
 // => X			Redraw end line
-// TODO: optimise this
 redraw_line_range:
 .pc = * "redraw_line_range"
 {
@@ -374,10 +373,10 @@ setrow:		stx f40_runtime_memory.REGXSAVE					// [3]		stash line for later
 			sta f40_runtime_memory.TEMPBL					// [3]		set draw address lo-byte
 
 			lda f40_runtime_memory.REGASAVE					// [3]		get matrix character
-			lsr												// [2]		shift hi-nybble down
+			lsr												// [2]		divide by 16 for table index
 			lsr												// [2]
 			lsr												// [2]
-			lsr												// [2]		.A = hi-nybble (1-15 for $10-$FF)
+			lsr												// [2]
 			tax												// [2]		set hi-byte table index
 			lda f40_static_data.BITADDRH-1,x				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.TEMPBH					// [3]		set draw address hi-byte
