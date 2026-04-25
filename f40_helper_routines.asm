@@ -1,5 +1,5 @@
 // FAST-40 helper routines (location-independent)
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_helper_routines
 
@@ -379,7 +379,7 @@ setrow:		stx f40_runtime_memory.REGXSAVE					// [3]		stash line for later
 			lsr												// [2]
 			lsr												// [2]		.A = hi-nybble (1-15 for $10-$FF)
 			tax												// [2]		set hi-byte table index
-			lda f40_static_data.B2TADDRH-1,x				// [4]		get bitmap address hi-byte
+			lda f40_static_data.BITADDRH-1,x				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.TEMPBH					// [3]		set draw address hi-byte
 
 			ldy #38											// [2]		column index
@@ -565,7 +565,7 @@ resetchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash character matrix i
 			lsr												// [2]		.A = hi-nybble of matrix character (1-15 for $10-$FF)
 			tax												// [2]		set hi-byte table index
 
-			lda f40_static_data.B2TADDRH-1,x				// [4]		get bitmap address hi-byte
+			lda f40_static_data.BITADDRH-1,x				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.TEMPAH					// [3]		set bitmap draw address hi-byte
 
 			lda #0											// [2]

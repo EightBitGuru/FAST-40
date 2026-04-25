@@ -1,5 +1,5 @@
 // FAST-40 character glyph data
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 // Displayable character screen codes are 0-127 (128-255 are reverse-mode copies)
 // Shift-mode determines whether we see upper+lower or upper+graphics

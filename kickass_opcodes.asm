@@ -1,5 +1,5 @@
 // KickAssembler 6502 custom opcode pseudocommands
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .pseudocommand hlt													// Halt (JAM/KIL)
 {

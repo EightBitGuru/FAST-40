@@ -1,5 +1,5 @@
 // VIC-20 RAM test 
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace vic20_memory_test
 

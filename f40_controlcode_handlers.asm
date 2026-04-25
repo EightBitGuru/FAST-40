@@ -1,5 +1,5 @@
 // FAST-40 control code output handlers
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_controlcode_handlers
 .align 256		// Page aligned for table addressing

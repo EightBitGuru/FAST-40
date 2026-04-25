@@ -1,5 +1,5 @@
 // FAST-40 ROM data structures
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_static_data
 
@@ -71,12 +71,13 @@ BLNKTIME:				// Cursor blink timers
 BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
 .pc = * "BITADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
 .byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
-B2TADDRH:
-.pc = * "B2TADDRH"
-//.fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*(i-1))]	// $00 - $0F plus Screen_Bitmap start address hi-byte
+BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
+.pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
 .fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
 
-.fill 5,$aa 			// Spare bytes
+JIFFYID:				// JiffyDOS identifier
+.pc = * "JIFFYID"		// Identifier string (5 bytes)
+.text "JIFFY"
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
@@ -86,7 +87,7 @@ IDMSG2:
 .byte vic20.screencodes.CR
 IDMSG3:					// Must be followed by NULL (zero)
 .byte vic20.screencodes.RED
-.text @"FAST-40 1.4 (C) 2025 8BG\$0d\$0d"
+.text @"FAST-40 1.4 (C) 2026 8BG\$0d\$0d"
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
@@ -99,7 +100,51 @@ COLOFFS:				// Bitmap address column offsets
 .pc = * "COLOFFS"		// Zero-based column offsets (40 bytes)
 .fill 20,[%11110000,%00001111]
 
-.fill 176,$aa 			// Spare bytes
+CROWOFFS:				// Character row offsets
+.pc = * "CROWOFFS"		// Character row offsets (13 bytes)
+.byte 0,20,40,60,80,100,120,140,160,180,200,220,240
+
+IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
+.pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
+.byte <f40_runtime_memory.InsDel_Buffer
+.byte <f40_runtime_memory.InsDel_Buffer+40
+.byte <f40_runtime_memory.InsDel_Buffer+80
+
+LINELEN:				// Maximum line length for each line in a continuation group
+.pc = * "LINELEN"		// Zero-based logical line lengths (3 bytes)
+.byte 39,39,7
+
+LINESUM:				// Line length (summed) for each line in a continuation group
+.pc = * "LINESUM"		// Zero-based line length sums (3 bytes)
+.byte 39,79,87
+
+LINEADD:				// Line length additions for each line in a continuation group
+.pc = * "LINEADD"		// Zero-based line additions (4 bytes)
+.byte 0,40,80,120
+
+VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
+.pc = * "VICPAL"		// VIC register values (2 bytes)
+.byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
+.byte %00100100			// $9001 - b7-0 = screen y-pos
+
+.fill 164, $aa
+// -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
+
+.align 256
+MATDATA:				// Character matrix data for 20x12 (40x24) screen
+.pc = * "MATDATA"		// Character code bytes (240 bytes)
+.byte $10,$1C,$28,$34,$40,$4C,$58,$64,$70,$7C,$88,$94,$A0,$AC,$B8,$C4,$D0,$DC,$E8,$F4
+.byte $11,$1D,$29,$35,$41,$4D,$59,$65,$71,$7D,$89,$95,$A1,$AD,$B9,$C5,$D1,$DD,$E9,$F5
+.byte $12,$1E,$2A,$36,$42,$4E,$5A,$66,$72,$7E,$8A,$96,$A2,$AE,$BA,$C6,$D2,$DE,$EA,$F6
+.byte $13,$1F,$2B,$37,$43,$4F,$5B,$67,$73,$7F,$8B,$97,$A3,$AF,$BB,$C7,$D3,$DF,$EB,$F7
+.byte $14,$20,$2C,$38,$44,$50,$5C,$68,$74,$80,$8C,$98,$A4,$B0,$BC,$C8,$D4,$E0,$EC,$F8
+.byte $15,$21,$2D,$39,$45,$51,$5D,$69,$75,$81,$8D,$99,$A5,$B1,$BD,$C9,$D5,$E1,$ED,$F9
+.byte $16,$22,$2E,$3A,$46,$52,$5E,$6A,$76,$82,$8E,$9A,$A6,$B2,$BE,$CA,$D6,$E2,$EE,$FA
+.byte $17,$23,$2F,$3B,$47,$53,$5F,$6B,$77,$83,$8F,$9B,$A7,$B3,$BF,$CB,$D7,$E3,$EF,$FB
+.byte $18,$24,$30,$3C,$48,$54,$60,$6C,$78,$84,$90,$9C,$A8,$B4,$C0,$CC,$D8,$E4,$F0,$FC
+.byte $19,$25,$31,$3D,$49,$55,$61,$6D,$79,$85,$91,$9D,$A9,$B5,$C1,$CD,$D9,$E5,$F1,$FD
+.byte $1A,$26,$32,$3E,$4A,$56,$62,$6E,$7A,$86,$92,$9E,$AA,$B6,$C2,$CE,$DA,$E6,$F2,$FE
+.byte $1B,$27,$33,$3F,$4B,$57,$63,$6F,$7B,$87,$93,$9F,$AB,$B7,$C3,$CF,$DB,$E7,$F3,$FF
 
 // Primary Screen Matrix is 20x12 chars  ->  240 bytes at $1000-$10EF (double-height chars)
 // Primary Colour Matrix is 20x12 chars  ->  240 bytes at $9600-$96EF (double-height chars)
@@ -122,68 +167,6 @@ VICNTSC:				// 6560 (NTSC) VIC initialisation data
 .byte %00000000			// $900D - b7-0 = noise frequency
 .byte %00000000			// $900E - b7-4 = auxilliary colour; b3-0 = sound volume
 .byte %00011011			// $900F - b7-4 = background colour; b3 = inverse / normal; b2-0 = border colour
-
-// -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
-
-.align 256
-BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
-.pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
-.for(var x=0;x<15;x++)
-{
-	.for(var y=0;y<16;y++)
-	{
-		.byte [>f40_runtime_memory.Screen_Bitmap]+x	// 16 * $00, 16 * $01, ... 16 * $0F [plus Screen_Bitmap start address hi-byte]
-	}
-}
-
-CROWOFFS:				// Character row offsets
-.pc = * "CROWOFFS"		// Character row offsets (13 bytes)
-.byte 0,20,40,60,80,100,120,140,160,180,200,220,240
-
-IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
-.pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
-.byte <f40_runtime_memory.InsDel_Buffer
-.byte <f40_runtime_memory.InsDel_Buffer+40
-.byte <f40_runtime_memory.InsDel_Buffer+80
-
-// -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
-
-.align 256
-MATDATA:				// Character matrix data for 20x12 (40x24) screen
-.pc = * "MATDATA"		// Character code bytes (240 bytes)
-.byte $10,$1C,$28,$34,$40,$4C,$58,$64,$70,$7C,$88,$94,$A0,$AC,$B8,$C4,$D0,$DC,$E8,$F4
-.byte $11,$1D,$29,$35,$41,$4D,$59,$65,$71,$7D,$89,$95,$A1,$AD,$B9,$C5,$D1,$DD,$E9,$F5
-.byte $12,$1E,$2A,$36,$42,$4E,$5A,$66,$72,$7E,$8A,$96,$A2,$AE,$BA,$C6,$D2,$DE,$EA,$F6
-.byte $13,$1F,$2B,$37,$43,$4F,$5B,$67,$73,$7F,$8B,$97,$A3,$AF,$BB,$C7,$D3,$DF,$EB,$F7
-.byte $14,$20,$2C,$38,$44,$50,$5C,$68,$74,$80,$8C,$98,$A4,$B0,$BC,$C8,$D4,$E0,$EC,$F8
-.byte $15,$21,$2D,$39,$45,$51,$5D,$69,$75,$81,$8D,$99,$A5,$B1,$BD,$C9,$D5,$E1,$ED,$F9
-.byte $16,$22,$2E,$3A,$46,$52,$5E,$6A,$76,$82,$8E,$9A,$A6,$B2,$BE,$CA,$D6,$E2,$EE,$FA
-.byte $17,$23,$2F,$3B,$47,$53,$5F,$6B,$77,$83,$8F,$9B,$A7,$B3,$BF,$CB,$D7,$E3,$EF,$FB
-.byte $18,$24,$30,$3C,$48,$54,$60,$6C,$78,$84,$90,$9C,$A8,$B4,$C0,$CC,$D8,$E4,$F0,$FC
-.byte $19,$25,$31,$3D,$49,$55,$61,$6D,$79,$85,$91,$9D,$A9,$B5,$C1,$CD,$D9,$E5,$F1,$FD
-.byte $1A,$26,$32,$3E,$4A,$56,$62,$6E,$7A,$86,$92,$9E,$AA,$B6,$C2,$CE,$DA,$E6,$F2,$FE
-.byte $1B,$27,$33,$3F,$4B,$57,$63,$6F,$7B,$87,$93,$9F,$AB,$B7,$C3,$CF,$DB,$E7,$F3,$FF
-
-LINELEN:				// Maximum line length for each line in a continuation group
-.pc = * "LINELEN"		// Zero-based logical line lengths (3 bytes)
-.byte 39,39,7
-
-LINESUM:				// Line length (summed) for each line in a continuation group
-.pc = * "LINESUM"		// Zero-based line length sums (3 bytes)
-.byte 39,79,87
-
-LINEADD:				// Line length additions for each line in a continuation group
-.pc = * "LINEADD"		// Zero-based line additions (4 bytes)
-.byte 0,40,80,120
-
-VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
-.pc = * "VICPAL"		// VIC register values (2 bytes)
-.byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
-.byte %00100100			// $9001 - b7-0 = screen y-pos
-
-JIFFYID:				// JiffyDOS identifier
-.pc = * "JIFFYID"		// Identifier string (4 bytes)
-.text "JIFF"
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 

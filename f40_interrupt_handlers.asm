@@ -1,5 +1,5 @@
 // FAST-40 IRQ/NMI routines
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_interrupt_handlers
 

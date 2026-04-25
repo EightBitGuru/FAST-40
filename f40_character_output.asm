@@ -1,5 +1,5 @@
 // FAST-40 CHROUT vector handler
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_character_output
 
@@ -174,7 +174,7 @@ character_output_tidyup:
 			lsr												// [2]
 
 			tax												// [2]		set hi-byte table index
-			lda f40_static_data.B2TADDRH-1,x				// [4]		get bitmap address hi-byte
+			lda f40_static_data.BITADDRH-1,x				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.CRSRBITH					// [3]		set cursor draw address hi-byte
 
 			lda f40_runtime_memory.REGASAVE					// [3]		restore matrix character

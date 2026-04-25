@@ -1,12 +1,12 @@
 // FAST-40 VIC configuration data
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 V1CNTSC:
 .word $5269
 .word $856C
 .word $6477
 .word $7679
-.word $7D69
+.word $7E69
 .word $6A98
 .word $8D9F
 .word $996F

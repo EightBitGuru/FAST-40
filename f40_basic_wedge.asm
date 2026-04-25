@@ -1,5 +1,5 @@
 // FAST-40 BASIC command wedge
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_basic_wedge
 
