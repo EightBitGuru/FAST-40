@@ -23,42 +23,26 @@ screen:		txa												// [2]		save .X and .Y to Stack
 			sta vic20.os_zpvars.INPUTSRC					// [3]		set input source
 			lax vic20.os_zpvars.CHARBYTE					// [3]		get output character to .A and .X
 
-			// check if character in control code range (linear search - 35 entry worst case)
-//			cmp #vic20.screencodes.INVSPACE					// [2]		check if greater or equal to [INVERSE-SPACE]
-//			bcs notcode										// [2/3]	skip control code lookup if so
-//			cmp #vic20.screencodes.F1						// [2]		check if greater or equal to [F1]
-//			bcs checkcode									// [2/3]	do control code lookup if so
-//			cmp #vic20.screencodes.SPACE					// [2]		check if greater or equal to [SPACE]
-//			bcs notcode										// [2/3]	skip control code lookup if so
-//
-//			// lookup character in control codes
-//checkcode:	ldy #34										// [2]		control code table index
-//testcode:	cmp f40_static_data.CONCODEC,y				// [4]		check for control character code
-//			beq iscode										// [3/2]	go handle control code
-//			dey												// [2]		decrement table index
-//			bpl testcode									// [3/2]	loop until done
+			// check if character is in the low/high control code range
+			bpl checklo										// [2/3]	skip to low-range check if char < $80
+			cmp #vic20.screencodes.INVSPACE					// [2]		check if high-range control code (char >= $A0)
+			bcs notcode										// [2/3]	not a control code ($A0-$FF = inverse chars)
+			cmp #vic20.screencodes.F1						// [2]		check if char >= $85
+			bcc notcode										// [2/3]	not a control code ($80-$84)
+			and #$1F										// [2]		mask for 5-bit index ($85-$9F)
+			tay												// [2]		set high-range control code handler lookup index
+			lda f40_static_data.CODEIDXH,y					// [4]		get high-range control code address index
+			bmi notcode										// [2/3]	$FF = not a control code
+			tay												// [2]		set control code handler address table index
+			bpl iscode										// [3/3]	handle high-range control code
 
-			// check character range and dispatch to direct lookup tables
-			// TODO: review this code
-			// Note that CODEIDXL/H are indexes into the CONCODEL table to get the handler address lo-byte
-			bpl notbit7										// [2/3]	char < $80: skip to low-range check
-			cmp #vic20.screencodes.INVSPACE					// [2]		high range: >= $A0?
-			bcs notcode										// [2/3]	$A0-$FF: inverse chars
-			cmp #vic20.screencodes.F1						// [2]		>= $85?
-			bcc notcode										// [2/3]	$80-$84: not control codes
-			and #$1F										// [2]		$85-$9F: strip to 5-bit index
-			tay												// [2]
-			lda f40_static_data.CODEIDXH,y					// [4]
+checklo:	cmp #vic20.screencodes.SPACE					// [2]		check if low-range control code (char >= $20)
+			bcs notcode										// [2/3]	not a control code ($20-$7F = printable chars)
+			tay												// [2]		set low-range control code handler lookup index
+			lda f40_static_data.CODEIDXL,y					// [4]		get low-range control code address index
 			bmi notcode										// [2/3]	$FF = not a control code
-			tay												// [2]		Y = CONCODEL index
-			bpl iscode										// [2/3]	always (indices 0-34, N always clear)
-notbit7:	cmp #vic20.screencodes.SPACE					// [2]		low range: >= $20?
-			bcs notcode										// [2/3]	$20-$7F: printable chars
-			tay												// [2]		$00-$1F: char is direct index
-			lda f40_static_data.CODEIDXL,y					// [4]
-			bmi notcode										// [2/3]	$FF = not a control code
-			tay												// [2]		Y = CONCODEL index
-			bpl iscode										// [2/3]	always (indices 0-34, N always clear)
+			tay												// [2]		set control code handler address table index
+			bpl iscode										// [3/3]	handle low-range control code
 
 			// character is not a control code
 notcode:	txa												// [2]		transfer from .X to set flags
@@ -87,7 +71,7 @@ setchar:	ldy vic20.os_zpvars.CRSRLPOS					// [3]		get cursor position on logical
 			tya												// [2]		get matrix column from .Y
 			lsr												// [2]		divide by two for character matrix column
 			tay												// [2]		stash character matrix column in .Y
-			lda vic20.os_vars.CURRCOLR						// [3]		get character colour
+			lda vic20.os_vars.CURRCOLR						// [4]		get character colour
 			sta (vic20.os_zpvars.COLRPTRL),y				// [4]		set colour RAM byte under cursor
 
 			// set character data address and render masks
@@ -118,11 +102,11 @@ chkquote:	lda vic20.os_zpvars.QUOTMODE					// [3]		get editor quote mode
 actionit:	lda #%10000000									// [2]		cursor undraw bit
 			sta f40_runtime_memory.CRSRUDRW					// [3]		set cursor undraw flag
 			sta f40_runtime_memory.CRSRCOLF					// [3]		clear cursor colour flag
-			lda #>character_output_tidyup					// [2]		get charout exit routine address hi-byte
+			lda #>charout_tidyup								// [2]		get charout exit routine address hi-byte
 			pha												// [3]		push to Stack
-			lda #<character_output_tidyup-1					// [2]		get charout exit routine address lo-byte
+			lda #<charout_tidyup-1							// [2]		get charout exit routine address lo-byte
 			pha												// [3]		push to Stack
-			lda #>f40_controlcode_handlers.dispatch_page	// [3]		get control code handler page hi-byte
+			lda #>f40_controlcode_handlers.dispatch_page	// [2]		get control code handler page hi-byte
 			pha												// [3]		push to Stack
 			lda f40_static_data.CONCODEL,y					// [4]		get control code handler address lo-byte
 			pha												// [3]		push to Stack
@@ -147,30 +131,30 @@ line_continuation:
 			sty f40_runtime_memory.CRSRCOLF					// [3]		set cursor colour flag
 			jsr f40_controlcode_handlers.cursor_right		// [6]		move cursor after character output
 			lda vic20.os_zpvars.CRSRLPOS					// [3]		get cursor column (0-39)
-			bne character_output_tidyup						// [3/2]	non-zero means we didn't cross line boundary
+			bne charout_tidyup								// [3/2]	non-zero means we didn't cross line boundary
 
 			// check line continuation limit
 			ldx vic20.os_zpvars.CRSRROW						// [3]		get cursor row
 			lda f40_runtime_memory.LINECONT-1,x				// [4]		get previous line continuation byte
 			lsr												// [2]		shift right
-			bne character_output_tidyup						// [2/3]	skip continuation if at maximum
+			bne charout_tidyup								// [2/3]	skip continuation if at maximum
 
 			// extend (and possibly insert) line
 			jsr f40_helper_routines.insert_blank_line		// [6]		insert blank line for continuation
  			lda f40_runtime_memory.REGXSAVE 				// [3]		get stashed row
-			bne character_output_tidyup						// [2/3]	skip redraw if no line inserted
+			bne charout_tidyup								// [2/3]	skip redraw if no line inserted
 			jsr f40_helper_routines.clear_text_bytes 		// [6]		clear text buffer row in .X
 			stx f40_runtime_memory.DRAWROWS					// [3]		set redraw start row
 			ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		use bottom of screen for lower line limit
 			jsr f40_helper_routines.redraw_line_range		// [6]		redraw changed lines to bottom of screen
 			jsr f40_controlcode_handlers.reset_text_pointer	// [6]		reset line pointers
-// Fall-through into character_output_tidyup
+// Fall-through into charout_tidyup
 }
 
 
 // finalise character output
-character_output_tidyup:
-.pc = * "character_output_tidyup"
+charout_tidyup:
+.pc = * "charout_tidyup"
 {
 			jsr f40_interrupt_handlers.undraw_cursor 		// [6]		undraw cursor if required
 

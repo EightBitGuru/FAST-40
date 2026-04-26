@@ -154,7 +154,7 @@ setbyte:	ldy f40_runtime_memory.LINECONT-1,x				// [4]		get continuation byte fo
 exit:		rts												// [6]
 
 			// shuffle continuation table and text buffer sequence table 'down' a row
-shuffle:	lax f40_controlcode_handlers.dispatch_page		// [4]		get screen line constant (22) to .A and .X
+shuffle:	lax f40_controlcode_handlers.dispatch_page		// [4]		get screen line constant (23) to .A and .X
 			sec												// [2]		set Carry for subtraction
 			sbc f40_runtime_memory.REGXSAVE 				// [3]		subtract stashed row
 			tay	 											// [2]		set line shuffle counter

@@ -39,12 +39,12 @@ CONCODEL:
 }
 
 CODEIDXL:
-.pc = * "CODEIDXL"		// CHROUT low-range ($00-$1F) -> CONCODEL index ($FF = no match)
+.pc = * "CODEIDXL"		// CHROUT low-range ($00-$1F) -> CONCODEL index ($FF = not a control code)
 .byte $00,$FF,$FF,$09,$FF,$14,$FF,$FF,$0B,$0C,$0A,$FF,$FF,$22,$10,$FF	// $00=NULL,$03=RUNSTOP,$05=WHITE,$08=CBMOFF,$09=CBMON,$0A=LF,$0D=CR,$0E=LCASE
 .byte $FF,$1D,$12,$0E,$21,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$13,$1F,$19,$1A	// $11=CRSRDOWN,$12=RVSON,$13=CRSRHOME,$14=DELETE,$1C=RED,$1D=CRSRRGHT,$1E=GREEN,$1F=BLUE
 
 CODEIDXH:
-.pc = * "CODEIDXH"		// CHROUT high-range ($85-$9F, indexed by char & $1F) -> CONCODEL index ($FF = no match)
+.pc = * "CODEIDXH"		// CHROUT high-range ($85-$9F, indexed by char & $1F) -> CONCODEL index ($FF = not a control code)
 .byte $FF,$FF,$FF,$FF,$FF,$01,$03,$05,$07,$02,$04,$06,$08,$0D,$0F,$FF	// $85=F1,$86=F3,$87=F5,$88=F7,$89=F2,$8A=F4,$8B=F6,$8C=F8,$8D=SHIFTCR,$8E=UCASE
 .byte $18,$20,$11,$1C,$1B,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$15,$1E,$16,$17	// $90=BLACK,$91=CRSRUP,$92=RVSOFF,$93=CLRSCRN,$94=INSERT,$9C=PURPLE,$9D=CRSRLEFT,$9E=YELLOW,$9F=CYAN
 

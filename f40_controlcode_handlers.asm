@@ -152,6 +152,7 @@ set_colour_byte:
 			txa												// [2]		move screen colour code to .A
 			sta (vic20.os_zpvars.COLRPTRL),y				// [4]		set colour RAM byte
 @colexit:	rts												// [6]
+
 readcol:	lda (vic20.os_zpvars.COLRPTRL),y				// [5]		read colour RAM byte
 			sta vic20.os_vars.CURRCOLR						// [4]		set cursor colour
 			rts												// [6]
