@@ -22,21 +22,15 @@ mergebit:	ora #$FF										// [2]		merge glyph byte with bitmap byte
 
 CONCODEL:
 .pc = * "CONCODEL"		// CHROUT control character handler address lo-bytes (all hi-bytes are the same)
-.var concode_lo_bytes = List().add(
-	<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,
-	<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,
-	<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.shift_cbm,
-	<f40_controlcode_handlers.shift_cbm,<f40_controlcode_handlers.carriage_return,<f40_controlcode_handlers.cursor_home,<f40_controlcode_handlers.switch_case,
-	<f40_controlcode_handlers.switch_case,<f40_controlcode_handlers.rvs_mode,<f40_controlcode_handlers.rvs_mode,<f40_controlcode_handlers.set_colour_byte,
-	<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,
-	<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.insert,
-	<f40_controlcode_handlers.clear_screen,<f40_controlcode_handlers.cursor_down,<f40_controlcode_handlers.cursor_left,<f40_controlcode_handlers.cursor_right,
-	<f40_controlcode_handlers.cursor_up,<f40_controlcode_handlers.delete,<f40_controlcode_handlers.carriage_return
-)
-.for(var i=0;i<concode_lo_bytes.size();i++)
-{
-	.byte concode_lo_bytes.get(i)-1		// Subtract 1 for RTS offset
-}
+.byte <f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code
+.byte <f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code
+.byte <f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.shift_cbm
+.byte <f40_controlcode_handlers.shift_cbm,<f40_controlcode_handlers.carriage_return,<f40_controlcode_handlers.cursor_home,<f40_controlcode_handlers.switch_case
+.byte <f40_controlcode_handlers.switch_case,<f40_controlcode_handlers.rvs_mode,<f40_controlcode_handlers.rvs_mode,<f40_controlcode_handlers.set_colour_byte
+.byte <f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte
+.byte <f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.insert
+.byte <f40_controlcode_handlers.clear_screen,<f40_controlcode_handlers.cursor_down,<f40_controlcode_handlers.cursor_left,<f40_controlcode_handlers.cursor_right
+.byte <f40_controlcode_handlers.cursor_up,<f40_controlcode_handlers.delete,<f40_controlcode_handlers.carriage_return
 
 CODEIDXL:
 .pc = * "CODEIDXL"		// CHROUT low-range ($00-$1F) -> CONCODEL index ($FF = not a control code)
@@ -113,6 +107,10 @@ LINEADD:				// Line length additions for each line in a continuation group
 .pc = * "LINEADD"		// Zero-based line additions (4 bytes)
 .byte 0,40,80,120
 
+SCRROWS:				// Last screen row index
+.pc = * "SCRROWS"		// Zero-based last row (1 byte)
+.byte f40_runtime_constants.SCREEN_ROWS
+
 VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
 .pc = * "VICPAL"		// VIC register values (2 bytes)
 .byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
@@ -125,7 +123,7 @@ BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
 .pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
 .fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
 
-.fill 135, $aa
+.fill 134, $aa
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256

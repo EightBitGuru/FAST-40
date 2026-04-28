@@ -154,7 +154,7 @@ setbyte:	ldy f40_runtime_memory.LINECONT-1,x				// [4]		get continuation byte fo
 exit:		rts												// [6]
 
 			// shuffle continuation table and text buffer sequence table 'down' a row
-shuffle:	lax f40_controlcode_handlers.dispatch_page		// [4]		get screen line constant (23) to .A and .X
+shuffle:	lax f40_static_data.SCRROWS						// [4]		get last screen row index to .A and .X
 			sec												// [2]		set Carry for subtraction
 			sbc f40_runtime_memory.REGXSAVE 				// [3]		subtract stashed row
 			tay	 											// [2]		set line shuffle counter
@@ -241,7 +241,9 @@ shuffle:	lda (f40_runtime_memory.TEMPAL),y				// [5]		get character from work bu
 			lda f40_runtime_memory.DRAWROWS					// [3]		get redraw start row
 			ldx f40_runtime_memory.DRAWROWE					// [3]		get redraw end row
 			jsr redraw_line_range							// [6]		redraw changed lines
-movecrsr:	jmp f40_controlcode_handlers.cursor_left		// [3]		move cursor left
+movecrsr:	lda #0											// [2]
+			sta f40_runtime_memory.CRSRCOLF				// [3]		clear for JSR path through cursor movement chain
+			jmp f40_controlcode_handlers.cursor_left		// [3]		move cursor left
 @exit:		rts												// [6]
 }
 

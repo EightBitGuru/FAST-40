@@ -102,16 +102,12 @@ chkquote:	lda vic20.os_zpvars.QUOTMODE					// [3]		get editor quote mode
 actionit:	lda #%10000000									// [2]		cursor undraw bit
 			sta f40_runtime_memory.CRSRUDRW					// [3]		set cursor undraw flag
 			sta f40_runtime_memory.CRSRCOLF					// [3]		clear cursor colour flag
-			lda #>charout_tidyup								// [2]		get charout exit routine address hi-byte
-			pha												// [3]		push to Stack
-			lda #<charout_tidyup-1							// [2]		get charout exit routine address lo-byte
-			pha												// [3]		push to Stack
-			lda #>f40_controlcode_handlers.dispatch_page	// [2]		get control code handler page hi-byte
-			pha												// [3]		push to Stack
 			lda f40_static_data.CONCODEL,y					// [4]		get control code handler address lo-byte
-			pha												// [3]		push to Stack
+			sta f40_runtime_memory.TEMPBL					// [3]		set dispatch address lo-byte
+			lda #>f40_controlcode_handlers.insert			// [2]		get control code handler page hi-byte
+			sta f40_runtime_memory.TEMPBH					// [3]		set dispatch address hi-byte
 			lda #0											// [2]		zero .A for any handlers that need it
-			rts												// [6]		return via control code handler
+			jmp (f40_runtime_memory.TEMPBL)					// [5]		jump to control code handler
 
 			// convert the control code into displayable form
 displayit:	clc												// [2]		clear Carry before addition
