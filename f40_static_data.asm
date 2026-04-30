@@ -3,22 +3,17 @@
 
 .filenamespace f40_static_data
 
-RAMCODE:
-.pc = * "RAMCODE"		// 22-byte self-modifying bitmap merge routine (copied to RAM at runtime) [AY]
-.pseudopc f40_runtime_memory.MERGROUT						// Assemble for target RAM address
+MERGCODE:
+.pc = * "MERGCODE"		// 11-byte merge routine template (copied 8x to RAM at runtime) [AY]
 {
-loop:		lda $FFFF,y										// [4]		get character glyph data byte
-			and f40_runtime_memory.CRSRMASK					// [3]		apply character mask
-			sta mergebit+1									// [4]		modify character/bitmap merge byte
-			lda (f40_runtime_memory.CRSRBITL),y				// [5]		indirect get bitmap byte
-			and #$FF										// [3]		apply screen bitmap mask
-mergebit:	ora #$FF										// [2]		merge glyph byte with bitmap byte
-			sta (f40_runtime_memory.CRSRBITL),y				// [6]		indirect set bitmap byte
-			dey												// [2]		decrement glyph byte counter
-			bpl loop										// [3/2]	loop for next glyph byte
-			jmp f40_character_output.line_continuation		// [3]		jump to line continuation logic
+			lda (f40_runtime_memory.TEMPAL),y				// [5]		get character glyph byte
+			eor (f40_runtime_memory.CRSRBITL),y				// [5]		XOR with bitmap byte
+			and #$0F										// [2]		apply character mask (right-variant is $F0)
+			eor (f40_runtime_memory.CRSRBITL),y				// [5]		merge glyph and bitmap (bitmap & $F0) | (glyph & $0F)
+			sta (f40_runtime_memory.CRSRBITL),y				// [6]		set merged bitmap byte
+			dey												// [2]		decrement byte index
 }
-.label RAMCODE_LENGTH = *-RAMCODE-1							// Length of self-modifying routine
+.label MERGCODE_MASK_OFF = 5								// mask operand address offsetand operand offset
 
 CONCODEL:
 .pc = * "CONCODEL"		// CHROUT control character handler address lo-bytes (all hi-bytes are the same)
@@ -69,6 +64,8 @@ BLNKTIME:				// Cursor blink timers
 JIFFYID:				// JiffyDOS identifier
 .pc = * "JIFFYID"		// Identifier string (5 bytes)
 .text "JIFFY"
+
+.fill 11,$AA
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
@@ -121,9 +118,9 @@ BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
 .byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
 BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
 .pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
-.fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
+.fill 16,>[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
 
-.fill 134, $aa
+.fill 134,$AA
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256

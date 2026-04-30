@@ -74,19 +74,18 @@ setchar:	ldy vic20.os_zpvars.CRSRLPOS					// [3]		get cursor position on logical
 			lda vic20.os_vars.CURRCOLR						// [4]		get character colour
 			sta (vic20.os_zpvars.COLRPTRL),y				// [4]		set colour RAM byte under cursor
 
-			// set character data address and render masks
+			// set glyph data pointer and dispatch to unrolled merge routine
 			lda f40_static_data.GLPHADDR.lo,x				// [4]		get character glyph data address lo-byte
-			sta f40_runtime_memory.MERGROUT+1				// [4]		set data read address lo-byte
+			sta f40_runtime_memory.TEMPAL					// [3]		set ZP glyph pointer lo-byte
 			lda f40_static_data.GLPHADDR.hi,x				// [4]		get character glyph data address hi-byte
 			ora f40_runtime_memory.CASEFLAG					// [3]		add renderer glyph case offset
-			sta f40_runtime_memory.MERGROUT+2				// [4]		set data read address hi-byte
-			lda f40_runtime_memory.CRSRMASK					// [3]		get character mask
-			eor #$FF										// [2]		invert it
-			sta f40_runtime_memory.MERGROUT+11				// [4]		set screen bitmap mask
-
-			// call self-modifying bitmap merge routine, which returns to line_contination
-			ldy #7											// [2]		glyph bytes to process
-			jmp f40_runtime_memory.MERGROUT					// [3]		jump to self-modifying render code
+			sta f40_runtime_memory.TEMPAH					// [3]		set ZP glyph pointer hi-byte
+			ldy #7											// [2]		glyph bytes to process (zero-based)
+			lda f40_runtime_memory.CRSRMASK					// [3]		get column mask
+			cmp #$0F										// [2]		left or right column?
+			beq mergleft									// [3/2]	execute appropriate merge routine
+			jmp f40_runtime_memory.MERGBITR					// [3]		right-column merge
+mergleft:	jmp f40_runtime_memory.MERGBITL					// [3]		left-column merge
 
 			// handle the control code
 iscode:		cpx #vic20.screencodes.CR 						// [2]		check for [CR]

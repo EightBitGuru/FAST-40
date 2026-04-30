@@ -28,20 +28,20 @@
 .label TEMPDH	        = $00EE		//	Temporary data/address hi-byte
 .label SPAREZP	        = $00EF		//	Spare (3 bytes)
 
-// Page 2 - 95 bytes available at $02A1-$02FF
-.label SPAREP02         = $02A1		//	Spare (19 bytes to 02B3)
-.label LINCNTUF         = $02B4		//	Line-continuation table underflow bytes (2 bytes to $02B5)
-.label LINECONT	        = $02B6		//	Line-continuation table (24 bytes to $02CD)
-.label LINCNTOF         = $02CE		//	Line-continuation table overflow byte (1 byte to $02CE)
-.label TXTBUFUF         = $02CE		//	Text row key sequence underflow bytes (2 bytes to $02CF)
-.label TXTBUFSQ         = $02D0		//	Text row key sequence bytes (24 bytes to $02E7)
-.label TXTBUFOF         = $02E8		//	Text row key sequence overflow byte (1 byte to $02E8)
-.label MERGROUT	        = $02E9		//	Self-modifying bitmap merge routine (22 bytes to $02FE)
-.label Memory_Bitmap    = $02FF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5->write-protect(1=OFF), b4-0->RAM bitmap
-
 // 3K BLK0
-.label Text_Buffer	    = $0BC7		//	Text buffer (960 bytes to 0F86)
-.label InsDel_Buffer	= $0F87		//	Insert/Delete buffer (121 bytes to 0FFF)
+.label UNUSEDB0         = $0400     //  Unused BLK0 space (1739 bytes to $0ACA)
+.label LINCNTUF         = $0ACB		//	Line-continuation table underflow bytes (2 bytes to $0ACC)
+.label LINECONT	        = $0ACD		//	Line-continuation table (24 bytes to $0AE4)
+.label LINCNTOF         = $0AE5		//	Line-continuation table overflow byte (1 byte to $0AE5)
+.label TXTBUFUF         = $0AE5		//	Text row key sequence underflow bytes (2 bytes to $0AE6)
+.label TXTBUFSQ         = $0AE7		//	Text row key sequence bytes (24 bytes to $0AFE)
+.label TXTBUFOF         = $0AFF		//	Text row key sequence overflow byte (1 byte to $0AFF)
+.label SPAREP04         = $0B00     //  Spare BLK0 space (18 bytes to $0B11)
+.label MERGBITL         = $0B12		//	Left-character bitmap merge routine (90 bytes to $0B6B)
+.label MERGBITR         = $0B6C		//	Right-character bitmap merge routine (90 bytes to $0BC5)
+.label Text_Buffer	    = $0BC6		//	Text buffer (960 bytes to $0F85)
+.label InsDel_Buffer	= $0F86		//	Insert/Delete buffer (121 bytes to $0FFE)
+.label Memory_Bitmap    = $0FFF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5->write-protect(1=OFF), b4-0->RAM bitmap
 
 // Onboard RAM
 .label Character_Matrix	= $1000		//	Screen character matrix is 20x12 double-height chars -> 240 bytes to $10EF

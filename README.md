@@ -1,6 +1,8 @@
 # <div><div>FAST-40</div><div>Copyright © 2025 [8-Bit Guru](mailto:the8bitguru@gmail.com)</div></div>
 
-FAST-40 is a utility program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language and requires a 3K RAM expansion.
+FAST-40 is a utility program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language, ships as an 8K program/cartridge, and requires a 3K RAM expansion.
+
+All expansion RAM populating the BLK1/2/3 areas is available for your programs.
 
 No video hardware modification is required.
 
@@ -80,15 +82,19 @@ Consult the VICE documentation for full details regarding commandline options as
 
 FAST-40 supports all VIC-20 character glyphs and control characters, including those for cursor positioning, colour selection, reverse-mode, etc. The VIC-20 keyboard does not emit visible characters for the SHIFT/C= key combination (which performs the toggle between upper-case and lower-case character sets) but these non-printing characters do exist and are supported.
 
-Unlike the stock VIC-20, FAST-40 allows both upper- and lower-case graphics charactersets to be displayed simultaneously.
+## Enhancements
 
-Performance tests yield a character output rate superior to the native 22x23 mode - ranging between 7% to 40% faster, depending on the workload complexity.
+FAST-40 character output performance is almost universally better than the stock VIC-20 - it generates characters in 40x24 mode up to 40% faster than the native 22x23 mode.
+
+The VIC-20 applies the SHIFT/C= characterset switch to the whole screen - it is not possible to display glyphs from both upper-case and lower-case charactersets at the same time. FAST-40 does not have this limitation - characters from both sets can be displayed simultaneously.
+
+FAST-40 adds a 'write-protect' mechanism to SHIFT/RUNSTOP which will issue a **?LOAD ERROR** message if there is a BASIC program already in memory. This prevents accidental overwriting of the program if SHIFT/RUNSTOP is accidentally triggered; in tape-based systems the user has ample time to cancel the action before any new program is found and loaded, but disk-based systems are likely to action the LOAD much more quickly.
 
 ### Memory Requirements
 
-The FAST-40 program occupies the BLK5 ($A000-$BFFF) ROM/RAM area and uses areas of pages zero and two as working storage. Additionally all of the 4K unexpanded RAM area is needed for video display reconfiguration, and the text buffer is placed in the 3K expansion RAM area in BLK0. Slightly less than 2K of this block is left free for BASIC ($0400-$0AFF).
+The FAST-40 program occupies the BLK5 ($A000-$BFFF) ROM/RAM area and uses a small section of zero-page as working storage. Additionally all of the 4K unexpanded RAM area is needed for video display reconfiguration, and various buffers are placed in the 3K expansion RAM area in BLK0.
 
-If 8K (or 16K or 24K) expansion RAM is also present in BLK1/2/3 then FAST-40 will make these blocks entirely available for BASIC and the 'lost' memory in BLK0 remains available for machine-code programs.
+FAST-40 leaves the entirety of the 8/16/24K RAM expansion areas (as populated) available for BASIC.
 
 ### New RESET Command
 
@@ -96,10 +102,10 @@ FAST-40 provides a new BASIC command to easily reset the system and switch betwe
 
     RESET [0|3|8]   Switch to specified video/memory configuration
     
-        RESET		Switch to 40x24 3K/8K+ mode
+        RESET		Switch to 40x24 mode
         RESET 0		Switch to 22x23 unexpanded mode
         RESET 3		Switch to 22x23 3K mode
-        RESET 8		Switch to 22x23 8K+ mode (if RAM is present in BLK1/2/3)
+        RESET 8		Switch to 22x23 8K+ mode
 
 ### SHIFT/RUNSTOP Keypress Behaviour
 
@@ -109,18 +115,10 @@ FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands t
 * If JiffyDOS is _not_ present, the sequence `LOAD"$",8` is executed to read the directory of the disk
 * If JiffyDOS _is_ present (featuring the preferred `@$` command to view the directory) the sequence `LOAD"*",8` is executed to load the first program on the disk
 
-Note that FAST-40 adds a 'write-protect' mechanism to SHIFT/RUNSTOP which will issue a **?LOAD ERROR** message if there is a BASIC program already in memory. This prevents accidental overwriting of the program if SHIFT/RUNSTOP is accidentally triggered; in tape-based systems the user has ample time to cancel the action before any new program is found and loaded, but disk-based systems are likely to action the LOAD much more quickly.
-
 Since the write-protection may interfere with chain-loading of multi-part programs, it can be disabled by setting its control bit:
 
     Assembler:  LDA $02FF : ORA #%00100000 : STA $02FF
     BASIC:      POKE 767, PEEK(767) OR 32
-
-### SHIFT/C= Keypress Behaviour
-
-On a stock VIC-20 the SHIFT/C= key combination (or programmatic equivalent) causes the VIC to switch between two charactersets stored in ROM at $8000 and $8800. The first set contains upper-case letters and a wide selection of PETSCII graphics characters, whereas the second contains both upper- and lower-case letters and a smaller choice of PETSCII characters. Switching charactersets instantly affects all visible characters on the screen, not just those which are displayed after the switch occurs.
-
-The initial FAST-40 release took pains to reproduce this behaviour, ensuring that the entire screen was refreshed whenever a characterset switch occurred. However since characterset switches typically happen before any characters are output (rarely being useful otherwise) the engineering overhead to drive the refresh and the associated rendering throughput performance impact was largely suboptimal. The refresh feature was therefore dropped in later releases.
 
 ### System Reconfiguration
 
@@ -128,12 +126,11 @@ FAST-40 makes changes to numerous memory areas, VIC registers, and system vector
 
 Memory areas:
 
-    $0003-$0004     Not normally used by BASIC/KERNAL.     [only used if BRK debugging is enabled on build]
-    $00D9-$00F1     Normally used as the BASIC screen editor line-link table.
-    $02A1-$02FF     Not normally used by BASIC/KERNAL.
-    $0B00-$0FFF     Top of 3K RAM expansion (BLK0).
-    $1000-$1FFF     Normally used as the unexpanded screen and RAM area.
-    $9400-$95FF     Normally used as colour memory when RAM is in BLK1/2/3.
+    $0003-$0004     Used if BRK debugging is enabled at build time
+    $00D9-$00F1     Working storage
+    $0400-$0FFF     Buffers (BLK0 3K RAM expansion)
+    $1000-$1FFF     Hi-res screen matrix
+    $9400-$95FF     Lo-res colour matrix
 
 VIC registers:
 
@@ -233,12 +230,26 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 ### Release v1.3 (30th October 2025)
 * Added write-protection so SHIFT/RUNSTOP actions trigger **?LOAD ERROR** if there is a BASIC program in memory
 
-### Release v1.4 (???????????? 2025)
+### Release v1.4 (???????????? 2026)
 * Added write-protection control bit so it can be disabled if necessary (e.g. for chain-loaded multi-part programs)
 * Refactored bitmap address lookup tables to reduce memory footprint by 80%
+* Refactored bitmap rendering pipeline to increase throughput rate by 10%
+
 * Optimised the line-refresh logic to call the same self-modifying render code that the main render pipeline uses
 * Added PLOT command for 'hi-res graphics mode' pixel plotting
 
 # Who is 8-Bit Guru?
 
 8-Bit Guru (also: Eight-Bit Guru, 8BitGuru, 8BG) is the *nom de guerre* of Mark Johnson. I'm a professional coder from the UK who has been telling computers what to do since 1981. My day job is all about C# and Azure, whilst my hobby projects mostly involve writing 6502 assembly language for the VIC-20 (my first computer, back in '81).
+
+
+
+
+.label SPAREP02         = $02A1		//	Spare (41 bytes to $02C9)
+.label LINCNTUF         = $02CA		//	Line-continuation table underflow bytes (2 bytes to $02CB)
+.label LINECONT	        = $02CC		//	Line-continuation table (24 bytes to $02E3)
+.label LINCNTOF         = $02E4		//	Line-continuation table overflow byte (1 byte to $02E4)
+.label TXTBUFUF         = $02E4		//	Text row key sequence underflow bytes (2 bytes to $02E5)
+.label TXTBUFSQ         = $02E6		//	Text row key sequence bytes (24 bytes to $02FD)
+.label TXTBUFOF         = $02FE		//	Text row key sequence overflow byte (1 byte to $02FE)
+.label Memory_Bitmap    = $02FF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5->write-protect(1=OFF), b4-0->RAM bitmap
