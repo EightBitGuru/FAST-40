@@ -62,7 +62,7 @@ waitkey:	lda vic20.os_zpvars.KEYCOUNT					// [3]		get keyboard buffer character 
 dosrs:		sei												// [2]		disable IRQ whilst we stuff the buffer
 			ldy #8											// [2]		command data length
  			sty vic20.os_zpvars.KEYCOUNT					// [3]		set keyboard buffer character count
-loadloop:	lda f40_static_data.SRSLOAD-1,y					// [4]		get LOAD"$*",8 bytes
+loadloop:	lda f40_static_data.SRSLOAD-1,y					// [4]		get LOAD"$",8 bytes
 			sta vic20.os_vars.KEYBUFF-1,y					// [5]		inject into keyboard buffer
 			dey												// [2]		decrement index
 			bne loadloop									// [3/2]	loop for next character
@@ -70,7 +70,7 @@ loadloop:	lda f40_static_data.SRSLOAD-1,y					// [4]		get LOAD"$*",8 bytes
 			bvc waitkey										// [3/2]	execute if JiffyDOS not present
 			lda #'*'										// [2]		overwrite '$' with '*'
 			sta vic20.os_vars.KEYBUFF+3						// [4]		inject into keyboard buffer
-			beq waitkey										// [3/3]	execute
+			bne waitkey										// [3/3]	execute
 
 			// check for [CR] and output character if not
 checkcr:	cmp #vic20.screencodes.CR						// [2]		check for [CR]
@@ -129,7 +129,7 @@ flipquote:	jsr vic20.kernal.FLIPQUOT						// [6]		toggle quote-mode flag if char
 lineend:	lda #vic20.screencodes.CR						// [2]		character is [CR]
 			sta vic20.os_zpvars.CHARBYTE					// [3]		save character
 			ldx #vic20.devices.KEYBOARD						// [2]		input is keyboard
-			stx vic20.os_zpvars.INPUTSRC					// [4]		set input source
+			stx vic20.os_zpvars.INPUTSRC					// [3]		set input source
 			ldx vic20.os_zpvars.DEVIN						// [3]		get input device
 			cpx #vic20.devices.SCREEN						// [2]		is it the screen?
 			beq retchar										// [2/3]	return the character if so

@@ -234,6 +234,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Added write-protection control bit so it can be disabled if necessary (e.g. for chain-loaded multi-part programs)
 * Refactored bitmap address lookup tables to reduce memory footprint by 80%
 * Refactored bitmap rendering pipeline to increase throughput rate by 10%
+* Fixed SHIFT/RUNSTOP bug when JiffyDOS is present
 
 * Optimised the line-refresh logic to call the same self-modifying render code that the main render pipeline uses
 * Added PLOT command for 'hi-res graphics mode' pixel plotting
@@ -241,15 +242,3 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 # Who is 8-Bit Guru?
 
 8-Bit Guru (also: Eight-Bit Guru, 8BitGuru, 8BG) is the *nom de guerre* of Mark Johnson. I'm a professional coder from the UK who has been telling computers what to do since 1981. My day job is all about C# and Azure, whilst my hobby projects mostly involve writing 6502 assembly language for the VIC-20 (my first computer, back in '81).
-
-
-
-
-.label SPAREP02         = $02A1		//	Spare (41 bytes to $02C9)
-.label LINCNTUF         = $02CA		//	Line-continuation table underflow bytes (2 bytes to $02CB)
-.label LINECONT	        = $02CC		//	Line-continuation table (24 bytes to $02E3)
-.label LINCNTOF         = $02E4		//	Line-continuation table overflow byte (1 byte to $02E4)
-.label TXTBUFUF         = $02E4		//	Text row key sequence underflow bytes (2 bytes to $02E5)
-.label TXTBUFSQ         = $02E6		//	Text row key sequence bytes (24 bytes to $02FD)
-.label TXTBUFOF         = $02FE		//	Text row key sequence overflow byte (1 byte to $02FE)
-.label Memory_Bitmap    = $02FF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5->write-protect(1=OFF), b4-0->RAM bitmap
