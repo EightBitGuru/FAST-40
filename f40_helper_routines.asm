@@ -412,12 +412,10 @@ getchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash column index for lat
 
 			// merge character data with bitmap
 			ldy #7											// [2]		glyph bytes to process
-merge:		lda (f40_runtime_memory.TEMPCL),y				// [5]		get left character glyph data byte
-			and #$F0										// [2]		mask-off right nybble
-			sta f40_runtime_memory.LINECHAR					// [3]		stash left nybble
-			lda (f40_runtime_memory.TEMPDL),y				// [5]		get right character glyph data byte
-			and #$0F										// [2]		mask-off left nybble
-			ora f40_runtime_memory.LINECHAR					// [3]		merge with left nybble
+merge:		lda (f40_runtime_memory.TEMPDL),y				// [5]		get right character glyph data byte
+			eor (f40_runtime_memory.TEMPCL),y				// [5]		XOR with left glyph byte
+			and #$0F										// [2]		apply character mask
+			eor (f40_runtime_memory.TEMPCL),y				// [5]		marge glyph and bitmap (TEMPCL & $F0) | (TEMPDL & $0F)
 			sta (f40_runtime_memory.TEMPBL),y				// [6]		set bitmap byte
 			dey												// [2]		decrement glyph byte counter
 			bpl merge										// [3/2]	loop for next glyph byte

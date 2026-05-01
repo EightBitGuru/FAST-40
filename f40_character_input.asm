@@ -135,18 +135,19 @@ lineend:	lda #vic20.screencodes.CR						// [2]		character is [CR]
 			beq retchar										// [2/3]	return the character if so
 			ldx vic20.os_zpvars.DEVOUT						// [3]		get output device
 			cpx #vic20.devices.SCREEN						// [2]		is it the screen?
-			beq exit										// [3/2]	skip output
+			beq notpi										// [3/2]	skip output and [PI] check
 
 			// return character, fixing [PI] if required
 retchar:	jsr f40_character_output.character_output		// [6]		output character
-exit:		pla												// [4]		get .Y and .X back from Stack
+exit:		cmp #vic20.screencodes.PICHAR					// [2]		test for [PI] character
+			bne notpi										// [3/2]	skip remap if not [PI]
+			lda #vic20.screencodes.PITOKEN					// [2]		remap to alternate [PI] token code
+			sta vic20.os_zpvars.CHARBYTE					// [3]		update saved character
+notpi:		pla												// [4]		get .Y and .X back from Stack
 			tay												// [2]
 			pla												// [4]
 			tax												// [2]
 			lda vic20.os_zpvars.CHARBYTE					// [3]		get saved character
-			cmp #vic20.screencodes.PICHAR					// [2]		test for [PI] character
-			bne notpi										// [3/2]	skip to exit if not
-			lda #vic20.screencodes.PITOKEN					// [2]		reset for alternate [PI] token code
-notpi:		clc												// [2]		clear Carry (error flag)
+			clc												// [2]		clear Carry (error flag)
 			rts												// [6]
 }
