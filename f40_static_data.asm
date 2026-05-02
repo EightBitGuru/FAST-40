@@ -3,6 +3,10 @@
 
 .filenamespace f40_static_data
 
+JUMPTAB:
+.pc = * "JUMPTAB"		// SYS entrypoint handlers
+			jmp f40_helper_routines.basic_write_protect		// [3]		set/clear SRS write-protect flag
+
 MERGCODE:
 .pc = * "MERGCODE"		// 11-byte merge routine template (copied 8x to RAM at runtime) [AY]
 {
@@ -65,7 +69,7 @@ JIFFYID:				// JiffyDOS identifier
 .pc = * "JIFFYID"		// Identifier string (5 bytes)
 .text "JIFFY"
 
-.fill 11,$AA
+.fill 8,$AA
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message

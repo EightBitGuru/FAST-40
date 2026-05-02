@@ -224,17 +224,21 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Fixed a bug where the BRK handler wasn't being set properly (reported by **mike@denial**)
 
 ### Release v1.2 (29th September 2025)
-* Refactored startup logic so the RUNSTOP/RESTORE handler can do better breakage recovery
+* Refactored the startup logic so the RUNSTOP/RESTORE handler can do better breakage recovery
 * Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a scroll-lock until released
 
 ### Release v1.3 (30th October 2025)
-* Added write-protection so SHIFT/RUNSTOP actions trigger **?LOAD ERROR** if there is a BASIC program in memory
+* Added a write-protect check so SHIFT/RUNSTOP actions trigger **?LOAD ERROR** if there is a BASIC program in memory
 
 ### Release v1.4 (???????????? 2026)
-* Added write-protection control bit so it can be disabled if necessary (e.g. for chain-loaded multi-part programs)
-* Refactored bitmap address lookup tables to reduce memory footprint by 80%
-* Refactored bitmap rendering pipeline to increase throughput rate by 10%
-* Fixed SHIFT/RUNSTOP bug when JiffyDOS is present
+* Refactored the bitmap address lookup tables to reduce their ROM footprint by 80%
+* Refactored the bitmap rendering pipeline to increase throughput by 10%
+* Fixed a SHIFT/RUNSTOP bug which injected a rogue character when JiffyDOS is present
+* Fixed a cursor undraw bug when using the SHIFT/C= case-switch key combination
+* Flipped the SHIFT/RUNSTOP write-protect check to OFF by default
+* Added a 'public' SYS interface that won't change across future releases:
+    * SYS 40969,[1|0] - enable/disable BASIC write protect on SHIFT/RUNSTOP
+
 
 * Optimised the line-refresh logic to call the same self-modifying render code that the main render pipeline uses
 * Added PLOT command for 'hi-res graphics mode' pixel plotting

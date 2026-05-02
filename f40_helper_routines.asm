@@ -391,8 +391,7 @@ getchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash column index for lat
 			lda f40_static_data.GLPHADDR.lo,x				// [4]		get character glyph data address lo-byte
 			sta f40_runtime_memory.TEMPCL					// [3]		set data read address lo-byte
 			lda f40_static_data.GLPHADDR.hi,x				// [4]		get character glyph data address hi-byte
-			clc												// [2]		clear Carry for addition
-			adc f40_runtime_memory.CASEFLAG					// [3]		add renderer glyph case offset
+			ora f40_runtime_memory.CASEFLAG					// [2]		apply renderer glyph case offset
 			sta f40_runtime_memory.TEMPCH					// [3]		set data read address hi-byte
 
 			// check if both characters in this pair are the same
@@ -406,8 +405,7 @@ getchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash column index for lat
 			lda f40_static_data.GLPHADDR.lo,x				// [4]		get character glyph data address lo-byte
 			sta f40_runtime_memory.TEMPDL					// [3]		set data read address lo-byte
 			lda f40_static_data.GLPHADDR.hi,x				// [4]		get character glyph data address hi-byte
-			clc												// [2]		clear Carry for addition
-			adc f40_runtime_memory.CASEFLAG					// [3]		add renderer glyph case offset
+			ora f40_runtime_memory.CASEFLAG					// [2]		apply renderer glyph case offset
 			sta f40_runtime_memory.TEMPDH					// [3]		set data read address hi-byte
 
 			// merge character data with bitmap
@@ -688,5 +686,13 @@ loop:		lda (f40_runtime_memory.TEMPBL),y				// [5]		get byte in work buffer
 			inx												// [2]		increment line index
 			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
 			bne	setline 									// [3/2]	loop until all lines copied
+			rts												// [6]
+}
+
+
+// Set/clear SHIFT/RUNSTOP BASIC write-protect flag
+basic_write_protect:
+.pc = * "basic_write_protect"
+{
 			rts												// [6]
 }

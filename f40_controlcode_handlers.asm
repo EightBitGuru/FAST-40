@@ -178,7 +178,10 @@ set_case:
 			stx vic20.os_zpvars.CRSRMODE					// [3]		set cursor blink mode (!0 = no flash)
 			lda #0											// [2]
 			sta vic20.os_zpvars.CRSRBLNK					// [3]		clear cursor blink phase flag
-			jmp f40_character_output.charout_tidyup			// [3]		exit control code handler
+			cpx #$0E										// [2]		SHIFT/C= (.X=3) or dispatch path (.X=$0E/$8E)?
+			bcc shiftcbm									// [2/3]	SHIFT/C= so return to keyboard decoder
+			jmp f40_character_output.charout_tidyup			// [3]		dispatch path so exit via character tidyup
+shiftcbm:	rts												// [6]
 }
 
 

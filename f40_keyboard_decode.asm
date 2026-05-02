@@ -19,6 +19,8 @@ checklast:	cmp vic20.os_vars.LASTSHFT						// [3]		compare with last control key
 			jmp vic20.kernal.STOPKEY						// [3]		enable VIA for RUN/STOP ($EBD6)
 checkshift:	lda vic20.os_vars.SHFTMODE						// [4]		get shift mode flag b7 (0=unlocked, 1=locked)
 			bmi scankey										// [2/3]	if shift mode locked then skip case toggle
+			ror f40_runtime_memory.CRSRUDRW					// [6]		set cursor undraw b7 (Carry=1 here)
+			jsr f40_interrupt_handlers.undraw_cursor		// [6]		undraw cursor if drawn
 			lda f40_runtime_memory.CASEFLAG					// [3]		get glyph case flag ($00=upper-case, $08=lower-case)
 			eor #8											// [2]		flip case bit
 			jsr f40_controlcode_handlers.set_case			// [6]		handle SHIFT/C= case switch
