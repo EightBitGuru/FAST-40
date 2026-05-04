@@ -37,7 +37,7 @@ screen:		txa												// [2]		save .X and .Y to Stack
 			bpl iscode										// [3/3]	handle high-range control code
 
 checklo:	cmp #vic20.screencodes.SPACE					// [2]		check if low-range control code (char >= $20)
-			bcs shiftchk										// [2/3]	not a control code ($20-$7F = printable chars)
+			bcs shiftchk									// [2/3]	not a control code ($20-$7F = printable chars)
 			tay												// [2]		set low-range control code handler lookup index
 			lda f40_static_data.CODEIDXL,y					// [4]		get low-range control code address index
 			bmi notcode										// [2/3]	$FF = not a control code

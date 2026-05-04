@@ -232,7 +232,7 @@ movecrsr:	lda #0											// [2]
 
 
 // Find last non-space character on screen line
-// => SCRNLNL/H		Pointer to specified line
+// => TEMPAL/H		Pointer to specified line
 // <= A				$00-$27 (0-39) position of last non-space character; $FF = all spaces
 find_nonspace:
 .pc = * "find_nonspace"
