@@ -124,7 +124,19 @@ BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
 .pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
 .fill 16,>[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
 
-.fill 134,$AA
+PLOTCOLL:				// Pixel plot column bitmap address lo-bytes
+.pc = * "PLOTCOLL"		// Pixel column base address lo-byte table (20 bytes)
+.fill 20,<[f40_runtime_memory.Screen_Bitmap+(192*i)]
+
+PLOTCOLH:				// Pixel plot column bitmap address hi-bytes
+.pc = * "PLOTCOLH"		// Pixel column base address hi-byte table (20 bytes)
+.fill 20,>[f40_runtime_memory.Screen_Bitmap+(192*i)]
+
+PLOTMASK:				// Pixel plot bit mask table
+.pc = * "PLOTMASK"		// Pixel bit mask by column offset (8 bytes)
+.byte $80,$40,$20,$10,$08,$04,$02,$01
+
+.fill 86,$AA
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256
