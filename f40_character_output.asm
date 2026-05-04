@@ -28,7 +28,7 @@ screen:		txa												// [2]		save .X and .Y to Stack
 			cmp #vic20.screencodes.INVSPACE					// [2]		check if high-range control code (char >= $A0)
 			bcs notcode										// [2/3]	not a control code ($A0-$FF = inverse chars)
 			cmp #vic20.screencodes.F1						// [2]		check if char >= $85
-			bcc notcode										// [2/3]	not a control code ($80-$84)
+			bcc shiftchk									// [2/3]	not a control code ($80-$84)
 			and #$1F										// [2]		mask for 5-bit index ($85-$9F)
 			tay												// [2]		set high-range control code handler lookup index
 			lda f40_static_data.CODEIDXH,y					// [4]		get high-range control code address index
@@ -37,7 +37,7 @@ screen:		txa												// [2]		save .X and .Y to Stack
 			bpl iscode										// [3/3]	handle high-range control code
 
 checklo:	cmp #vic20.screencodes.SPACE					// [2]		check if low-range control code (char >= $20)
-			bcs notcode										// [2/3]	not a control code ($20-$7F = printable chars)
+			bcs shiftchk										// [2/3]	not a control code ($20-$7F = printable chars)
 			tay												// [2]		set low-range control code handler lookup index
 			lda f40_static_data.CODEIDXL,y					// [4]		get low-range control code address index
 			bmi notcode										// [2/3]	$FF = not a control code
@@ -45,8 +45,8 @@ checklo:	cmp #vic20.screencodes.SPACE					// [2]		check if low-range control cod
 			bpl iscode										// [3/3]	handle low-range control code
 
 			// character is not a control code
-notcode:	txa												// [2]		transfer from .X to set flags
-			bpl notshifted									// [3/2]	not shifted if b7 is clear
+notcode:	txa												// [2]		restore char from .X (A and N clobbered by earlier path)
+shiftchk:	bpl notshifted									// [3/2]	not shifted if b7 is clear
 			cmp #%11000000									// [2]		check b7/b6
 			bcs clearb7										// [3/2]	SHIFTed glyph if both set
 			sbc #63											// [2]		CBMed glyph if only b6
@@ -82,10 +82,9 @@ setchar:	ldy vic20.os_zpvars.CRSRLPOS					// [3]		get cursor position on logical
 			sta f40_runtime_memory.TEMPAH					// [3]		set ZP glyph pointer hi-byte
 			ldy #7											// [2]		glyph bytes to process (zero-based)
 			lda f40_runtime_memory.CRSRMASK					// [3]		get column mask
-			cmp #$0F										// [2]		left or right column?
-			beq mergleft									// [3/2]	execute appropriate merge routine
-			jmp f40_runtime_memory.MERGBITR					// [3]		right-column merge
-mergleft:	jmp f40_runtime_memory.MERGBITL					// [3]		left-column merge
+			bpl mergleft									// [3/2]	left column if b7 clear ($0F)
+			jmp f40_runtime_memory.MERGBITR					// [3]		right-column merge ($F0)
+mergleft:	jmp f40_runtime_memory.MERGBITL					// [3]		left-column merge ($0F)
 
 			// handle the control code
 iscode:		cpx #vic20.screencodes.CR 						// [2]		check for [CR]
@@ -167,18 +166,17 @@ charout_tidyup:
 			adc f40_static_data.CROWOFFS,y					// [4]		add character matrix offset
 			tay												// [2]		set character matrix index
 
-			lda f40_runtime_memory.Character_Matrix,y		// [4]		get matrix character
-			sta f40_runtime_memory.REGASAVE					// [3]		stash for lo-byte calc below
+			lax f40_runtime_memory.Character_Matrix,y		// [4]		get matrix character into .A and .X
 			lsr												// [2]		divide by 16 for table index
 			lsr												// [2]
 			lsr												// [2]
 			lsr												// [2]
 
-			tax												// [2]		set hi-byte table index
-			lda f40_static_data.BITADDRH-1,x				// [4]		get bitmap address hi-byte
+			tay												// [2]		set hi-byte table index
+			lda f40_static_data.BITADDRH-1,y				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.CRSRBITH					// [3]		set cursor draw address hi-byte
 
-			lda f40_runtime_memory.REGASAVE					// [3]		restore matrix character
+			txa												// [2]		restore matrix character from .X
 			and #%00001111									// [2]		mask low nybble for table index
 			tax												// [2]		set bitmap lo-byte table index
 			ldy vic20.os_zpvars.CRSRROW						// [3]		get cursor row

@@ -3,6 +3,31 @@
 
 .filenamespace f40_helper_routines
 
+// Configure VIC settings for 40x24 mode
+configure_vic:
+.pc = * "configure_vic"
+{
+			ldx #15											// [2]		set register index
+getbyte:	lda f40_static_data.VICNTSC,x					// [4]		get VIC register value
+			sta vic20.vic.VCSCRNX,x							// [5]		set VIC register
+			dex												// [2]		decrement index
+			bpl getbyte										// [3/2]	loop until done
+
+			// alter VIC settings for PAL mode if required
+			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b7 for PAL/NTSC
+			bpl settext										// [3/2]	skip PAL if NTSC
+			lda f40_static_data.VICPAL						// [4]		get PAL value
+			sta vic20.vic.VCSCRNX							// [4]		set VIC register
+			lda f40_static_data.VICPAL+1					// [4]		get PAL value
+			sta vic20.vic.VCSCRNY							// [4]		set VIC register
+settext:	lda #0											// [2]
+			sta f40_runtime_memory.CASEFLAG					// [3]		set glyph case flag ($00=upper-case, $08=lower-case)
+			lda #BLUE										// [2]
+			sta vic20.os_vars.CURRCOLR						// [4]		set current text colour
+			rts												// [6]
+}
+
+
 // Set text buffer pointer for specified line
 // => X			Text buffer line index
 // <= SCRNLNL/H	Pointer to specified line
@@ -30,6 +55,33 @@ set_temp_line_pointer:
 			lda f40_static_data.TROWADDR.hi,y 				// [4]		get text buffer address hi-byte
 			sta f40_runtime_memory.TEMPAH					// [3]		set text buffer pointer hi-byte
 			rts												// [6]
+}
+
+
+// Reload VIC vectors
+reload_vectors:
+.pc = * "reload_vectors"
+{
+			ldx #V1CPAL-V1CNTSC-1							// [2]		vector byte count
+getbyte:	lda V1CNTSC,x									// [4]		get vector byte
+			dex												// [2]		decrement for next byte
+			stx f40_runtime_memory.TEMPAL					// [3]		stash .X for later
+			sbc #64											// [2]		subtract offset
+			sbc f40_runtime_memory.TEMPAL					// [3]		subtract index
+			sta vic20.vectors.KVECBUFF,x					// [5]		stash for reload
+			lda V1CNTSC,x									// [4]		get vector byte
+			inx												// [2]		increment for previous byte
+			stx f40_runtime_memory.TEMPAL					// [3]		stash .X for later
+			sbc #64											// [2]		subtract offset
+			sbc f40_runtime_memory.TEMPAL					// [3]		subtract index
+			sta vic20.vectors.KVECBUFF,x					// [5]		stash for reload
+			dex												// [2]		decrement for extra byte
+			dex												// [2]
+			bpl getbyte										// [3/2]	loop until done
+			lda #<vic20.vectors.KVECBUFF					// [2]		pointer to interrupt reload vector lo-byte
+			ldy #>vic20.vectors.KVECBUFF					// [2]		pointer to interrupt reload vector hi-byte
+			jsr vic20.vectors.KVECLOAD						// [6]		load vectors
+			jmp vic20.basic.NEWSTT							// [3]		BASIC warm-start
 }
 
 
@@ -81,58 +133,6 @@ initloop2:	txa	 											// [2]		copy to .A
 }
 
 
-// Configure VIC settings for 40x24 mode
-configure_vic:
-.pc = * "configure_vic"
-{
-			ldx #15											// [2]		set register index
-getbyte:	lda f40_static_data.VICNTSC,x					// [4]		get VIC register value
-			sta vic20.vic.VCSCRNX,x							// [5]		set VIC register
-			dex												// [2]		decrement index
-			bpl getbyte										// [3/2]	loop until done
-
-			// alter VIC settings for PAL mode if required
-			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b7 for PAL/NTSC
-			bpl settext										// [3/2]	skip PAL if NTSC
-			lda f40_static_data.VICPAL						// [4]		get PAL value
-			sta vic20.vic.VCSCRNX							// [4]		set VIC register
-			lda f40_static_data.VICPAL+1					// [4]		get PAL value
-			sta vic20.vic.VCSCRNY							// [4]		set VIC register
-settext:	lda #0											// [2]
-			sta f40_runtime_memory.CASEFLAG					// [3]		set glyph case flag ($00=upper-case, $08=lower-case)
-			lda #BLUE										// [2]
-			sta vic20.os_vars.CURRCOLR						// [4]		set current text colour
-			rts												// [6]
-}
-
-
-// Reload VIC vectors
-reload_vectors:
-.pc = * "reload_vectors"
-{
-			ldx #V1CPAL-V1CNTSC-1							// [2]		vector byte count
-getbyte:	lda V1CNTSC,x									// [4]		get vector byte
-			dex												// [2]		decrement for next byte
-			stx f40_runtime_memory.TEMPAL					// [3]		stash .X for later
-			sbc #64											// [2]		subtract offset
-			sbc f40_runtime_memory.TEMPAL					// [3]		subtract index
-			sta vic20.vectors.KVECBUFF,x					// [5]		stash for reload
-			lda V1CNTSC,x									// [4]		get vector byte
-			inx												// [2]		increment for previous byte
-			stx f40_runtime_memory.TEMPAL					// [3]		stash .X for later
-			sbc #64											// [2]		subtract offset
-			sbc f40_runtime_memory.TEMPAL					// [3]		subtract index
-			sta vic20.vectors.KVECBUFF,x					// [5]		stash for reload
-			dex												// [2]		decrement for extra byte
-			dex												// [2]
-			bpl getbyte										// [3/2]	loop until done
-			lda #<vic20.vectors.KVECBUFF					// [2]		pointer to interrupt reload vector lo-byte
-			ldy #>vic20.vectors.KVECBUFF					// [2]		pointer to interrupt reload vector hi-byte
-			jsr vic20.vectors.KVECLOAD						// [6]		load vectors
-			jmp vic20.basic.NEWSTT							// [3]		BASIC warm-start
-}
-
-
 // Insert blank line and/or set line continuation
 // => X			Text buffer line index
 insert_blank_line:
@@ -174,23 +174,6 @@ copyloop:	lda f40_runtime_memory.TXTBUFSQ,x 				// [5]		get buffer key byte
 			sta f40_runtime_memory.LINCNTOF 				// [4]		clear line continuation overflow
 			sta f40_runtime_memory.REGXSAVE 				// [3]		clear stashed row
 			beq setbyte										// [3/3]	set continuation for inserted row
-}
-
-
-// Find last non-space character on screen line
-// => SCRNLNL/H		Pointer to specified line
-// <= A				$00-$27 (0-39) position of last non-space character; $FF = all spaces
-find_nonspace:
-.pc = * "find_nonspace"
-{
-			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
-			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set index to end of line
-checkspace:	cmp (f40_runtime_memory.TEMPAL),y				// [6]		find last non-space character on line
-			bne notspace									// [2/3]	exit if not a space
-			dey												// [2]		decrement character index
-			bpl checkspace									// [3/2]	loop for next character
-notspace:	tya 											// [2]		move to .A to set flags
-			rts												// [6]
 }
 
 
@@ -245,6 +228,23 @@ movecrsr:	lda #0											// [2]
 			sta f40_runtime_memory.CRSRCOLF				// [3]		clear for JSR path through cursor movement chain
 			jmp f40_controlcode_handlers.cursor_left		// [3]		move cursor left
 @exit:		rts												// [6]
+}
+
+
+// Find last non-space character on screen line
+// => SCRNLNL/H		Pointer to specified line
+// <= A				$00-$27 (0-39) position of last non-space character; $FF = all spaces
+find_nonspace:
+.pc = * "find_nonspace"
+{
+			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
+			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set index to end of line
+checkspace:	cmp (f40_runtime_memory.TEMPAL),y				// [6]		find last non-space character on line
+			bne notspace									// [2/3]	exit if not a space
+			dey												// [2]		decrement character index
+			bpl checkspace									// [3/2]	loop for next character
+notspace:	tya 											// [2]		move to .A to set flags
+			rts												// [6]
 }
 
 
@@ -440,7 +440,6 @@ nextcol:	ldy f40_runtime_memory.REGYSAVE					// [3]		get column index back
 			ldx f40_runtime_memory.REGXSAVE					// [3]		get cursor row back
 			dex												// [2]		decrement line index
 			cpx f40_runtime_memory.DRAWROWS					// [3]		check redraw line limit
-			//bpl setrow										// [3/2]	loop until done
 			bmi exit										// [3/2]	exit when done
 			jmp setrow										// [3]		loop for next row
 
@@ -686,13 +685,5 @@ loop:		lda (f40_runtime_memory.TEMPBL),y				// [5]		get byte in work buffer
 			inx												// [2]		increment line index
 			ldy f40_runtime_memory.LINECONT,x				// [4]		get continuation byte for this line
 			bne	setline 									// [3/2]	loop until all lines copied
-			rts												// [6]
-}
-
-
-// Set/clear SHIFT/RUNSTOP BASIC write-protect flag
-basic_write_protect:
-.pc = * "basic_write_protect"
-{
 			rts												// [6]
 }

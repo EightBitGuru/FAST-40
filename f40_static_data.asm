@@ -5,7 +5,7 @@
 
 JUMPTAB:
 .pc = * "JUMPTAB"		// SYS entrypoint handlers
-			jmp f40_helper_routines.basic_write_protect		// [3]		set/clear SRS write-protect flag
+			jmp f40_basic_wedge.write_protect				// [3]		handler for write-protect flag
 
 MERGCODE:
 .pc = * "MERGCODE"		// 11-byte merge routine template (copied 8x to RAM at runtime) [AY]

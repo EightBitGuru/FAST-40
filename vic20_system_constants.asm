@@ -71,3 +71,10 @@
 {
     .label MAX_LINE_LENGTH = 88
 }
+
+
+// BASIC constants
+.namespace tokens
+{
+    .label SYS = $9E
+}

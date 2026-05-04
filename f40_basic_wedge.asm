@@ -7,12 +7,47 @@
 decode_command:
 .pc = * "decode_command"
 {
-			ldy #5											// [2]		command text length (1-based)
-chkcmd:		lda (vic20.os_zpvars.EXECPTRL),y				// [6]		get byte from CHRGET execution pointer
+			ldy #1											// [2]		set CHRGET command offset
+			lda (vic20.os_zpvars.EXECPTRL),y       			// [6]		get byte from CHRGET execution pointer
+			cmp #vic20.tokens.SYS                  			// [2]		check if SYS token
+			bne chkreset                           			// [3/2]	go check for our RESET command if not
+
+			// custom SYS handler (accepts one-byte operands after the address)
+			jsr vic20.os_zpvars.CHRGET  		          	// [6]		advance to SYS token
+			jsr vic20.os_zpvars.CHRGET  		          	// [6]		advance to SYS address operand
+			jsr vic20.basic.FRMNUM              		  	// [6]		get SYS address into FAC1
+			jsr vic20.basic.GETADR							// [6]		convert address to integer
+			ldy #0											// [2]		set CHRGET command offset
+			lda (vic20.os_zpvars.EXECPTRL),y 				// [5]		get byte from CHRGET execution pointer
+			cmp #$2c                               			// [2]		check for comma
+			bne nocomma                       			    // [3/2]	no comma so use existing CPUAREG
+			jsr vic20.basic.GETBYTE                			// [6]		get second operand
+			stx vic20.os_vars.CPUAREG             			// [4]		stash in standard .A parameter
+			// ldy #0											// [2]		set CHRGET command offset
+			// lda (vic20.os_zpvars.EXECPTRL),y 				// [5]		get byte from CHRGET execution pointer
+			// cmp #$2c                               			// [2]		check for comma
+			// bne nocomma                       			    // [3/2]	no comma so use existing CPUXREG
+			// jsr vic20.basic.GETBYTE                			// [6]		get third operand
+			// stx vic20.os_vars.CPUXREG             			// [4]		stash in standard .X parameter
+			// ldy #0											// [2]		set CHRGET command offset
+			// lda (vic20.os_zpvars.EXECPTRL),y 				// [5]		get byte from CHRGET execution pointer
+			// cmp #$2c                               			// [2]		check for comma
+			// bne nocomma                       			    // [3/2]	no comma so use existing CPUYREG
+			// jsr vic20.basic.GETBYTE                			// [6]		get fourth operand
+			// stx vic20.os_vars.CPUYREG             			// [4]		stash in standard .Y parameter
+nocomma:	lda #>(vic20.basic.NEWSTT-1)					// [2]		get BASIC return address hi-byte
+			pha												// [3]		push to Stack
+			lda #<(vic20.basic.NEWSTT-1)					// [2]		get BASIC return address lo-byte
+			pha												// [3]		push to Stack
+			jmp vic20.basic.SYS2							// [3]		jump into standard SYS handler
+
+			// check for RESET command
+chkreset:	ldy #5											// [2]		command text length
+chkbyte:	lda (vic20.os_zpvars.EXECPTRL),y				// [6]		get byte from CHRGET execution pointer
 			cmp f40_static_data.WEDGECMD-1,y				// [4]		compare with our command
 			bne nomatch										// [2/3]	scram if no match
 			dey												// [2]		decrement index
-			bne chkcmd										// [3/2]	loop until command check done
+			bne chkbyte										// [3/2]	loop until command check done
 
 			// found our RESET command
 			ldy #6											// [2]		bytes to process
@@ -90,4 +125,19 @@ reset:		stx vic20.os_vars.OSMEMTPH						// [4]		set top-of-memory pointer hi-byt
 			jsr vic20.basic.INITBASV						// [6]		initialise BASIC vectors
 			jsr f40_helper_routines.reset_wedge				// [6]		reset BASIC wedge
 			jmp vic20.basic.INIT2 							// [3]		jump to BASIC after vector init
+}
+
+
+// SYS handler to set/clear SHIFT/RUNSTOP write-protect flag
+write_protect:
+.pc = * "write_protect"
+{
+			lda f40_runtime_memory.Memory_Bitmap 			// [4]		get bitmap
+			ldx vic20.os_vars.CPUAREG 						// [4]		get SYS parameter
+			bne enable 										// [2/3]	any non-zero value means enable the flag
+			and #%11011111									// [2]		clear write-protect b5
+			bne update 										// [3/3]	bitmap is always non-zero
+enable:		ora #%00100000									// [2]		set write-protect b5
+update:		sta f40_runtime_memory.Memory_Bitmap 			// [4]		update bitmap for new b5 setting
+			rts												// [6]
 }

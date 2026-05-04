@@ -43,7 +43,7 @@ waitkey:	lda vic20.os_zpvars.KEYCOUNT					// [3]		get keyboard buffer character 
 			// check if write-protect is disabled
 			lda f40_runtime_memory.Memory_Bitmap 			// [4]		get bitmap byte
 			and #%00100000									// [2]		test bit 5 (BLK5 bit not used by FAST-40)
-			bne dosrs 										// [2/3]	skip write-protect test if b5 set
+			beq dosrs 										// [2/3]	skip write-protect test if b5 clear
 
 			// check if program in memory
 			lda vic20.os_vars.BASICL						// [4]		get Start-of-BASIC lo-byte

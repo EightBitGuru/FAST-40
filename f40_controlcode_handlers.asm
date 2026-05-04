@@ -104,7 +104,7 @@ cursor_down:
 			isb vic20.os_zpvars.CRSRROW						// [5]		increment cursor line in .A
 			bne reset_text_pointer							// [3/2]	reset line pointers if not beyond end of screen
 			jsr f40_helper_routines.scroll_lines_up			// [6]		scroll all lines up when beyond last line
-			lda #22											// [2]	 	cursor line after scroll
+			lda #f40_runtime_constants.SCREEN_ROWS-1		// [2]	 	cursor line after scroll
 			sta vic20.os_zpvars.CRSRROW						// [3]		set cursor line
 // Fall-through into reset_text_pointer
 }
@@ -190,8 +190,7 @@ shiftcbm:	rts												// [6]
 shift_cbm:
 .pc = * "shift_cbm"
 {
-			txa												// [2]		move control code to .A
-			ror												// [2]		rotate b0 to Carry
+			cpx #$09										// [2]		Carry set if enable required
 			ror vic20.os_vars.SHFTMODE						// [5]		rotate Carry to shift mode lock b7
 			jmp f40_character_output.charout_tidyup			// [3]		exit control code handler
 }
@@ -203,8 +202,7 @@ rvs_mode:
 .pc = * "rvs_mode"
 {
 			txa												// [2]		move control code to .A
-			and #%10000000									// [2]		mask for b7
-			eor #%10000000									// [2]		invert it
+			eor #$92										// [2]		$12^$92=$80 (RVS ON), $92^$92=$00 (RVS OFF)
 			sta vic20.os_zpvars.RVSFLAG						// [3]		set screen reverse flag
 // Fall-through into inactive_code
 }

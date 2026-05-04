@@ -1,14 +1,14 @@
 # <div><div>FAST-40</div><div>Copyright © 2025 [8-Bit Guru](mailto:the8bitguru@gmail.com)</div></div>
 
-FAST-40 is a utility program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language, ships as an 8K program/cartridge, and requires a 3K RAM expansion.
-
-All expansion RAM populating the BLK1/2/3 areas is available for your programs.
+FAST-40 is a utility program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language, ships as an 8K cartridge (and loadable program) and requires a 3K RAM expansion for runtime workspace plus at least an 8K RAM expansion for user programs.
 
 No video hardware modification is required.
 
-Earlier 40-column programs typically suffered from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the start to render an artifact-free 40x24 text mode whilst faithfully reproducing standard screen-editor functionality, with performance intended to be comparable to (or better than) the native 22x23 display.
+Earlier 40-column programs typically suffered from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed to render an artifact-free 40x24 text mode whilst faithfully reproducing standard screen-editor functionality, with performance intended to be comparable to (or better than) the native 22x23 display.
 
-FAST-40 works equally well on real VIC-20 hardware or under emulation - it can be attached as an auto-start cartridge in VICE, LOADed as a program into BLK5 (if configured as RAM) and run manually, or burned/flashed/uploaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
+Raw text output performance averages at 49% faster per character than the vanilla hardware-assisted ROM routines, and spikes to higher rates under long-line workloads.
+
+FAST-40 works equally well on real VIC-20 hardware or under emulation - it can be attached as an auto-start cartridge in VICE, LOADed as a program (when BLK5 is configured as RAM) or burned/flashed/uploaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
 
 Both PAL and NTSC video standards are supported.
 
@@ -34,7 +34,7 @@ If you're familar with [VICE](https://vice-emu.sourceforge.io/) and just want to
 
     * FAST-40 built as an autostart cartridge (fast40.bin)
     * FAST-40 built as a LOADable program     (fast40.prg)
-    * a disk image (fast40.d64) containing the program build, a simple performance-comparison program written in BASIC, and a copy of the BASIC adventure game CITADEL adjusted for a 40-column display
+    * a disk image (fast40.d64) containing the program build, a simple performance-comparison program written in BASIC, and a copy of the BASIC adventure game CITADEL adjusted for a 40-column display.
 
 * invoke ***xvic*** with **xvic.exe -memory all -cartA fast40.bin**
 
@@ -84,19 +84,11 @@ FAST-40 supports all VIC-20 character glyphs and control characters, including t
 
 ## Enhancements
 
-FAST-40 character output performance is almost universally better than the stock VIC-20 - it generates characters in 40x24 mode up to 40% faster than the native 22x23 mode.
+FAST-40 character output performance is almost universally better than the stock VIC-20 - it generates characters in 40x24 mode an avergae of 49% faster than the native 22x23 mode.
 
-The VIC-20 applies the SHIFT/C= characterset switch to the whole screen - it is not possible to display glyphs from both upper-case and lower-case charactersets at the same time. FAST-40 does not have this limitation - characters from both sets can be displayed simultaneously.
+The stock VIC-20 applies the SHIFT/C= characterset switch to the whole screen, meaning it is not possible to display glyphs from both upper-case and lower-case charactersets at the same time. FAST-40 does not have this limitation - characters from both sets can be displayed simultaneously.
 
-FAST-40 adds a 'write-protect' mechanism to SHIFT/RUNSTOP which will issue a **?LOAD ERROR** message if there is a BASIC program already in memory. This prevents accidental overwriting of the program if SHIFT/RUNSTOP is accidentally triggered; in tape-based systems the user has ample time to cancel the action before any new program is found and loaded, but disk-based systems are likely to action the LOAD much more quickly.
-
-### Memory Requirements
-
-The FAST-40 program occupies the BLK5 ($A000-$BFFF) ROM/RAM area and uses a small section of zero-page as working storage. Additionally all of the 4K unexpanded RAM area is needed for video display reconfiguration, and various buffers are placed in the 3K expansion RAM area in BLK0.
-
-FAST-40 leaves the entirety of the 8/16/24K RAM expansion areas (as populated) available for BASIC.
-
-### New RESET Command
+FAST-40 adds an optional 'write-protect' mechanism which will prevent overwriting of a BASIC program if SHIFT/RUNSTOP is accidentally triggered; in tape-based systems the user has ample time to cancel the action before any new program is found and loaded, but disk-based systems are likely to action the LOAD much more quickly.
 
 FAST-40 provides a new BASIC command to easily reset the system and switch between memory configurations without having to swap cartridges. **Note that memory is cleared during a system reset.**
 
@@ -115,10 +107,11 @@ FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands t
 * If JiffyDOS is _not_ present, the sequence `LOAD"$",8` is executed to read the directory of the disk
 * If JiffyDOS _is_ present (featuring the preferred `@$` command to view the directory) the sequence `LOAD"*",8` is executed to load the first program on the disk
 
-Since the write-protection may interfere with chain-loading of multi-part programs, it can be disabled by setting its control bit:
+A write-protect function is available which checks BASIC memory and triggers a **?LOAD ERROR** if a program is already present. This check is disabled by default (when FAST-40 starts or after a RESET) to preserve stock functionality and prevent interference with chain-loading of multi-part programs. When enabled, an explicit LOAD or NEW must be executed to overide the check.
 
-    Assembler:  LDA $02FF : ORA #%00100000 : STA $02FF
-    BASIC:      POKE 767, PEEK(767) OR 32
+To enable or disable the write-protect check, issue this command either directly or in your programs:
+
+    SYS 40969,X     [ X=non-zero to enable, X=zero or omitted to disable]
 
 ### System Reconfiguration
 
@@ -127,9 +120,9 @@ FAST-40 makes changes to numerous memory areas, VIC registers, and system vector
 Memory areas:
 
     $0003-$0004     Used if BRK debugging is enabled at build time
-    $00D9-$00F1     Working storage
-    $0400-$0FFF     Buffers (BLK0 3K RAM expansion)
-    $1000-$1FFF     Hi-res screen matrix
+    $00D9-$00F1     Working storage (Zero Page)
+    $0400-$0FFF     Text buffers (3K expansion RAM area)
+    $1000-$1FFF     Hi-res screen matrix (4K onboard RAM area)
     $9400-$95FF     Lo-res colour matrix
 
 VIC registers:
@@ -230,17 +223,15 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 ### Release v1.3 (30th October 2025)
 * Added a write-protect check so SHIFT/RUNSTOP actions trigger **?LOAD ERROR** if there is a BASIC program in memory
 
-### Release v1.4 (???????????? 2026)
+### Release v1.4 (?? May 2026)
+* Fixed a bug where SHIFT/C= sometimes forgot to undraw the cursor
+* Fixed a bug where SHIFT/C= generated a visible character in quote-mode
+* Fixed a bug where SHIFT/RUNSTOP injected a rogue character when JiffyDOS is present
+* Flipped the SHIFT/RUNSTOP write-protect check to DISABLED by default
 * Refactored the bitmap address lookup tables to reduce their ROM footprint by 80%
-* Refactored the bitmap rendering pipeline to increase throughput by 10%
-* Fixed a SHIFT/RUNSTOP bug which injected a rogue character when JiffyDOS is present
-* Fixed a cursor undraw bug when using the SHIFT/C= case-switch key combination
-* Flipped the SHIFT/RUNSTOP write-protect check to OFF by default
-* Added a 'public' SYS interface that won't change across future releases:
-    * SYS 40969,[1|0] - enable/disable BASIC write protect on SHIFT/RUNSTOP
+* Refactored the bitmap rendering pipeline to increase average throughput by 5%
+* Added a 'public' SYS interface that will be constant across future releases
 
-
-* Optimised the line-refresh logic to call the same self-modifying render code that the main render pipeline uses
 * Added PLOT command for 'hi-res graphics mode' pixel plotting
 
 # Who is 8-Bit Guru?

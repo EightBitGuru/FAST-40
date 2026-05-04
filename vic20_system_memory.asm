@@ -560,6 +560,7 @@
     .label BCKIN	= $E11B			//	Set Up For Input
     .label BGETIN	= $E121			//	Get One Character
     .label SYS		= $E127			//	Perform [sys]
+    .label SYS2     = $E12D         //  Second [sys] entry point for custom operands
     .label SAVET	= $E153			//	Perform [save]
     .label VERFYT	= $E162			//	Perform [verify / load]
     .label OPENT	= $E1BB			//	Perform [open]
