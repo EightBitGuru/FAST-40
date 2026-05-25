@@ -113,6 +113,12 @@ To enable or disable the write-protect check, issue this command either directly
 
     SYS 40969,X     [ X=non-zero to enable, X=zero or omitted to disable]
 
+### SYS Interface
+
+    SYS 41000       Write-protect enable/disable
+    SYS 41003       Plot/unplot pixel
+
+
 ### System Reconfiguration
 
 FAST-40 makes changes to numerous memory areas, VIC registers, and system vectors in order to configure and manage the 40x24 display mode.

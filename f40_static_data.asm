@@ -3,10 +3,6 @@
 
 .filenamespace f40_static_data
 
-JUMPTAB:
-.pc = * "JUMPTAB"		// SYS entrypoint handlers
-			jmp f40_basic_wedge.write_protect				// [3]		handler for write-protect flag
-
 MERGCODE:
 .pc = * "MERGCODE"		// 11-byte merge routine template (copied 8x to RAM at runtime) [AY]
 {
@@ -17,7 +13,35 @@ MERGCODE:
 			sta (f40_runtime_memory.CRSRBITL),y				// [6]		set merged bitmap byte
 			dey												// [2]		decrement byte index
 }
-.label MERGCODE_MASK_OFF = 5								// mask operand address offsetand operand offset
+
+SCRROWS:				// Last screen row index
+.pc = * "SCRROWS"		// Zero-based last row (1 byte)
+.byte f40_runtime_constants.SCREEN_ROWS
+
+JIFFYID:				// JiffyDOS identifier
+.pc = * "JIFFYID"		// Identifier string (5 bytes)
+.text "JIFFY"
+
+IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
+.pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
+.byte <f40_runtime_memory.InsDel_Buffer
+.byte <f40_runtime_memory.InsDel_Buffer+40
+.byte <f40_runtime_memory.InsDel_Buffer+80
+
+SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8
+.pc = * "SRSLOAD"		// Command text (8 bytes)
+.byte 'L','O'+64		// LOAD
+.text @"\"$\",8\$0d"	// "$",8 [CR]
+
+VECLOAD:
+.pc = $A025				// SYS interface entrypoints
+			jmp f40_sys_trap.vector_reload					// [3]		40997 - handler for vector reload
+JUMPTAB:
+.pc = * "JUMPTAB"
+			jmp f40_sys_trap.write_protect					// [3]		41000 - handler for write-protect flag
+			jmp f40_sys_trap.plot_pixel						// [3]		41003 - handler for PLOT
+			jmp vic20.basic.SYNERR							// [3]		41006 - reserved for future use
+			jmp vic20.basic.SYNERR							// [3]		41009 - reserved for future use
 
 CONCODEL:
 .pc = * "CONCODEL"		// CHROUT control character handler address lo-bytes (all hi-bytes are the same)
@@ -46,30 +70,9 @@ TROWADD:
 TROWADDR:
 .lohifill 24,f40_runtime_memory.Text_Buffer+(40*i)
 
-IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
-.pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
-.byte <f40_runtime_memory.InsDel_Buffer
-.byte <f40_runtime_memory.InsDel_Buffer+40
-.byte <f40_runtime_memory.InsDel_Buffer+80
-
-SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8
-.pc = * "SRSLOAD"		// Command text (8 bytes)
-.byte 'L','O'+64		// LOAD
-.text @"\"$\",8\$0d"	// "$",8 [CR]
-
-WEDGECMD:				// BASIC wedge command
-.pc = * "WEDGECMD"		// Command text (5 bytes)
-.text "RESET"
-
 BLNKTIME:				// Cursor blink timers
 .pc = * "BLNKTIME"		// Cursor phase on/off timer values (2 bytes)
 .byte 19,13
-
-JIFFYID:				// JiffyDOS identifier
-.pc = * "JIFFYID"		// Identifier string (5 bytes)
-.text "JIFFY"
-
-.fill 8,$AA
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
@@ -108,10 +111,6 @@ LINEADD:				// Line length additions for each line in a continuation group
 .pc = * "LINEADD"		// Zero-based line additions (4 bytes)
 .byte 0,40,80,120
 
-SCRROWS:				// Last screen row index
-.pc = * "SCRROWS"		// Zero-based last row (1 byte)
-.byte f40_runtime_constants.SCREEN_ROWS
-
 VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
 .pc = * "VICPAL"		// VIC register values (2 bytes)
 .byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
@@ -124,19 +123,11 @@ BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
 .pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
 .fill 16,>[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
 
-PLOTCOLL:				// Pixel plot column bitmap address lo-bytes
-.pc = * "PLOTCOLL"		// Pixel column base address lo-byte table (20 bytes)
-.fill 20,<[f40_runtime_memory.Screen_Bitmap+(192*i)]
-
-PLOTCOLH:				// Pixel plot column bitmap address hi-bytes
-.pc = * "PLOTCOLH"		// Pixel column base address hi-byte table (20 bytes)
-.fill 20,>[f40_runtime_memory.Screen_Bitmap+(192*i)]
-
 PLOTMASK:				// Pixel plot bit mask table
 .pc = * "PLOTMASK"		// Pixel bit mask by column offset (8 bytes)
 .byte $80,$40,$20,$10,$08,$04,$02,$01
 
-.fill 86,$AA
+.fill 127,$AA
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256
@@ -158,7 +149,7 @@ MATDATA:				// Character matrix data for 20x12 (40x24) screen
 // Primary Screen Matrix is 20x12 chars  ->  240 bytes at $1000-$10EF (double-height chars)
 // Primary Colour Matrix is 20x12 chars  ->  240 bytes at $9600-$96EF (double-height chars)
 // Primary Screen Screen_Bitmap is 160x192 bits -> 3840 bytes at $1100-$1FFF
-VICNTSC:				// 6560 (NTSC) VIC initialisation data
+VICNTSC:				// 6560 (NTSC) VIC initialisation data (16 bytes)
 .pc = * "VICNTSC"		// VIC register values
 .byte %00000111			// $9000 - b7 = interlace; b6-0 = screen x-pos
 .byte %00011001			// $9001 - b7-0 = screen y-pos

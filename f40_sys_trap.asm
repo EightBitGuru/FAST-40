@@ -1,11 +1,11 @@
-// FAST-40 Custom SYS trap
+// FAST-40 Custom SYS interceptor
 // Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_sys_trap
 
 // SYS trap to accept 1-3 additional 1-byte parameters
-sys_trap:
-.pc = * "sys_trap"
+interceptor:
+.pc = * "interceptor"
 {
 			ldy #1											// [2]		set CHRGET command offset
 			lda (vic20.os_zpvars.EXECPTRL),y       			// [6]		get byte from CHRGET execution pointer
@@ -47,89 +47,21 @@ done:		lda #>(vic20.basic.NEWSTT-1)					// [2]		get BASIC return address hi-byte
 }
 
 
-// SYS handler for reset modes
-// => CPUAREG  Reset mode
-sys_reset:
-.pc = * "sys_reset"
+// SYS handler for vector reload
+vector_reload:
+.pc = * "vector_reload"
 {
-
-			// check syntax
-			tay												// [2]		copy to .A to set flags
-			beq coldstart									// [2/3]	no parameter means restart FAST-40
-			cmp #$ff										// [2]		check if first character is vector
-			beq vecreload									// [2/3]	do vector reload if so
-			ldx #$0b										// [2]		set error code (syntax)
-			cmp #$3a										// [2]		check if first character is non-numeric
-			bcs error										// [2/3]	scram if not a number
-
-			// handle parameter
-			jsr vic20.basic.CHECKNUM 						// [6]		go look for numeric value in command string
-			txa												// [2]		copy parameter to .A
-			pha												// [3]		stash parameter to Stack
-			cmp #0											// [2]		check parameter
-			beq chkmem										// [2/3]	do the unexpanded reset
-			cmp #3											// [2]		check parameter
-			beq chkmem										// [2/3]	do the 3K reset
-			cmp #8											// [2]		check parameter
-			beq chkmem										// [2/3]	do the 8K+ reset
-
-			// handle errors
-			ldx #$0e										// [2]		set error code (illegal quantity)
-error:		jmp (vic20.os_vars.ERRMSG)						// [5]		issue error and do BASIC warm-start
-coldstart:	jmp vic20.kernal.RESET							// [3]		do cold-start for FAST-40 startup
-vecreload:	jsr vic20.os_zpvars.CHRGET						// [6]		call CHRGET to get a byte
-			jmp f40_helper_routines.reload_vectors			// [3]		reload VIC vectors
-nomatch:	jmp vic20.basic.BASICGET 						// [3]		jump to stock BASIC logic to continue decode
-
-			// do reset
-chkmem:		jsr vic20_memory_test.memory_test 				// [6]		clear and test memory (except Stack)	
-			tay	 											// [2]		stash memory expansion bitmap in .Y
-			ldx #$10										// [2]		unexpanded memory start
-			pla 											// [4]		get reset parameter
-			beq config0										// [3/2]	do unexpanded reset
-			cmp #8											// [2]		check if 8K+ requested
-			beq config8										// [3/2]	do 8K+ reset
-
-			// unexpanded and 3K reset
-			ldx #$04										// [2]		3K memory start
-config0:	stx vic20.os_vars.BASICH						// [4]		set Start-of-BASIC pointer hi-byte
-			ldx #$1e										// [2]		unexpanded/3K screen start
-			stx vic20.os_vars.SCRNMEMP						// [4]		set screen memory page
-			bne reset										// [3/3]	continue with reset processing
-
-			// check if RAM in BLK1 for 8K reset
-config8:	tya 											// [2]		get memory expansion bitmap	
-			lsr												// [2]		shift BLK0 bit to Carry
-			lsr												// [2]		shift BLK1 bit to Carry
-			bcc config0										// [2/3]	do unexpanded reset if nothing in BLK1
-
-			// 8K+ reset
-			stx vic20.os_vars.SCRNMEMP						// [4]		set screen memory page (.x = #$10)
-			ldx #$12										// [2]		8K+ memory start
-			stx vic20.os_vars.BASICH						// [4]		set Start-of-BASIC pointer hi-byte
-			ldx #$40										// [2]		top of RAM for BLK1
-			lsr												// [2]		shift BLK2 bit to Carry
-			bcc reset										// [2/3]	skip BLK3 check if BLK2 is empty
-			ldx #$60										// [2]		top of RAM for BLK2
-			lsr												// [2]		shift BLK3 bit to Carry
-			bcc reset										// [2/3]	skip if BLK3 is empty
-			ldx #$80										// [2]		top of RAM for BLK3
-
-			// do reset processing (can't call stock reset as it would blow our wedge vector away)
-reset:		stx vic20.os_vars.OSMEMTPH						// [4]		set top-of-memory pointer hi-byte
-			jsr vic20.kernal.RESKVEC						// [6]		reset KERNAL I/O vectors
-			jsr vic20.kernal.INITIO							// [6]		reset VIA interrupts
-			jsr vic20.kernal.INITSCRN						// [6]		reset VIC configuration for 22-column screen
-			jsr vic20.basic.INITBASV						// [6]		initialise BASIC vectors
-			jsr f40_helper_routines.reset_wedge				// [6]		reset BASIC wedge
-			jmp vic20.basic.INIT2 							// [3]		jump to BASIC after vector init
+			lda vic20.os_vars.CPUAREG 						// [4]		get SYS parameter
+			cmp #$ff										// [2]		check if we got the vector key
+			bne scram										// [3/2]	scram if not
+vecreload:	jmp f40_helper_routines.reload_vectors			// [3]		reload VIC vectors
 }
 
 
 // SYS handler for SHIFT/RUNSTOP write-protect flag
 // => CPUAREG  Enable/disable
-sys_write_protect:
-.pc = * "sys_write_protect"
+write_protect:
+.pc = * "write_protect"
 {
 			lda f40_runtime_memory.Memory_Bitmap 			// [4]		get bitmap
 			ldx vic20.os_vars.CPUAREG 						// [4]		get SYS parameter
@@ -138,7 +70,7 @@ sys_write_protect:
 			bne update 										// [3/3]	bitmap is always non-zero
 enable:		ora #%00100000									// [2]		set write-protect b5
 update:		sta f40_runtime_memory.Memory_Bitmap 			// [4]		update bitmap for new b5 setting
-			rts												// [6]
+@scram:		rts												// [6]
 }
 
 
@@ -149,48 +81,64 @@ update:		sta f40_runtime_memory.Memory_Bitmap 			// [4]		update bitmap for new b
 plot_pixel:
 .pc = * "plot_pixel"
 {
-			lda vic20.os_vars.CPUAREG				// [4]		X pixel
-			lsr										// [2]
-			lsr										// [2]
-			lsr										// [2]		char_col (0-19)
-			tax										// [2]
-			stx f40_runtime_memory.TEMPBH			// [3]		save char_col
-			clc										// [2]
-			lda f40_static_data.PLOTCOLL,x			// [4]		column bitmap lo base
-			adc vic20.os_vars.CPUXREG				// [4]		+ Y pixel
-			sta f40_runtime_memory.TEMPAL			// [3]
-			lda f40_static_data.PLOTCOLH,x			// [4]		column bitmap hi base
-			adc #0									// [2]
-			sta f40_runtime_memory.TEMPAH			// [3]
-			lda vic20.os_vars.CPUAREG				// [4]		X pixel
-			and #7									// [2]		pixel column within cell (0-7)
-			tay										// [2]
-			lda f40_static_data.PLOTMASK,y			// [4]		bit mask
-			sta f40_runtime_memory.TEMPBL			// [3]
-			ldy #0									// [2]
-			bit vic20.os_vars.CPUYREG				// [4]		test colour b7 ($FF = unplot)
-			bmi unplot								// [2/3]
+			lax vic20.os_vars.CPUAREG						// [4]		get X-coordinate to .A and .X
+			lsr												// [2]		divide by 8 for matrix column
+			lsr												// [2]
+			lsr												// [2]
+			sta f40_runtime_memory.TEMPBH					// [3]		save matrix column
+			txa												// [2]		get X-coordinate back
+			and #7											// [2]		mask pixel column within cell
+			tay												// [2]		set mask lookup index
+			lda f40_static_data.PLOTMASK,y					// [4]		get bitmap mask
+			sta f40_runtime_memory.TEMPBL					// [3]		stash bitmap mask
 
-			lda (f40_runtime_memory.TEMPAL),y		// [5]		get bitmap byte
-			ora f40_runtime_memory.TEMPBL			// [3]		set pixel bit
-			sta (f40_runtime_memory.TEMPAL),y		// [6]
-			lda vic20.os_vars.CPUXREG				// [4]		Y pixel
-			lsr										// [2]
-			lsr										// [2]
-			lsr										// [2]
-			lsr										// [2]		char_row (0-11)
-			tay										// [2]
-			lda f40_static_data.CROWOFFS,y			// [4]		char_row x 20
-			clc										// [2]
-			adc f40_runtime_memory.TEMPBH			// [3]		+ char_col
-			tay										// [2]
-			lda vic20.os_vars.CPUYREG				// [4]		colour (0-7)
-			sta vic20.colour_ram.COLOUR1,y			// [5]
-			rts										// [6]
+			lda vic20.os_vars.CPUXREG						// [4]		get Y-coordinate
+			tax												// [2]		save Y for within-character offset
+			lsr												// [2]		divide by 16 for matrix row
+			lsr												// [2]
+			lsr												// [2]
+			lsr												// [2]
+			tay												// [2]		set matrix row index
+			clc												// [2]		clear Carry for addition
+			lda f40_static_data.CROWOFFS,y					// [4]		get character matrix row offset
+			adc f40_runtime_memory.TEMPBH					// [3]		add matrix column
+			sta f40_runtime_memory.TEMPBH					// [3]		save matrix index (reuse TEMPBH)
+			tay												// [2]		set character matrix index
+			txa												// [2]		get Y-coordinate (.X still holds Y here)
+			and #$0F										// [2]		mask for row within character cell (0-15)
+			sta f40_runtime_memory.TEMPAL					// [3]		save Y-within-character
+			lda f40_runtime_memory.Character_Matrix,y		// [4]	get matrix character at pixel location
+			lsr												// [2]		shift hi-nybble down
+			lsr												// [2]
+			lsr												// [2]
+			lsr												// [2]
+			tax												// [2]		set hi-byte table index
+			lda f40_static_data.BITADDRH-1,x				// [4]		get bitmap address hi-byte
+			sta f40_runtime_memory.TEMPAH					// [3]		set bitmap address hi-byte
+			ldy f40_runtime_memory.TEMPBH					// [3]		reload matrix index
+			lda f40_runtime_memory.Character_Matrix,y		// [4]	re-read matrix character for lo-byte index
+			and #%00001111									// [2]		mask low nybble for bitmap lo-byte index
+			tay												// [2]		set lo-byte table index
+			lda f40_static_data.BITADDRL,y					// [4]		get bitmap address lo-byte
+			clc												// [2]		clear Carry (corrupted by preceding LSRs)
+			adc f40_runtime_memory.TEMPAL					// [3]		add Y-within-character (max $F0+$0F=$FF, no carry)
+			sta f40_runtime_memory.TEMPAL					// [3]		set bitmap address lo-byte
 
-unplot:		lda f40_runtime_memory.TEMPBL			// [3]		bit mask
-			eor #$FF								// [2]		invert -> bit clear mask
-			and (f40_runtime_memory.TEMPAL),y		// [5]
-			sta (f40_runtime_memory.TEMPAL),y		// [6]
-			rts										// [6]
+			ldy #0											// [2]		set bitmap offset
+			bit vic20.os_vars.CPUYREG						// [4]		test colour parameter b7 ($FF = unplot)
+			bmi unplot										// [2/3]	do unplot if required
+
+			lda (f40_runtime_memory.TEMPAL),y				// [5]		get bitmap byte
+			ora f40_runtime_memory.TEMPBL					// [3]		set pixel bit
+			sta (f40_runtime_memory.TEMPAL),y				// [6]		save merged bitmap byte
+			ldy f40_runtime_memory.TEMPBH					// [3]		get matrix index (same index for colour matrix)
+			lda vic20.os_vars.CPUYREG						// [4]		get colour parameter
+			sta vic20.colour_ram.COLOUR1,y					// [5]		set colour matrix byte
+			rts												// [6]
+
+unplot:		lda f40_runtime_memory.TEMPBL					// [3]		get bitmap mask
+			eor #$FF										// [2]		invert mask
+			and (f40_runtime_memory.TEMPAL),y				// [5]		merge existing bitmap byte
+			sta (f40_runtime_memory.TEMPAL),y				// [6]		save merged bitmap byte
+			rts												// [6]
 }

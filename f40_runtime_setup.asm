@@ -155,7 +155,7 @@ copyloop:	lda f40_static_data.MERGCODE,y					// [4]		get merge routine template 
 			dey												// [2]		decrement for next byte
 			bpl copyloop									// [3/2]	loop until done
 
-			ldy #f40_static_data.MERGCODE_MASK_OFF			// [2]		get mask byte offset
+			ldy #f40_runtime_constants.MERGCODE_MASK_OFF	// [2]		get mask byte offset
 			lda f40_runtime_memory.REGXSAVE					// [3]		get variant mask ($0F left / $F0 right)
 			sta (f40_runtime_memory.TEMPAL),y				// [6]		write mask (no-op for left: overwrites $0F with $0F)
 

@@ -453,6 +453,10 @@ reset_vectors:
 			sta vic20.os_vars.DECODEL						// [4]		set decode vector lo-byte
 			lda #>f40_keyboard_decode.decode_keypress		// [2]		get SHIFT/CTRL/C= key handler hi-byte
 			sta vic20.os_vars.DECODEH						// [4]		set decode vector hi-byte
+			lda #<f40_sys_trap.interceptor					// [2]		get SYS interceptor lo-byte
+			sta vic20.os_vars.NEWCODEL						// [4]		set BASIC vector lo-byte
+			lda #>f40_sys_trap.interceptor					// [2]		get SYS interceptor hi-byte
+			sta vic20.os_vars.NEWCODEH						// [4]		set BASIC vector hi-byte
 			lda #<f40_interrupt_handlers.irq_handler		// [2]		get IRQ handler lo-byte
 			sta vic20.os_vars.IRQVECL						// [4]		set IRQ vector lo-byte
 			lda #>f40_interrupt_handlers.irq_handler		// [2]		get IRQ handler hi-byte
@@ -465,6 +469,7 @@ reset_vectors:
 			sta vic20.os_vars.OUTVEC2L						// [4]		set output vector lo-byte
 			lda #>f40_character_output.character_output		// [2]		get character output handler hi-byte
 			sta vic20.os_vars.OUTVEC2H						// [4]		set output vector hi-byte
+
 .if(EnableBRKDebugging)
 {
 			lda #<vic20_debug_handler.brk_handler			// [2]		get debug-assist BRK handler lo-byte
@@ -477,18 +482,6 @@ else
 }
 			sta vic20.os_vars.BRKVECL						// [4]		set BRK vector lo-byte
 			stx vic20.os_vars.BRKVECH						// [4]		set BRK vector hi-byte
-// Fall-through into reset_wedge
-}
-
-
-// Reset BASIC wedge vector
-reset_wedge:
-.pc = * "reset_wedge"
-{
-			lda #<f40_basic_wedge.decode_command			// [2]		get BASIC decode handler lo-byte
-			sta vic20.os_vars.NEWCODEL						// [4]		set decode vector lo-byte
-			lda #>f40_basic_wedge.decode_command			// [2]		get BASIC decode handler hi-byte
-			sta vic20.os_vars.NEWCODEH						// [4]		set decode vector hi-byte
 			rts												// [6]
 }
 
