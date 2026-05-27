@@ -26,7 +26,8 @@
 .label TEMPCH	        = $00EC		//	Temporary data/address hi-byte
 .label TEMPDL    	    = $00ED		//	Temporary data/address lo-byte
 .label TEMPDH	        = $00EE		//	Temporary data/address hi-byte
-.label SPAREZP	        = $00EF		//	Spare (3 bytes)
+.label SYSPARM	        = $00EF		//	SYS interceptor 4th parameter (1 byte)
+.label SPAREZP	        = $00F0		//	Spare (2 bytes)
 
 // 3K BLK0
 .label UNUSEDB0         = $0400     //  Unused BLK0 space (1739 bytes to $0ACA)

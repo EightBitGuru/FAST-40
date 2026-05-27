@@ -90,14 +90,42 @@ The stock VIC-20 applies the SHIFT/C= characterset switch to the whole screen, m
 
 FAST-40 adds an optional 'write-protect' mechanism which will prevent overwriting of a BASIC program if SHIFT/RUNSTOP is accidentally triggered; in tape-based systems the user has ample time to cancel the action before any new program is found and loaded, but disk-based systems are likely to action the LOAD much more quickly.
 
-FAST-40 provides a new BASIC command to easily reset the system and switch between memory configurations without having to swap cartridges. **Note that memory is cleared during a system reset.**
+### Direct-to-Screen Character Write
 
-    RESET [0|3|8]   Switch to specified video/memory configuration
-    
-        RESET		Switch to 40x24 mode
-        RESET 0		Switch to 22x23 unexpanded mode
-        RESET 3		Switch to 22x23 3K mode
-        RESET 8		Switch to 22x23 8K+ mode
+It is possible to write directly to the text screen without going through the CHAROUT vector (i.e. PRINT) in the style of the conventional memory-mapped screen. However, since FAST-40 uses a dynamically-updated lookup table to determine which line of the text buffer corresponds to each physical screen line, the text matrix is simply referenced by X/Y coordinates starting at 0,0 (top-left).
+
+The format of the SYS command is:
+
+    SYS 41006,COLUMN,ROW,CHARACTER,COLOUR
+
+To set the first (top-left) character to the 'A' character in black:
+
+    SYS 41006,0,0,1,0
+
+To set the last (bottom-right) character to the 'Z' character in red:
+
+    SYS 41006,39,23,26,2
+
+
+### Hi-Resolution Pixel Plot/Unplot
+
+Since the 40-column screen is mapped over a 160x192 bitmap, FAST-40 allows pixel plotting to that bitmap alongside the core text-presentation functionality.
+
+The format of the SYS command is:
+
+    SYS 41003,COLUMN,ROW,COLOUR
+
+To set the first (top-left) pixel to a black dot:
+
+    SYS 41003,0,0,0
+
+To set the last (bottom-right) pixel to a red dot:
+
+    SYS 41003,159,191,2
+
+To clear a pixel without changing the colour of the surrounding pixels:
+
+    SYS 41003,159,191,255
 
 ### SHIFT/RUNSTOP Keypress Behaviour
 
@@ -111,13 +139,7 @@ A write-protect function is available which checks BASIC memory and triggers a *
 
 To enable or disable the write-protect check, issue this command either directly or in your programs:
 
-    SYS 40969,X     [ X=non-zero to enable, X=zero or omitted to disable]
-
-### SYS Interface
-
-    SYS 41000       Write-protect enable/disable
-    SYS 41003       Plot/unplot pixel
-
+    SYS 41000,X     [ X=non-zero to enable, X=zero or omitted to disable]
 
 ### System Reconfiguration
 
@@ -229,16 +251,19 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 ### Release v1.3 (30th October 2025)
 * Added a write-protect check so SHIFT/RUNSTOP actions trigger **?LOAD ERROR** if there is a BASIC program in memory
 
-### Release v1.4 (?? May 2026)
+### Release v1.4 (?? June 2026)
 * Fixed a bug where SHIFT/C= sometimes forgot to undraw the cursor
 * Fixed a bug where SHIFT/C= generated a visible character in quote-mode
 * Fixed a bug where SHIFT/RUNSTOP injected a rogue character when JiffyDOS is present
 * Flipped the SHIFT/RUNSTOP write-protect check to DISABLED by default
 * Refactored the bitmap address lookup tables to reduce their ROM footprint by 80%
 * Refactored the bitmap rendering pipeline to increase average throughput by 5%
-* Added a 'public' SYS interface that will be constant across future releases
-
-* Added PLOT command for 'hi-res graphics mode' pixel plotting
+* Added 'hi-res graphics mode' pixel plotting
+* Added direct-to-screen character 'POKE'
+* Added a SYS interface that will be constant across future releases
+    * SYS 41000       Write-protect enable/disable
+    * SYS 41003       Plot/unplot hi-res screen pixel
+    * SYS 41006       Direct-to-screen character write
 
 # Who is 8-Bit Guru?
 

@@ -40,7 +40,7 @@ JUMPTAB:
 .pc = * "JUMPTAB"
 			jmp f40_sys_trap.write_protect					// [3]		41000 - handler for write-protect flag
 			jmp f40_sys_trap.plot_pixel						// [3]		41003 - handler for PLOT
-			jmp vic20.basic.SYNERR							// [3]		41006 - reserved for future use
+			jmp f40_sys_trap.poke_character					// [3]		41006 - handler for POKECHAR
 			jmp vic20.basic.SYNERR							// [3]		41009 - reserved for future use
 
 CONCODEL:
