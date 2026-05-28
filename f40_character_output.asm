@@ -83,8 +83,8 @@ setchar:	ldy vic20.os_zpvars.CRSRLPOS					// [3]		get cursor position on logical
 			ldy #7											// [2]		glyph bytes to process (zero-based)
 			lda f40_runtime_memory.CRSRMASK					// [3]		get column mask
 			bpl mergleft									// [3/2]	left column if b7 clear ($0F)
-			jmp f40_runtime_memory.MERGBITR					// [3]		right-column merge ($F0)
-mergleft:	jmp f40_runtime_memory.MERGBITL					// [3]		left-column merge ($0F)
+			jmp f40_static_data.MERGBITR				// [3]		right-column merge ($F0)
+mergleft:	jmp f40_static_data.MERGBITL				// [3]		left-column merge ($0F)
 
 			// handle the control code
 iscode:		cpx #vic20.screencodes.CR 						// [2]		check for [CR]

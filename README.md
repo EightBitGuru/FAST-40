@@ -84,7 +84,7 @@ FAST-40 supports all VIC-20 character glyphs and control characters, including t
 
 ## Enhancements
 
-FAST-40 character output performance is almost universally better than the stock VIC-20 - it generates characters in 40x24 mode an avergae of 49% faster than the native 22x23 mode.
+FAST-40 character output performance is universally better than the stock VIC-20 - it generates characters in 40x24 mode an avergae of 49% faster than the native 22x23 mode.
 
 The stock VIC-20 applies the SHIFT/C= characterset switch to the whole screen, meaning it is not possible to display glyphs from both upper-case and lower-case charactersets at the same time. FAST-40 does not have this limitation - characters from both sets can be displayed simultaneously.
 
@@ -190,17 +190,14 @@ In the event that a program inadvertantly 'breaks' FAST-40 by overwriting someth
 
 * Writes to the VIC registers, system vectors, and/or most other runtime memory structures can almost always be repaired via a RUNSTOP/RESTORE 'soft' reset.
 
-* Any catastrophic breakage that exceeds the capacity of FAST-40 to repair itself will require a system reset to resolve. This can be achieved by power-cycling the machine, hitting a hardware reset button if available, or by using the new RESET command. **Note that memory is cleared during a system reset.**
+* Any catastrophic breakage that exceeds the capacity of FAST-40 to repair itself will require a system reset to resolve. This can be achieved by power-cycling the machine, or hitting a hardware reset button if available.
 
 ## Beta testing, and credit where it's due
 
-The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-web/bulletin/bb/index.php) actively participated in the beta-test phase. Their time and effort spent testing, sending bug reports, and assisting with crash diagnosis is greatly appreciated:
-
-* tokra
-* mathom
+These two VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-web/bulletin/bb/index.php) - **tokra** and **mathom** - actively participated in the beta-test phase. Their time and effort spent testing, sending bug reports, and assisting with crash diagnosis is greatly appreciated.
 
 ### Beta 1 (9th April 2025)
-* Initial release for testing.
+* Initial testing release.
 
 ### Beta 2 (21st April 2025)
 * Fixed a bug where entering long BASIC lines would sometimes lose the character in column 40, causing syntax errors (reported by **tokra@denial**)
@@ -211,7 +208,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Fixed a bug where RUNSTOP/RESTORE didn't reset the default text colour and character-case
 * Added a BRK handler to display CPU registers (to help debug a JiffyDOS showstopper crash reported by **mathom@denial**)
 * Added an alternate build option to do LOAD"$",8 / LIST on SHIFT/RUNSTOP
-* Tweaked the PAL/NTSC startup test to save the result for RUNSTOP/RESTORE and thereby avoid repeated re-tests
+* Tweaked the PAL/NTSC startup test to save the result and thereby avoid repeated re-tests on RUNSTOP/RESTORE 
 * Tweaked the cursor blink phase timings to help cursor visibility during rapid/repeated movement (reported by **mathom@denial**)
 
 ### Beta 2A (22nd April 2025)
@@ -233,7 +230,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Tweaked SHIFT/RUNSTOP keypress behaviour to better suit JiffyDOS users
 * Tweaked startup colours back to stock blue-on-white for NTSC visual clarity (prompted by **gunner@denial**)
 * Restructured memory usage so FAST-40 only needs 3K in BLK0 and leaves all 8K blocks free for BASIC
-* Refactored bitmap rendering path logic (FAST-40 draws 40x24 mode faster than the stock ROM draws 22x23)
+* Refactored bitmap rendering path logic (FAST-40 now draws 40x24 mode faster than the stock ROM draws 22x23)
 * Refactored logic in INS/DEL keypress, bitmap line-refresh, and logical line extension routines
 * Removed case-switch bitmap refresh which caused a race condition crash (reported by **boray@denial**)
 * Added ***\artifacts*** folder to the repository, containing

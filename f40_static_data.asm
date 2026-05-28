@@ -3,45 +3,36 @@
 
 .filenamespace f40_static_data
 
-MERGCODE:
-.pc = * "MERGCODE"		// 11-byte merge routine template (copied 8x to RAM at runtime) [AY]
-{
-			lda (f40_runtime_memory.TEMPAL),y				// [5]		get character glyph byte
-			eor (f40_runtime_memory.CRSRBITL),y				// [5]		XOR with bitmap byte
-			and #$0F										// [2]		apply character mask (right-variant is $F0)
-			eor (f40_runtime_memory.CRSRBITL),y				// [5]		merge glyph and bitmap (bitmap & $F0) | (glyph & $0F)
-			sta (f40_runtime_memory.CRSRBITL),y				// [6]		set merged bitmap byte
-			dey												// [2]		decrement byte index
-}
+LINELEN:				// Maximum line length for each line in a continuation group
+.pc = * "LINELEN"		// Zero-based logical line lengths (3 bytes)
+.byte 39,39,7
 
-SCRROWS:				// Last screen row index
-.pc = * "SCRROWS"		// Zero-based last row (1 byte)
-.byte f40_runtime_constants.SCREEN_ROWS
+CROWOFFS:				// Character row offsets
+.pc = * "CROWOFFS"		// Character row offsets (13 bytes)
+.byte 0,20,40,60,80,100,120,140,160,180,200,220,240
 
-JIFFYID:				// JiffyDOS identifier
-.pc = * "JIFFYID"		// Identifier string (5 bytes)
-.text "JIFFY"
+VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
+.pc = * "VICPAL"		// VIC register values (2 bytes)
+.byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
+.byte %00100100			// $9001 - b7-0 = screen y-pos
 
-IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
-.pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
-.byte <f40_runtime_memory.InsDel_Buffer
-.byte <f40_runtime_memory.InsDel_Buffer+40
-.byte <f40_runtime_memory.InsDel_Buffer+80
+BLNKTIME:				// Cursor blink timers
+.pc = * "BLNKTIME"		// Cursor phase on/off timer values (2 bytes)
+.byte 19,13
 
 SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8
 .pc = * "SRSLOAD"		// Command text (8 bytes)
 .byte 'L','O'+64		// LOAD
 .text @"\"$\",8\$0d"	// "$",8 [CR]
 
-VECLOAD:
-.pc = $A025				// SYS interface entrypoints
+VECLOAD:				// SYS interface entrypoints
+.pc = $A025 "VECLOAD"
 			jmp f40_sys_trap.vector_reload					// [3]		40997 - handler for vector reload
 JUMPTAB:
 .pc = * "JUMPTAB"
 			jmp f40_sys_trap.write_protect					// [3]		41000 - handler for write-protect flag
 			jmp f40_sys_trap.plot_pixel						// [3]		41003 - handler for PLOT
 			jmp f40_sys_trap.poke_character					// [3]		41006 - handler for POKECHAR
-			jmp vic20.basic.SYNERR							// [3]		41009 - reserved for future use
 
 CONCODEL:
 .pc = * "CONCODEL"		// CHROUT control character handler address lo-bytes (all hi-bytes are the same)
@@ -70,9 +61,9 @@ TROWADD:
 TROWADDR:
 .lohifill 24,f40_runtime_memory.Text_Buffer+(40*i)
 
-BLNKTIME:				// Cursor blink timers
-.pc = * "BLNKTIME"		// Cursor phase on/off timer values (2 bytes)
-.byte 19,13
+JIFFYID:				// JiffyDOS identifier
+.pc = * "JIFFYID"		// Identifier string (5 bytes)
+.text "JIFFY"
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
@@ -86,6 +77,42 @@ IDMSG3:					// Must be followed by NULL (zero)
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
+LINEADD:				// Line length additions for each line in a continuation group
+.pc = * "LINEADD"		// Zero-based line additions (4 bytes)
+.byte 0,40,80,120
+
+LINESUM:				// Line length (summed) for each line in a continuation group
+.pc = * "LINESUM"		// Zero-based line length sums (3 bytes)
+.byte 39,79,87
+
+IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
+.pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
+.byte <f40_runtime_memory.InsDel_Buffer
+.byte <f40_runtime_memory.InsDel_Buffer+40
+.byte <f40_runtime_memory.InsDel_Buffer+80
+
+SCRROWS:				// Last screen row index
+.pc = * "SCRROWS"		// Zero-based last row (1 byte)
+.byte f40_runtime_constants.SCREEN_ROWS
+
+MERGBITL:				// Unrolled left-column glyph merge routine (90 bytes)
+.pc = * "MERGBITL"
+glyph_merge($0F)
+
+MERGBITR:				// Unrolled right-column glyph merge routine (90 bytes)
+.pc = * "MERGBITR"
+glyph_merge($F0)
+
+BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
+.pc = * "BITADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
+.byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
+
+BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
+.pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
+.fill 16,>[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
+
+// -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
+
 .align 256
 ROWOFFS:				// Bitmap address row offsets
 .pc = * "ROWOFFS"		// Zero-based row offsets (24 bytes)
@@ -95,39 +122,12 @@ COLOFFS:				// Bitmap address column offsets
 .pc = * "COLOFFS"		// Zero-based column offsets (40 bytes)
 .fill 20,[%11110000,%00001111]
 
-CROWOFFS:				// Character row offsets
-.pc = * "CROWOFFS"		// Character row offsets (13 bytes)
-.byte 0,20,40,60,80,100,120,140,160,180,200,220,240
-
-LINELEN:				// Maximum line length for each line in a continuation group
-.pc = * "LINELEN"		// Zero-based logical line lengths (3 bytes)
-.byte 39,39,7
-
-LINESUM:				// Line length (summed) for each line in a continuation group
-.pc = * "LINESUM"		// Zero-based line length sums (3 bytes)
-.byte 39,79,87
-
-LINEADD:				// Line length additions for each line in a continuation group
-.pc = * "LINEADD"		// Zero-based line additions (4 bytes)
-.byte 0,40,80,120
-
-VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
-.pc = * "VICPAL"		// VIC register values (2 bytes)
-.byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
-.byte %00100100			// $9001 - b7-0 = screen y-pos
-
-BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
-.pc = * "BITADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
-.byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
-BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
-.pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
-.fill 16,>[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
-
 PLOTMASK:				// Pixel plot bit mask table
 .pc = * "PLOTMASK"		// Pixel bit mask by column offset (8 bytes)
 .byte $80,$40,$20,$10,$08,$04,$02,$01
 
-.fill 127,$AA
+.fill 184,$AA
+
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256
@@ -175,3 +175,24 @@ GLYPHADD:				// Character glyph pixel address data
 .pc = * "GLYPHADD"
 GLPHADDR:
 .lohifill 256,CHARDATA+(8*i)		// Glyph pixel address lo/hi-bytes
+
+// --------------------------------------------------------------------------------------------------------
+
+// Left/right bitmap glyph merge routine macro
+.macro glyph_merge(mask) {
+	.for (var i = 0; i < 7; i++)
+	{
+		lda (f40_runtime_memory.TEMPAL),y					// [5]		get character glyph byte
+		eor (f40_runtime_memory.CRSRBITL),y					// [5]		XOR with bitmap byte
+		and #mask											// [2]		apply column mask
+		eor (f40_runtime_memory.CRSRBITL),y					// [5]		merge glyph and bitmap
+		sta (f40_runtime_memory.CRSRBITL),y					// [6]		set merged bitmap byte
+		dey													// [2]		decrement byte index
+	}
+	lda (f40_runtime_memory.TEMPAL),y						// [5]		get character glyph byte
+	eor (f40_runtime_memory.CRSRBITL),y						// [5]		XOR with bitmap byte
+	and #mask												// [2]		apply column mask
+	eor (f40_runtime_memory.CRSRBITL),y						// [5]		merge glyph and bitmap
+	sta (f40_runtime_memory.CRSRBITL),y						// [6]		set merged bitmap byte
+	jmp f40_character_output.line_continuation				// [3]		exit to line continuation
+}

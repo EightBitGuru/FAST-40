@@ -27,7 +27,8 @@
 .label TEMPDL    	    = $00ED		//	Temporary data/address lo-byte
 .label TEMPDH	        = $00EE		//	Temporary data/address hi-byte
 .label SYSPARM	        = $00EF		//	SYS interceptor 4th parameter (1 byte)
-.label SPAREZP	        = $00F0		//	Spare (2 bytes)
+.label F40ACTV	        = $00F0		//	FAST-40 active flag (b7 set when active)
+.label SPAREZP	        = $00F1		//	Spare (1 byte)
 
 // 3K BLK0
 .label UNUSEDB0         = $0400     //  Unused BLK0 space (1739 bytes to $0ACA)
@@ -37,9 +38,7 @@
 .label TXTBUFUF         = $0AE5		//	Text row key sequence underflow bytes (2 bytes to $0AE6)
 .label TXTBUFSQ         = $0AE7		//	Text row key sequence bytes (24 bytes to $0AFE)
 .label TXTBUFOF         = $0AFF		//	Text row key sequence overflow byte (1 byte to $0AFF)
-.label SPAREP04         = $0B00     //  Spare BLK0 space (18 bytes to $0B11)
-.label MERGBITL         = $0B12		//	Left-character bitmap merge routine (90 bytes to $0B6B)
-.label MERGBITR         = $0B6C		//	Right-character bitmap merge routine (90 bytes to $0BC5)
+.label SPAREP04         = $0B00     //  Spare BLK0 space (198 bytes to $0BC5)
 .label Text_Buffer	    = $0BC6		//	Text buffer (960 bytes to $0F85)
 .label InsDel_Buffer	= $0F86		//	Insert/Delete buffer (121 bytes to $0FFE)
 .label Memory_Bitmap    = $0FFF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5->write-protect(1=OFF), b4-0->RAM bitmap

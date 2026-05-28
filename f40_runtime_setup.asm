@@ -97,19 +97,8 @@ f40msg:		jsr vic20.basic.STROUT							// [6]		display string
 warm_start:
 .pc = * "warm_start"
 {
-			lda #<f40_runtime_memory.MERGBITL				// [2]		get BLK0 left-merge routine target address lo-byte
-			sta f40_runtime_memory.TEMPAL					// [3]		stash in indirect pointer lo-byte
-			lda #>f40_runtime_memory.MERGBITL				// [2]		get BLK0 left-merge routine target address hi-byte
-			sta f40_runtime_memory.TEMPAH					// [3]		stash in indirect pointer hi-byte
-			ldx #$0F										// [2]		left-variant mask
-			jsr unroll_merge								// [6]		do copy/unroll expansion of left merge routine
-
-			lda #<f40_runtime_memory.MERGBITR				// [2]		get BLK0 right-merge routine target address lo-byte
-			sta f40_runtime_memory.TEMPAL					// [3]		stash in indirect pointer lo-byte
-			lda #>f40_runtime_memory.MERGBITR				// [2]		get BLK0 right-merge routine target address hi-byte
-			sta f40_runtime_memory.TEMPAH					// [3]		stash in indirect pointer hi-byte
-			ldx #$F0										// [2]		right-variant mask
-			jsr unroll_merge								// [6]		do copy/unroll expansion of right merge routine
+			lda #$80										// [2]		FAST-40 active
+			sta f40_runtime_memory.F40ACTV					// [3]		set active flag (b7)
 
 			// initialise 40x24 screen character matrix
 			ldy #240										// [2]		initialise table index
@@ -139,44 +128,5 @@ copychar:	lda f40_static_data.MATDATA-1,y					// [4]		get matrix character
 			jsr f40_helper_routines.configure_vic			// [6]		set 40x24 mode
 			lda #vic20.screencodes.CLRSCRN					// [2]		clear/home
 			jsr f40_character_output.character_output		// [6]		display character
-			rts												// [6]
-}
-
-
-// Copy and unroll the bitmap glyph merge routine
-unroll_merge:
-.pc = * "unroll_merge"
-{
-			stx f40_runtime_memory.REGXSAVE					// [4]		save mask passed in X ($0F=left, $F0=right)
-			ldx #7											// [2]		set iteration counter
-nxtblock:	ldy #10											// [2]		set copy loop counter
-copyloop:	lda f40_static_data.MERGCODE,y					// [4]		get merge routine template byte
-			sta (f40_runtime_memory.TEMPAL),y				// [6]		stash in unroll area
-			dey												// [2]		decrement for next byte
-			bpl copyloop									// [3/2]	loop until done
-
-			ldy #f40_runtime_constants.MERGCODE_MASK_OFF	// [2]		get mask byte offset
-			lda f40_runtime_memory.REGXSAVE					// [3]		get variant mask ($0F left / $F0 right)
-			sta (f40_runtime_memory.TEMPAL),y				// [6]		write mask (no-op for left: overwrites $0F with $0F)
-
-advance:	clc												// [2]		clear Carry for addition
-			lda f40_runtime_memory.TEMPAL					// [3]		get target address lo-byte
-			adc #10											// [2]		calculate next block address
-			sta f40_runtime_memory.TEMPAL					// [3]		set target address lo-byte
-			dex												// [2]		decrement block iteration counter
-			bmi setjump										// [2/3]	finalise merge routine if all done
-
-			inc f40_runtime_memory.TEMPAL					// [5]		skip DEY at end of template block
-			bne nxtblock									// [3/3]	loop back for next block
-
-setjump:	ldy #0											// [2]		set target address offset
-			lda #JMP_ABS									// [2]		get JMP operand
-			sta (f40_runtime_memory.TEMPAL),y				// [6]		patch JMP over last DEY
-			iny												// [2]		increment offset
-			lda #<f40_character_output.line_continuation	// [2]		get JMP target address lo-byte
-			sta (f40_runtime_memory.TEMPAL),y				// [6]		patch JMP operand lo-byte
-			iny												// [2]		increment offset
-			lda #>f40_character_output.line_continuation	// [2]		get JMP target address hi-byte
-			sta (f40_runtime_memory.TEMPAL),y				// [6]		patch JMP operand hi-byte
 			rts												// [6]
 }

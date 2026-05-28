@@ -54,7 +54,7 @@ loop:		lda (f40_runtime_memory.CRSRBITL),y				// [5]		get bitmap byte
 nmi_handler:
 .pc = * "nmi_handler"
 {
-			bit f40_runtime_memory.MERGBITL					// [4]		check left merge routine (b7 set when FAST-40 active)
+			bit f40_runtime_memory.F40ACTV					// [3]		check FAST-40 active flag (b7 set when active)
 			bpl stocknmi									// [2/3]	if b7 not set then FAST-40 is not active so do stock NMI
 			bit vic20.via1.V1PORTAO 						// [3]		tickle VIA1 Port A to acknowledge NMI
 			jsr vic20.kernal.UDTIM							// [6]		update clock ($F734)
