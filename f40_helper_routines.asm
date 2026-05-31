@@ -14,7 +14,7 @@ getbyte:	lda f40_static_data.VICNTSC,x					// [4]		get VIC register value
 			bpl getbyte										// [3/2]	loop until done
 
 			// alter VIC settings for PAL mode if required
-			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b7 for PAL/NTSC
+			bit f40_runtime_memory.MEMBITS 				// [3]		get b7 for PAL/NTSC
 			bpl settext										// [3/2]	skip PAL if NTSC
 			lda f40_static_data.VICPAL						// [4]		get PAL value
 			sta vic20.vic.VCSCRNX							// [4]		set VIC register
@@ -55,33 +55,6 @@ set_temp_line_pointer:
 			lda f40_static_data.TROWADDR.hi,y 				// [4]		get text buffer address hi-byte
 			sta f40_runtime_memory.TEMPAH					// [3]		set text buffer pointer hi-byte
 			rts												// [6]
-}
-
-
-// Reload VIC vectors
-reload_vectors:
-.pc = * "reload_vectors"
-{
-			ldx #V1CPAL-V1CNTSC-1							// [2]		vector byte count
-getbyte:	lda V1CNTSC,x									// [4]		get vector byte
-			dex												// [2]		decrement for next byte
-			stx f40_runtime_memory.TEMPAL					// [3]		stash .X for later
-			sbc #64											// [2]		subtract offset
-			sbc f40_runtime_memory.TEMPAL					// [3]		subtract index
-			sta vic20.vectors.KVECBUFF,x					// [5]		stash for reload
-			lda V1CNTSC,x									// [4]		get vector byte
-			inx												// [2]		increment for previous byte
-			stx f40_runtime_memory.TEMPAL					// [3]		stash .X for later
-			sbc #64											// [2]		subtract offset
-			sbc f40_runtime_memory.TEMPAL					// [3]		subtract index
-			sta vic20.vectors.KVECBUFF,x					// [5]		stash for reload
-			dex												// [2]		decrement for extra byte
-			dex												// [2]
-			bpl getbyte										// [3/2]	loop until done
-			lda #<vic20.vectors.KVECBUFF					// [2]		pointer to interrupt reload vector lo-byte
-			ldy #>vic20.vectors.KVECBUFF					// [2]		pointer to interrupt reload vector hi-byte
-			jsr vic20.vectors.KVECLOAD						// [6]		load vectors
-			jmp vic20.basic.NEWSTT							// [3]		BASIC warm-start
 }
 
 

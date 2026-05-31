@@ -41,7 +41,7 @@ waitkey:	lda vic20.os_zpvars.KEYCOUNT					// [3]		get keyboard buffer character 
 			bne checkcr 									// [3/2]	go check for [CR] if not
 
 			// check if write-protect is disabled
-			lda f40_runtime_memory.Memory_Bitmap 			// [4]		get bitmap byte
+			lda f40_runtime_memory.MEMBITS			// [3]		get bitmap byte
 			and #%00100000									// [2]		test bit 5 (BLK5 bit not used by FAST-40)
 			beq dosrs 										// [2/3]	skip write-protect test if b5 clear
 
@@ -66,7 +66,7 @@ loadloop:	lda f40_static_data.SRSLOAD-1,y					// [4]		get LOAD"$",8 bytes
 			sta vic20.os_vars.KEYBUFF-1,y					// [5]		inject into keyboard buffer
 			dey												// [2]		decrement index
 			bne loadloop									// [3/2]	loop for next character
-			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b6 for JiffyDOS
+			bit f40_runtime_memory.MEMBITS			// [3]		get b6 for JiffyDOS
 			bvc waitkey										// [3/2]	execute if JiffyDOS not present
 			lda #'*'										// [2]		overwrite '$' with '*'
 			sta vic20.os_vars.KEYBUFF+3						// [4]		inject into keyboard buffer
@@ -150,4 +150,31 @@ notpi:		pla												// [4]		get .Y and .X back from Stack
 			lda vic20.os_zpvars.CHARBYTE					// [3]		get saved character
 			clc												// [2]		clear Carry (error flag)
 			rts												// [6]
+}
+
+
+// Reload VIC vectors
+reload_vectors:
+.pc = * "reload_vectors"
+{
+			ldx #47											// [2]		vector byte count
+getbyte:	lda f40_static_data.V1CNTSC,x					// [4]		get vector byte
+			dex												// [2]		decrement for next byte
+			stx f40_runtime_memory.TEMPAL					// [3]		stash .X for later
+			sbc #64											// [2]		subtract offset
+			sbc f40_runtime_memory.TEMPAL					// [3]		subtract index
+			sta vic20.vectors.KVECBUFF,x					// [5]		stash for reload
+			lda f40_static_data.V1CNTSC,x					// [4]		get vector byte
+			inx												// [2]		increment for previous byte
+			stx f40_runtime_memory.TEMPAL					// [3]		stash .X for later
+			sbc #64											// [2]		subtract offset
+			sbc f40_runtime_memory.TEMPAL					// [3]		subtract index
+			sta vic20.vectors.KVECBUFF,x					// [5]		stash for reload
+			dex												// [2]		decrement for extra byte
+			dex												// [2]
+			bpl getbyte										// [3/2]	loop until done
+			lda #<vic20.vectors.KVECBUFF					// [2]		pointer to interrupt reload vector lo-byte
+			ldy #>vic20.vectors.KVECBUFF					// [2]		pointer to interrupt reload vector hi-byte
+			jsr vic20.vectors.KVECLOAD						// [6]		load vectors
+			jmp vic20.basic.NEWSTT							// [3]		BASIC warm-start
 }

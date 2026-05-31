@@ -64,8 +64,8 @@ chkbyte:	lda f40_static_data.JIFFYID,x					// [4]		get signature test byte
 			ora #%01000000									// [2]		set JiffyDOS bit
 			tay	 											// [2]		stash merged bit
 notjiffy:	tya	 											// [2]		get JiffyDOS bit
-			ora f40_runtime_memory.Memory_Bitmap 			// [4]		merge both with memory bitmap
-			sta f40_runtime_memory.Memory_Bitmap 			// [4]		stash with merged bits
+			ora f40_runtime_memory.MEMBITS				// [3]		merge both with memory bitmap
+			sta f40_runtime_memory.MEMBITS				// [3]		stash with merged bits
 
 			jsr warm_start									// [6]		do FAST-40 runtime setup
 
@@ -76,7 +76,7 @@ notjiffy:	tya	 											// [2]		get JiffyDOS bit
 			lda #<f40_static_data.IDMSG2					// [2]		pointer to FAST-40 message string lo-byte
 			ldy #>f40_static_data.IDMSG2					// [2]		pointer to FAST-40 message string hi-byte
 
-			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b6 for JiffyDOS
+			bit f40_runtime_memory.MEMBITS				// [3]		get b6 for JiffyDOS
 			bvc f40msg										// [3/2]	skip JiffyDOS banner if not present
 
 			lda #<vic20.basic.BASICV2						// [2]		pointer to JiffyDOS message string lo-byte
@@ -97,9 +97,6 @@ f40msg:		jsr vic20.basic.STROUT							// [6]		display string
 warm_start:
 .pc = * "warm_start"
 {
-			lda #$80										// [2]		FAST-40 active
-			sta f40_runtime_memory.F40ACTV					// [3]		set active flag (b7)
-
 			// initialise 40x24 screen character matrix
 			ldy #240										// [2]		initialise table index
 copychar:	lda f40_static_data.MATDATA-1,y					// [4]		get matrix character

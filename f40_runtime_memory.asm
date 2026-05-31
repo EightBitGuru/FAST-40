@@ -27,21 +27,19 @@
 .label TEMPDL    	    = $00ED		//	Temporary data/address lo-byte
 .label TEMPDH	        = $00EE		//	Temporary data/address hi-byte
 .label SYSPARM	        = $00EF		//	SYS interceptor 4th parameter (1 byte)
-.label F40ACTV	        = $00F0		//	FAST-40 active flag (b7 set when active)
+.label MEMBITS	        = $00F0		//	b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5->write-protect(1=OFF), b4-0->RAM bitmap
 .label SPAREZP	        = $00F1		//	Spare (1 byte)
 
 // 3K BLK0
-.label UNUSEDB0         = $0400     //  Unused BLK0 space (1739 bytes to $0ACA)
-.label LINCNTUF         = $0ACB		//	Line-continuation table underflow bytes (2 bytes to $0ACC)
-.label LINECONT	        = $0ACD		//	Line-continuation table (24 bytes to $0AE4)
-.label LINCNTOF         = $0AE5		//	Line-continuation table overflow byte (1 byte to $0AE5)
-.label TXTBUFUF         = $0AE5		//	Text row key sequence underflow bytes (2 bytes to $0AE6)
-.label TXTBUFSQ         = $0AE7		//	Text row key sequence bytes (24 bytes to $0AFE)
-.label TXTBUFOF         = $0AFF		//	Text row key sequence overflow byte (1 byte to $0AFF)
-.label SPAREP04         = $0B00     //  Spare BLK0 space (198 bytes to $0BC5)
-.label Text_Buffer	    = $0BC6		//	Text buffer (960 bytes to $0F85)
-.label InsDel_Buffer	= $0F86		//	Insert/Delete buffer (121 bytes to $0FFE)
-.label Memory_Bitmap    = $0FFF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5->write-protect(1=OFF), b4-0->RAM bitmap
+.label UNUSEDB0         = $0400     //  Unused BLK0 space (1938 bytes to $0B91)
+.label LINCNTUF         = $0B92		//	Line-continuation table underflow bytes (2 bytes to $0B93)
+.label LINECONT	        = $0B94		//	Line-continuation table (24 bytes to $0BAB)
+.label LINCNTOF         = $0BAC		//	Line-continuation table overflow byte (1 byte to $0BAC)
+.label TXTBUFUF         = $0BAC		//	Text row key sequence underflow bytes (2 bytes to $0BAD)
+.label TXTBUFSQ         = $0BAE		//	Text row key sequence bytes (24 bytes to $0BC5)
+.label TXTBUFOF         = $0BC6		//	Text row key sequence overflow byte (1 byte to $0BC6)
+.label InsDel_Buffer	= $0BC7		//	Insert/Delete buffer (121 bytes to $0C3F)
+.label Text_Buffer	    = $0C40		//	Text buffer (960 bytes to $0FFF)
 
 // Onboard RAM
 .label Character_Matrix	= $1000		//	Screen character matrix is 20x12 double-height chars -> 240 bytes to $10EF

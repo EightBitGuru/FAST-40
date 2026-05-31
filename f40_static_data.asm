@@ -91,18 +91,6 @@ IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
 .byte <f40_runtime_memory.InsDel_Buffer+40
 .byte <f40_runtime_memory.InsDel_Buffer+80
 
-SCRROWS:				// Last screen row index
-.pc = * "SCRROWS"		// Zero-based last row (1 byte)
-.byte f40_runtime_constants.SCREEN_ROWS
-
-MERGBITL:				// Unrolled left-column glyph merge routine (90 bytes)
-.pc = * "MERGBITL"
-glyph_merge($0F)
-
-MERGBITR:				// Unrolled right-column glyph merge routine (90 bytes)
-.pc = * "MERGBITR"
-glyph_merge($F0)
-
 BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
 .pc = * "BITADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
 .byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
@@ -111,9 +99,6 @@ BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
 .pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
 .fill 16,>[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
 
-// -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
-
-.align 256
 ROWOFFS:				// Bitmap address row offsets
 .pc = * "ROWOFFS"		// Zero-based row offsets (24 bytes)
 .fill 12,[0,8]
@@ -126,7 +111,38 @@ PLOTMASK:				// Pixel plot bit mask table
 .pc = * "PLOTMASK"		// Pixel bit mask by column offset (8 bytes)
 .byte $80,$40,$20,$10,$08,$04,$02,$01
 
-.fill 184,$AA
+V1CNTSC:				// VIC vector defaults (48 bytes)
+.word $5269
+.word $856C
+.word $6477
+.word $7679
+.word $7E69
+.word $6A98
+.word $8D9F
+.word $996F
+.word $9AA0
+.word $9AA1
+.word $A7A4
+.word $A464
+.word $6A79
+.word $7A7B
+.word $7C7D
+.word $8697
+.word $8DA3
+.word $ABB7
+.word $84AC
+.word $BBB9
+.word $BD92
+.word $8A8B
+.word $8C8D
+.word $8E6F
+V1CPAL:
+
+SCRROWS:				// Last screen row index
+.pc = * "SCRROWS"		// Zero-based last row (1 byte)
+.byte f40_runtime_constants.SCREEN_ROWS
+
+.fill 93,$AA
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
@@ -177,22 +193,3 @@ GLPHADDR:
 .lohifill 256,CHARDATA+(8*i)		// Glyph pixel address lo/hi-bytes
 
 // --------------------------------------------------------------------------------------------------------
-
-// Left/right bitmap glyph merge routine macro
-.macro glyph_merge(mask) {
-	.for (var i = 0; i < 7; i++)
-	{
-		lda (f40_runtime_memory.TEMPAL),y					// [5]		get character glyph byte
-		eor (f40_runtime_memory.CRSRBITL),y					// [5]		XOR with bitmap byte
-		and #mask											// [2]		apply column mask
-		eor (f40_runtime_memory.CRSRBITL),y					// [5]		merge glyph and bitmap
-		sta (f40_runtime_memory.CRSRBITL),y					// [6]		set merged bitmap byte
-		dey													// [2]		decrement byte index
-	}
-	lda (f40_runtime_memory.TEMPAL),y						// [5]		get character glyph byte
-	eor (f40_runtime_memory.CRSRBITL),y						// [5]		XOR with bitmap byte
-	and #mask												// [2]		apply column mask
-	eor (f40_runtime_memory.CRSRBITL),y						// [5]		merge glyph and bitmap
-	sta (f40_runtime_memory.CRSRBITL),y						// [6]		set merged bitmap byte
-	jmp f40_character_output.line_continuation				// [3]		exit to line continuation
-}

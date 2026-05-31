@@ -27,8 +27,6 @@ screen:		txa												// [2]		save .X and .Y to Stack
 			bpl checklo										// [2/3]	skip to low-range check if char < $80
 			cmp #vic20.screencodes.INVSPACE					// [2]		check if high-range control code (char >= $A0)
 			bcs notcode										// [2/3]	not a control code ($A0-$FF = inverse chars)
-			cmp #vic20.screencodes.F1						// [2]		check if char >= $85
-			bcc shiftchk									// [2/3]	not a control code ($80-$84)
 			and #$1F										// [2]		mask for 5-bit index ($85-$9F)
 			tay												// [2]		set high-range control code handler lookup index
 			lda f40_static_data.CODEIDXH,y					// [4]		get high-range control code address index
@@ -42,7 +40,35 @@ checklo:	cmp #vic20.screencodes.SPACE					// [2]		check if low-range control cod
 			lda f40_static_data.CODEIDXL,y					// [4]		get low-range control code address index
 			bmi notcode										// [2/3]	$FF = not a control code
 			tay												// [2]		set control code handler address table index
-			bpl iscode										// [3/3]	handle low-range control code
+
+			// handle control code
+iscode:		cpx #vic20.screencodes.CR 						// [2]		check for [CR]
+			beq actionit									// [2/3]	[CR] ignores inserts and quote mode
+			cpx #vic20.screencodes.INSERT 					// [2]		check for [INS]
+			beq chkquote									// [2/3]	[INS] ignores insert mode
+			lda vic20.os_zpvars.INSRTCNT					// [3]		get pending INSERT count
+			bne displayit									// [2/3]	display as a visible character if inserts pending
+			cpx #vic20.screencodes.DELETE 					// [2]		check for [DEL]
+			beq actionit									// [2/3]	[DEL] ignores quote mode
+chkquote:	lda vic20.os_zpvars.QUOTMODE					// [3]		get editor quote mode
+			bne displayit									// [2/3]	display as a visible character if in quote mode
+actionit:	lda #%10000000									// [2]		cursor undraw bit
+			sta f40_runtime_memory.CRSRUDRW					// [3]		set cursor undraw flag
+			sta f40_runtime_memory.CRSRCOLF					// [3]		clear cursor colour flag
+			lda f40_static_data.CONCODEL,y					// [4]		get control code handler address lo-byte
+			sta f40_runtime_memory.TEMPBL					// [3]		set dispatch address lo-byte
+			lda #>f40_controlcode_handlers.insert			// [2]		get control code handler page hi-byte
+			sta f40_runtime_memory.TEMPBH					// [3]		set dispatch address hi-byte
+			lda #0											// [2]		zero .A for any handlers that need it
+			jmp (f40_runtime_memory.TEMPBL)					// [5]		jump to control code handler
+
+			// convert the control code into displayable form
+displayit:	clc												// [2]		clear Carry before addition
+			txa												// [2]		get character code from .X
+			bmi add64										// [2/3]	add 64 if b7 set, otherwise 128
+			adc #64											// [2]		add 64
+add64:		adc #64											// [2]		add 64
+			bne renderchar									// [3/3]	render the character
 
 			// character is not a control code
 notcode:	txa												// [2]		restore char from .X (A and N clobbered by earlier path)
@@ -82,38 +108,13 @@ setchar:	ldy vic20.os_zpvars.CRSRLPOS					// [3]		get cursor position on logical
 			sta f40_runtime_memory.TEMPAH					// [3]		set ZP glyph pointer hi-byte
 			ldy #7											// [2]		glyph bytes to process (zero-based)
 			lda f40_runtime_memory.CRSRMASK					// [3]		get column mask
-			bpl mergleft									// [3/2]	left column if b7 clear ($0F)
-			jmp f40_static_data.MERGBITR				// [3]		right-column merge ($F0)
-mergleft:	jmp f40_static_data.MERGBITL				// [3]		left-column merge ($0F)
+			bmi mergrght									// [2/3]	merge right column if b7 set
 
-			// handle the control code
-iscode:		cpx #vic20.screencodes.CR 						// [2]		check for [CR]
-			beq actionit									// [2/3]	[CR] ignores inserts and quote mode
-			cpx #vic20.screencodes.INSERT 					// [2]		check for [INS]
-			beq chkquote									// [2/3]	[INS] ignores insert mode
-			lda vic20.os_zpvars.INSRTCNT					// [3]		get pending INSERT count
-			bne displayit									// [2/3]	display as a visible character if inserts pending
-			cpx #vic20.screencodes.DELETE 					// [2]		check for [DEL]
-			beq actionit									// [2/3]	[DEL] ignores quote mode
-chkquote:	lda vic20.os_zpvars.QUOTMODE					// [3]		get editor quote mode
-			bne displayit									// [2/3]	display as a visible character if in quote mode
-actionit:	lda #%10000000									// [2]		cursor undraw bit
-			sta f40_runtime_memory.CRSRUDRW					// [3]		set cursor undraw flag
-			sta f40_runtime_memory.CRSRCOLF					// [3]		clear cursor colour flag
-			lda f40_static_data.CONCODEL,y					// [4]		get control code handler address lo-byte
-			sta f40_runtime_memory.TEMPBL					// [3]		set dispatch address lo-byte
-			lda #>f40_controlcode_handlers.insert			// [2]		get control code handler page hi-byte
-			sta f40_runtime_memory.TEMPBH					// [3]		set dispatch address hi-byte
-			lda #0											// [2]		zero .A for any handlers that need it
-			jmp (f40_runtime_memory.TEMPBL)					// [5]		jump to control code handler
-
-			// convert the control code into displayable form
-displayit:	clc												// [2]		clear Carry before addition
-			txa												// [2]		get character code from .X
-			bmi add64										// [2/3]	add 64 if b7 set, otherwise 128
-			adc #64											// [2]		add 64
-add64:		adc #64											// [2]		add 64
-			bne renderchar									// [3/3]	render the character
+			// Left/right glyph merge routines
+			glyph_merge($0F)								// [198]	unrolled left-column glyph merge
+			bcs line_continuation							// [3/3]	exit to line continuation
+mergrght:	glyph_merge($F0)								// [198]	unrolled right-column glyph merge
+// Fall-through into line_continuation
 }
 
 
@@ -191,4 +192,24 @@ charout_tidyup:
 			tax												// [2]
 			pla												// [4]
 			rts												// [6]
+}
+
+
+// Left/right bitmap glyph merge routine macro (87 bytes, 198 cycles)
+.macro glyph_merge(mask)
+{
+	.for (var i = 0; i < 7; i++)
+	{
+			lda (f40_runtime_memory.TEMPAL),y				// [5]		get character glyph byte
+			eor (f40_runtime_memory.CRSRBITL),y				// [5]		XOR with bitmap byte
+			and #mask										// [2]		apply column mask
+			eor (f40_runtime_memory.CRSRBITL),y				// [5]		merge glyph and bitmap
+			sta (f40_runtime_memory.CRSRBITL),y				// [6]		set merged bitmap byte
+			dey												// [2]		decrement byte index
+	}
+			lda (f40_runtime_memory.TEMPAL),y				// [5]		get character glyph byte
+			eor (f40_runtime_memory.CRSRBITL),y				// [5]		XOR with bitmap byte
+			and #mask										// [2]		apply column mask
+			eor (f40_runtime_memory.CRSRBITL),y				// [5]		merge glyph and bitmap
+			sta (f40_runtime_memory.CRSRBITL),y				// [6]		set merged bitmap byte
 }

@@ -61,7 +61,7 @@ vector_reload:
 			lda vic20.os_vars.CPUAREG 						// [4]		get SYS parameter
 			cmp #$ff										// [2]		check if we got the vector key
 			bne scram										// [3/2]	scram if not
-vecreload:	jmp f40_helper_routines.reload_vectors			// [3]		reload VIC vectors
+vecreload:	jmp f40_character_input.reload_vectors			// [3]		reload VIC vectors
 }
 
 
@@ -70,13 +70,13 @@ vecreload:	jmp f40_helper_routines.reload_vectors			// [3]		reload VIC vectors
 write_protect:
 .pc = * "write_protect"
 {
-			lda f40_runtime_memory.Memory_Bitmap 			// [4]		get bitmap
+			lda f40_runtime_memory.MEMBITS			// [3]		get bitmap
 			ldx vic20.os_vars.CPUAREG 						// [4]		get SYS parameter
 			bne enable 										// [2/3]	any non-zero value means enable the flag
 			and #%11011111									// [2]		clear write-protect b5
 			bne update 										// [3/3]	bitmap is always non-zero
 enable:		ora #%00100000									// [2]		set write-protect b5
-update:		sta f40_runtime_memory.Memory_Bitmap 			// [4]		update bitmap for new b5 setting
+update:		sta f40_runtime_memory.MEMBITS			// [3]		update bitmap for new b5 setting
 @scram:		rts												// [6]
 }
 
@@ -101,7 +101,7 @@ plot_pixel:
 			txa												// [2]		get X-coordinate back
 			and #7											// [2]		mask pixel column within cell
 			tay												// [2]		set mask lookup index
-			lda f40_static_data.PLOTMASK,y					// [4]		get bitmap mask
+			lda f40_static_data.PLOTMASK,y					// [3]		get bitmap mask
 			sta f40_runtime_memory.TEMPBL					// [3]		stash bitmap mask
 
 			lda vic20.os_vars.CPUXREG						// [4]		get Y-coordinate
@@ -125,13 +125,13 @@ plot_pixel:
 			lsr												// [2]
 			lsr												// [2]
 			tax												// [2]		set hi-byte table index
-			lda f40_static_data.BITADDRH-1,x				// [4]		get bitmap address hi-byte
+			lda f40_static_data.BITADDRH-1,x				// [3]		get bitmap address hi-byte
 			sta f40_runtime_memory.TEMPAH					// [3]		set bitmap address hi-byte
 			ldy f40_runtime_memory.TEMPBH					// [3]		reload matrix index
 			lda f40_runtime_memory.Character_Matrix,y		// [4]		re-read matrix character for lo-byte index
 			and #%00001111									// [2]		mask low nybble for bitmap lo-byte index
 			tay												// [2]		set lo-byte table index
-			lda f40_static_data.BITADDRL,y					// [4]		get bitmap address lo-byte
+			lda f40_static_data.BITADDRL,y					// [3]		get bitmap address lo-byte
 			clc												// [2]		clear Carry (corrupted by preceding LSRs)
 			adc f40_runtime_memory.TEMPAL					// [3]		add Y-within-character (max $F0+$0F=$FF, no carry)
 			sta f40_runtime_memory.TEMPAL					// [3]		set bitmap address lo-byte

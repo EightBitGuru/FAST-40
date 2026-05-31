@@ -10,7 +10,7 @@ decode_keypress:
 			lax vic20.os_vars.SHFTCTRL						// [4]		get SHIFT/CTRL flag
 			cmp #3											// [2]		check for SHIFT/C=
 			beq checklast									// [2/3]	if SHIFT/C= then check last pattern
-			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b6 for JiffyDOS
+			bit f40_runtime_memory.MEMBITS 				// [3]		get b6 for JiffyDOS
 			bvs jiffydos									// [2/3]	do relocated jump if JiffyDOS installed
 			jmp vic20.kernal.DECODE2						// [3]		jump to stock DECODE2 entrypoint ($EC0F)
 jiffydos:	jmp vic20.kernal.DECODE2J						// [3]		jump to JiffyDOS DECODE2 entrypoint ($EBF8)
