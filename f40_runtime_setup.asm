@@ -1,5 +1,5 @@
 // FAST-40 memory / system setup
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_runtime_setup
 
@@ -54,7 +54,7 @@ wait268:	lda vic20.vic.VCRASTER							// [4]		get current raster line
 			ldy #%10000000									// [2]		set PAL merge bit
 
 			// look for JiffyDOS
-romcheck:	ldx #3											// [2]		JiffyDOS identifier length (0-based)
+romcheck:	ldx #4											// [2]		JiffyDOS identifier length (0-based)
 chkbyte:	lda f40_static_data.JIFFYID,x					// [4]		get signature test byte
 			cmp vic20.basic.BASICV2+1,x						// [4]		compare with power-up identifier in ROM
 			bne notjiffy									// [3/2]	exit as soon as we get a mismatch
@@ -64,8 +64,8 @@ chkbyte:	lda f40_static_data.JIFFYID,x					// [4]		get signature test byte
 			ora #%01000000									// [2]		set JiffyDOS bit
 			tay	 											// [2]		stash merged bit
 notjiffy:	tya	 											// [2]		get JiffyDOS bit
-			ora f40_runtime_memory.Memory_Bitmap 			// [4]		merge both with memory bitmap
-			sta f40_runtime_memory.Memory_Bitmap 			// [4]		stash with merged bits
+			ora f40_runtime_memory.MEMBITS				// [3]		merge both with memory bitmap
+			sta f40_runtime_memory.MEMBITS				// [3]		stash with merged bits
 
 			jsr warm_start									// [6]		do FAST-40 runtime setup
 
@@ -76,7 +76,7 @@ notjiffy:	tya	 											// [2]		get JiffyDOS bit
 			lda #<f40_static_data.IDMSG2					// [2]		pointer to FAST-40 message string lo-byte
 			ldy #>f40_static_data.IDMSG2					// [2]		pointer to FAST-40 message string hi-byte
 
-			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b6 for JiffyDOS
+			bit f40_runtime_memory.MEMBITS				// [3]		get b6 for JiffyDOS
 			bvc f40msg										// [3/2]	skip JiffyDOS banner if not present
 
 			lda #<vic20.basic.BASICV2						// [2]		pointer to JiffyDOS message string lo-byte
@@ -97,12 +97,6 @@ f40msg:		jsr vic20.basic.STROUT							// [6]		display string
 warm_start:
 .pc = * "warm_start"
 {
-			ldx #f40_static_data.RAMCODE_LENGTH				// [2]		bytes to copy (zero-based)
-copycode:	lda f40_static_data.RAMCODE,x					// [4]		get self-modifying code byte
-			sta f40_runtime_memory.MERGROUT,x				// [5]		stash in RAM
-			dex												// [2]
-			bpl copycode									// [3/2]	loop until done
-
 			// initialise 40x24 screen character matrix
 			ldy #240										// [2]		initialise table index
 copychar:	lda f40_static_data.MATDATA-1,y					// [4]		get matrix character

@@ -1,7 +1,32 @@
 // FAST-40 helper routines (location-independent)
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_helper_routines
+
+// Configure VIC settings for 40x24 mode
+configure_vic:
+.pc = * "configure_vic"
+{
+			ldx #15											// [2]		set register index
+getbyte:	lda f40_static_data.VICNTSC,x					// [4]		get VIC register value
+			sta vic20.vic.VCSCRNX,x							// [5]		set VIC register
+			dex												// [2]		decrement index
+			bpl getbyte										// [3/2]	loop until done
+
+			// alter VIC settings for PAL mode if required
+			bit f40_runtime_memory.MEMBITS 				// [3]		get b7 for PAL/NTSC
+			bpl settext										// [3/2]	skip PAL if NTSC
+			lda f40_static_data.VICPAL						// [4]		get PAL value
+			sta vic20.vic.VCSCRNX							// [4]		set VIC register
+			lda f40_static_data.VICPAL+1					// [4]		get PAL value
+			sta vic20.vic.VCSCRNY							// [4]		set VIC register
+settext:	lda #0											// [2]
+			sta f40_runtime_memory.CASEFLAG					// [3]		set glyph case flag ($00=upper-case, $08=lower-case)
+			lda #BLUE										// [2]
+			sta vic20.os_vars.CURRCOLR						// [4]		set current text colour
+			rts												// [6]
+}
+
 
 // Set text buffer pointer for specified line
 // => X			Text buffer line index
@@ -81,58 +106,6 @@ initloop2:	txa	 											// [2]		copy to .A
 }
 
 
-// Configure VIC settings for 40x24 mode
-configure_vic:
-.pc = * "configure_vic"
-{
-			ldx #15											// [2]		set register index
-getbyte:	lda f40_static_data.VICNTSC,x					// [4]		get VIC register value
-			sta vic20.vic.VCSCRNX,x							// [5]		set VIC register
-			dex												// [2]		decrement index
-			bpl getbyte										// [3/2]	loop until done
-
-			// alter VIC settings for PAL mode if required
-			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b7 for PAL/NTSC
-			bpl settext										// [3/2]	skip PAL if NTSC
-			lda f40_static_data.VICPAL						// [4]		get PAL value
-			sta vic20.vic.VCSCRNX							// [4]		set VIC register
-			lda f40_static_data.VICPAL+1					// [4]		get PAL value
-			sta vic20.vic.VCSCRNY							// [4]		set VIC register
-settext:	lda #0											// [2]
-			sta f40_runtime_memory.CASEFLAG					// [3]		set glyph case flag ($00=upper-case, $08=lower-case)
-			lda #BLUE										// [2]
-			sta vic20.os_vars.CURRCOLR						// [4]		set current text colour
-			rts												// [6]
-}
-
-
-// Reload VIC vectors
-reload_vectors:
-.pc = * "reload_vectors"
-{
-			ldx #V1CPAL-V1CNTSC-1							// [2]		vector byte count
-getbyte:	lda V1CNTSC,x									// [4]		get vector byte
-			dex												// [2]		decrement for next byte
-			stx f40_runtime_memory.TEMPAL					// [3]		stash .X for later
-			sbc #64											// [2]		subtract offset
-			sbc f40_runtime_memory.TEMPAL					// [3]		subtract index
-			sta vic20.vectors.KVECBUFF,x					// [5]		stash for reload
-			lda V1CNTSC,x									// [4]		get vector byte
-			inx												// [2]		increment for previous byte
-			stx f40_runtime_memory.TEMPAL					// [3]		stash .X for later
-			sbc #64											// [2]		subtract offset
-			sbc f40_runtime_memory.TEMPAL					// [3]		subtract index
-			sta vic20.vectors.KVECBUFF,x					// [5]		stash for reload
-			dex												// [2]		decrement for extra byte
-			dex												// [2]
-			bpl getbyte										// [3/2]	loop until done
-			lda #<vic20.vectors.KVECBUFF					// [2]		pointer to interrupt reload vector lo-byte
-			ldy #>vic20.vectors.KVECBUFF					// [2]		pointer to interrupt reload vector hi-byte
-			jsr vic20.vectors.KVECLOAD						// [6]		load vectors
-			jmp vic20.basic.NEWSTT							// [3]		BASIC warm-start
-}
-
-
 // Insert blank line and/or set line continuation
 // => X			Text buffer line index
 insert_blank_line:
@@ -154,7 +127,7 @@ setbyte:	ldy f40_runtime_memory.LINECONT-1,x				// [4]		get continuation byte fo
 exit:		rts												// [6]
 
 			// shuffle continuation table and text buffer sequence table 'down' a row
-shuffle:	lax f40_controlcode_handlers.dispatch_page		// [4]		get screen line constant (22) to .A and .X
+shuffle:	lax f40_static_data.SCRROWS						// [4]		get last screen row index to .A and .X
 			sec												// [2]		set Carry for subtraction
 			sbc f40_runtime_memory.REGXSAVE 				// [3]		subtract stashed row
 			tay	 											// [2]		set line shuffle counter
@@ -174,23 +147,6 @@ copyloop:	lda f40_runtime_memory.TXTBUFSQ,x 				// [5]		get buffer key byte
 			sta f40_runtime_memory.LINCNTOF 				// [4]		clear line continuation overflow
 			sta f40_runtime_memory.REGXSAVE 				// [3]		clear stashed row
 			beq setbyte										// [3/3]	set continuation for inserted row
-}
-
-
-// Find last non-space character on screen line
-// => SCRNLNL/H		Pointer to specified line
-// <= A				$00-$27 (0-39) position of last non-space character; $FF = all spaces
-find_nonspace:
-.pc = * "find_nonspace"
-{
-			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
-			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set index to end of line
-checkspace:	cmp (f40_runtime_memory.TEMPAL),y				// [6]		find last non-space character on line
-			bne notspace									// [2/3]	exit if not a space
-			dey												// [2]		decrement character index
-			bpl checkspace									// [3/2]	loop for next character
-notspace:	tya 											// [2]		move to .A to set flags
-			rts												// [6]
 }
 
 
@@ -241,8 +197,27 @@ shuffle:	lda (f40_runtime_memory.TEMPAL),y				// [5]		get character from work bu
 			lda f40_runtime_memory.DRAWROWS					// [3]		get redraw start row
 			ldx f40_runtime_memory.DRAWROWE					// [3]		get redraw end row
 			jsr redraw_line_range							// [6]		redraw changed lines
-movecrsr:	jmp f40_controlcode_handlers.cursor_left		// [3]		move cursor left
+movecrsr:	lda #0											// [2]
+			sta f40_runtime_memory.CRSRCOLF				// [3]		clear for JSR path through cursor movement chain
+			jmp f40_controlcode_handlers.cursor_left		// [3]		move cursor left
 @exit:		rts												// [6]
+}
+
+
+// Find last non-space character on screen line
+// => TEMPAL/H		Pointer to specified line
+// <= A				$00-$27 (0-39) position of last non-space character; $FF = all spaces
+find_nonspace:
+.pc = * "find_nonspace"
+{
+			lda #vic20.screencodes.SPACE					// [2]		[SPACE]
+			ldy #f40_runtime_constants.SCREEN_COLUMNS		// [2]		set index to end of line
+checkspace:	cmp (f40_runtime_memory.TEMPAL),y				// [6]		find last non-space character on line
+			bne notspace									// [2/3]	exit if not a space
+			dey												// [2]		decrement character index
+			bpl checkspace									// [3/2]	loop for next character
+notspace:	tya 											// [2]		move to .A to set flags
+			rts												// [6]
 }
 
 
@@ -348,34 +323,35 @@ refresh:	jsr transfer_buffer_to_lines					// [6]		transfer work buffer to text b
 // Redraw text buffer line range
 // => DRAWROWS	Redraw start line
 // => X			Redraw end line
-// TODO: optimise this
 redraw_line_range:
 .pc = * "redraw_line_range"
 {
 setrow:		stx f40_runtime_memory.REGXSAVE					// [3]		stash line for later
 			jsr set_temp_line_pointer						// [6]		set address of line in TEMPAL/H
+
 			txa												// [2]		copy line index to .A for divide
 			lsr												// [2]		divide by two for character matrix row
-			tay												// [2]		stash in .Y for index into row offset table
-
-			// get matrix character for column 19 of matrix row in .Y
+			tay												// [2]		stash index into row offset table
 			lda #19											// [2]		matrix column
 			clc												// [2]		clear Carry for addition
 			adc f40_static_data.CROWOFFS,y					// [4]		calculate character matrix index
-			tay												// [2]		stash index in .Y for lookup
+			tay												// [2]		set character matrix index
 			lda f40_runtime_memory.Character_Matrix,y		// [4]		get matrix character
-			tay												// [2]		stash character in .Y
-
-			// calculate bitmap draw address using matrix character
-			txa 											// [2]		get current line
-			and #%00000001									// [2]		mask LSB (odd/even)
-			asl												// [2]		multiply by 2...
-			asl												// [2]		... by 4 ...
-			asl												// [2]		... by 8
-			adc f40_static_data.BITADDRL-16,y				// [5]		add bitmap address lo-byte
+			sta f40_runtime_memory.REGASAVE					// [3]		stash matrix character
+			and #%00001111									// [2]		mask low nybble for table index
+			tay												// [2]		set bitmap lo-byte table index
+			lda f40_static_data.ROWOFFS,x					// [4]		get bitmap row offset for row
+			adc f40_static_data.BITADDRL,y					// [4]		add bitmap address lo-byte
 			sta f40_runtime_memory.TEMPBL					// [3]		set draw address lo-byte
-			lda f40_static_data.BITADDRH-16,y				// [4]		get bitmap address hi-byte
+			lda f40_runtime_memory.REGASAVE					// [3]		get matrix character
+			lsr												// [2]		divide by 16 for table index
+			lsr												// [2]
+			lsr												// [2]
+			lsr												// [2]
+			tax												// [2]		set hi-byte table index
+			lda f40_static_data.BITADDRH-1,x				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.TEMPBH					// [3]		set draw address hi-byte
+
 			ldy #38											// [2]		column index
 getchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash column index for later
 
@@ -384,8 +360,7 @@ getchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash column index for lat
 			lda f40_static_data.GLPHADDR.lo,x				// [4]		get character glyph data address lo-byte
 			sta f40_runtime_memory.TEMPCL					// [3]		set data read address lo-byte
 			lda f40_static_data.GLPHADDR.hi,x				// [4]		get character glyph data address hi-byte
-			clc												// [2]		clear Carry for addition
-			adc f40_runtime_memory.CASEFLAG					// [3]		add renderer glyph case offset
+			ora f40_runtime_memory.CASEFLAG					// [2]		apply renderer glyph case offset
 			sta f40_runtime_memory.TEMPCH					// [3]		set data read address hi-byte
 
 			// check if both characters in this pair are the same
@@ -399,18 +374,15 @@ getchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash column index for lat
 			lda f40_static_data.GLPHADDR.lo,x				// [4]		get character glyph data address lo-byte
 			sta f40_runtime_memory.TEMPDL					// [3]		set data read address lo-byte
 			lda f40_static_data.GLPHADDR.hi,x				// [4]		get character glyph data address hi-byte
-			clc												// [2]		clear Carry for addition
-			adc f40_runtime_memory.CASEFLAG					// [3]		add renderer glyph case offset
+			ora f40_runtime_memory.CASEFLAG					// [2]		apply renderer glyph case offset
 			sta f40_runtime_memory.TEMPDH					// [3]		set data read address hi-byte
 
 			// merge character data with bitmap
 			ldy #7											// [2]		glyph bytes to process
-merge:		lda (f40_runtime_memory.TEMPCL),y				// [5]		get left character glyph data byte
-			and #$F0										// [2]		mask-off right nybble
-			sta f40_runtime_memory.LINECHAR					// [3]		stash left nybble
-			lda (f40_runtime_memory.TEMPDL),y				// [5]		get right character glyph data byte
-			and #$0F										// [2]		mask-off left nybble
-			ora f40_runtime_memory.LINECHAR					// [3]		merge with left nybble
+merge:		lda (f40_runtime_memory.TEMPDL),y				// [5]		get right character glyph data byte
+			eor (f40_runtime_memory.TEMPCL),y				// [5]		XOR with left glyph byte
+			and #$0F										// [2]		apply character mask
+			eor (f40_runtime_memory.TEMPCL),y				// [5]		marge glyph and bitmap (TEMPCL & $F0) | (TEMPDL & $0F)
 			sta (f40_runtime_memory.TEMPBL),y				// [6]		set bitmap byte
 			dey												// [2]		decrement glyph byte counter
 			bpl merge										// [3/2]	loop for next glyph byte
@@ -437,7 +409,6 @@ nextcol:	ldy f40_runtime_memory.REGYSAVE					// [3]		get column index back
 			ldx f40_runtime_memory.REGXSAVE					// [3]		get cursor row back
 			dex												// [2]		decrement line index
 			cpx f40_runtime_memory.DRAWROWS					// [3]		check redraw line limit
-			//bpl setrow										// [3/2]	loop until done
 			bmi exit										// [3/2]	exit when done
 			jmp setrow										// [3]		loop for next row
 
@@ -455,6 +426,10 @@ reset_vectors:
 			sta vic20.os_vars.DECODEL						// [4]		set decode vector lo-byte
 			lda #>f40_keyboard_decode.decode_keypress		// [2]		get SHIFT/CTRL/C= key handler hi-byte
 			sta vic20.os_vars.DECODEH						// [4]		set decode vector hi-byte
+			lda #<f40_sys_trap.interceptor					// [2]		get SYS interceptor lo-byte
+			sta vic20.os_vars.NEWCODEL						// [4]		set BASIC vector lo-byte
+			lda #>f40_sys_trap.interceptor					// [2]		get SYS interceptor hi-byte
+			sta vic20.os_vars.NEWCODEH						// [4]		set BASIC vector hi-byte
 			lda #<f40_interrupt_handlers.irq_handler		// [2]		get IRQ handler lo-byte
 			sta vic20.os_vars.IRQVECL						// [4]		set IRQ vector lo-byte
 			lda #>f40_interrupt_handlers.irq_handler		// [2]		get IRQ handler hi-byte
@@ -467,6 +442,7 @@ reset_vectors:
 			sta vic20.os_vars.OUTVEC2L						// [4]		set output vector lo-byte
 			lda #>f40_character_output.character_output		// [2]		get character output handler hi-byte
 			sta vic20.os_vars.OUTVEC2H						// [4]		set output vector hi-byte
+
 .if(EnableBRKDebugging)
 {
 			lda #<vic20_debug_handler.brk_handler			// [2]		get debug-assist BRK handler lo-byte
@@ -479,18 +455,6 @@ else
 }
 			sta vic20.os_vars.BRKVECL						// [4]		set BRK vector lo-byte
 			stx vic20.os_vars.BRKVECH						// [4]		set BRK vector hi-byte
-// Fall-through into reset_wedge
-}
-
-
-// Reset BASIC wedge vector
-reset_wedge:
-.pc = * "reset_wedge"
-{
-			lda #<f40_basic_wedge.decode_command			// [2]		get BASIC decode handler lo-byte
-			sta vic20.os_vars.NEWCODEL						// [4]		set decode vector lo-byte
-			lda #>f40_basic_wedge.decode_command			// [2]		get BASIC decode handler hi-byte
-			sta vic20.os_vars.NEWCODEH						// [4]		set decode vector hi-byte
 			rts												// [6]
 }
 
@@ -525,8 +489,13 @@ nokey:		lda f40_runtime_memory.Character_Matrix			// [4]		get first character fr
 
 			// shuffle character and colour matrices 'up' a row
 			ldy #36											// [2]		set character matrix index
-matrixup:	lda f40_runtime_memory.Character_Matrix-16,y	// [4]		get character matrix byte (from #22 onwards)
-			sta f40_runtime_memory.Character_Matrix-36,y	// [5]		set character one row back (to #0 onwards)
+matrixup:	lda f40_runtime_memory.Character_Matrix-16,y	// [4]		get character matrix byte (1st)
+			sta f40_runtime_memory.Character_Matrix-36,y	// [5]		set character one row back
+			lda vic20.colour_ram.COLOUR1-16,y				// [5]		get byte at offset in colour matrix
+			sta vic20.colour_ram.COLOUR1-36,y				// [5]		set byte at offset in colour matrix
+			iny												// [2]		increment index
+			lda f40_runtime_memory.Character_Matrix-16,y	// [4]		get character matrix byte (2nd)
+			sta f40_runtime_memory.Character_Matrix-36,y	// [5]		set character one row back
 			lda vic20.colour_ram.COLOUR1-16,y				// [5]		get byte at offset in colour matrix
 			sta vic20.colour_ram.COLOUR1-36,y				// [5]		set byte at offset in colour matrix
 			iny												// [2]		increment index
@@ -536,22 +505,30 @@ matrixup:	lda f40_runtime_memory.Character_Matrix-16,y	// [4]		get character mat
 			ldy #19											// [2]		set character matrix index
 resetchars:	sty f40_runtime_memory.REGYSAVE					// [3]		stash character matrix index
 			lax (f40_runtime_memory.MATROWL),y				// [5]		get matrix character
-			lda f40_static_data.BITADDRL-16,x				// [4]		get associated bitmap address lo-byte
-			sta f40_runtime_memory.TEMPAL					// [3]		set bitmap draw address lo-byte
-			lda f40_static_data.BITADDRH-16,x				// [4]		get associated bitmap address hi-byte
+			sta f40_runtime_memory.Character_Matrix+220,y	// [5]		store in character matrix
+			lda vic20.os_vars.CURRCOLR						// [4]		get current text colour
+			sta vic20.colour_ram.COLOUR1+220,y				// [5]		set byte at offset in colour matrix
+			txa												// [2]		get matrix character from X
+			lsr												// [2]		shift hi-nybble down
+			lsr												// [2]
+			lsr												// [2]
+			lsr												// [2]
+			tay												// [2]		set hi-byte table index
+			lda f40_static_data.BITADDRH-1,y				// [4]		get bitmap address hi-byte
 			sta f40_runtime_memory.TEMPAH					// [3]		set bitmap draw address hi-byte
+			txa												// [2]		get matrix character from X
+			and #%00001111									// [2]		mask low nybble for table index
+			tay												// [2]		set bitmap lo-byte table index
+			lda f40_static_data.BITADDRL,y					// [4]		get bitmap address lo-byte
+			sta f40_runtime_memory.TEMPAL					// [3]		set bitmap draw address lo-byte
+
 			lda #0											// [2]
 			ldy #15											// [2]		bitmap row index
 zapbitmap:	sta (f40_runtime_memory.TEMPAL),y				// [6]		clear bitmap row byte
 			dey												// [2]		decrement row index
 			bpl zapbitmap									// [3/2]	loop until done
-
-			// set bottom row matrix character and colour
+			
 			ldy f40_runtime_memory.REGYSAVE					// [3]		get character matrix index
-			txa												// [2]		get matrix character
-			sta f40_runtime_memory.Character_Matrix+220,y	// [5]		store in character matrix
-			lda vic20.os_vars.CURRCOLR						// [4]		get current text colour
-			sta vic20.colour_ram.COLOUR1+220,y				// [5]		set byte at offset in colour matrix
 			dey												// [2]		decrement index
 			bpl resetchars									// [3/2]	loop until done
 

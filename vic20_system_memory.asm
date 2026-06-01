@@ -1,5 +1,5 @@
 // VIC-20 system memory labels
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace vic20
 
@@ -560,6 +560,7 @@
     .label BCKIN	= $E11B			//	Set Up For Input
     .label BGETIN	= $E121			//	Get One Character
     .label SYS		= $E127			//	Perform [sys]
+    .label SYS2     = $E12D         //  Second [sys] entry point for custom operands
     .label SAVET	= $E153			//	Perform [save]
     .label VERFYT	= $E162			//	Perform [verify / load]
     .label OPENT	= $E1BB			//	Perform [open]

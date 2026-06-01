@@ -1,5 +1,5 @@
 // FAST-40 runtime RAM labels
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_runtime_memory
 
@@ -26,22 +26,20 @@
 .label TEMPCH	        = $00EC		//	Temporary data/address hi-byte
 .label TEMPDL    	    = $00ED		//	Temporary data/address lo-byte
 .label TEMPDH	        = $00EE		//	Temporary data/address hi-byte
-.label SPAREZP	        = $00EF		//	Spare (3 bytes)
-
-// Page 2 - 95 bytes available at $02A1-$02FF
-.label SPAREP02         = $02A1		//	Spare (19 bytes to 02B3)
-.label LINCNTUF         = $02B4		//	Line-continuation table underflow bytes (2 bytes to $02B5)
-.label LINECONT	        = $02B6		//	Line-continuation table (24 bytes to $02CD)
-.label LINCNTOF         = $02CE		//	Line-continuation table overflow byte (1 byte to $02CE)
-.label TXTBUFUF         = $02CE		//	Text row key sequence underflow bytes (2 bytes to $02CF)
-.label TXTBUFSQ         = $02D0		//	Text row key sequence bytes (24 bytes to $02E7)
-.label TXTBUFOF         = $02E8		//	Text row key sequence overflow byte (1 byte to $02E8)
-.label MERGROUT	        = $02E9		//	Self-modifying bitmap merge routine (22 bytes to $02FE)
-.label Memory_Bitmap    = $02FF     //  b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5-0->RAM bitmap
+.label SYSPARM	        = $00EF		//	SYS interceptor 4th parameter (1 byte)
+.label MEMBITS	        = $00F0		//	b7->PAL/NTSC(1=PAL), b6->JiffyDOS(1=JiffyDOS), b5->write-protect(1=OFF), b4-0->RAM bitmap
+.label SPAREZP	        = $00F1		//	Spare (1 byte)
 
 // 3K BLK0
-.label Text_Buffer	    = $0BC7		//	Text buffer (960 bytes to 0F86)
-.label InsDel_Buffer	= $0F87		//	Insert/Delete buffer (121 bytes to 0FFF)
+.label UNUSEDB0         = $0400     //  Unused BLK0 space (1938 bytes to $0B91)
+.label LINCNTUF         = $0B92		//	Line-continuation table underflow bytes (2 bytes to $0B93)
+.label LINECONT	        = $0B94		//	Line-continuation table (24 bytes to $0BAB)
+.label LINCNTOF         = $0BAC		//	Line-continuation table overflow byte (1 byte to $0BAC)
+.label TXTBUFUF         = $0BAC		//	Text row key sequence underflow bytes (2 bytes to $0BAD)
+.label TXTBUFSQ         = $0BAE		//	Text row key sequence bytes (24 bytes to $0BC5)
+.label TXTBUFOF         = $0BC6		//	Text row key sequence overflow byte (1 byte to $0BC6)
+.label InsDel_Buffer	= $0BC7		//	Insert/Delete buffer (121 bytes to $0C3F)
+.label Text_Buffer	    = $0C40		//	Text buffer (960 bytes to $0FFF)
 
 // Onboard RAM
 .label Character_Matrix	= $1000		//	Screen character matrix is 20x12 double-height chars -> 240 bytes to $10EF

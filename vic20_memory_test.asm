@@ -1,5 +1,5 @@
 // VIC-20 RAM test 
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace vic20_memory_test
 
@@ -157,7 +157,7 @@ nybltest:	sta COLRTEST									// [3]		store pattern at test data location
 			lda #>vic20.os_vars.CASSBUFF					// [2]		get cassette buffer hi-byte
 			sta vic20.os_zpvars.TBUFFSTH					// [3]		set cassette buffer pointer hi-byte
 			lda vic20_memory_test.RAMBITS					// [3]		get RAM population bits
-			sta f40_runtime_memory.Memory_Bitmap			// [4]		stash for use later
+			sta f40_runtime_memory.MEMBITS				// [3]		stash for use later
 
 			// check if called during POST or from somewhere else
 			ldx vic20_memory_test.STACKPTR					// [3]		get stashed .SP

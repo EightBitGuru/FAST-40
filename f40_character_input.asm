@@ -1,5 +1,5 @@
 // FAST-40 CHRIN vector handler
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_character_input
 
@@ -40,6 +40,11 @@ waitkey:	lda vic20.os_zpvars.KEYCOUNT					// [3]		get keyboard buffer character 
 			cmp #vic20.screencodes.SHIFTRUN					// [2]		check for key
 			bne checkcr 									// [3/2]	go check for [CR] if not
 
+			// check if write-protect is disabled
+			lda f40_runtime_memory.MEMBITS			// [3]		get bitmap byte
+			and #%00100000									// [2]		test bit 5 (BLK5 bit not used by FAST-40)
+			beq dosrs 										// [2/3]	skip write-protect test if b5 clear
+
 			// check if program in memory
 			lda vic20.os_vars.BASICL						// [4]		get Start-of-BASIC lo-byte
 			sta f40_runtime_memory.TEMPAL 					// [3]		stash for lookup
@@ -55,17 +60,17 @@ waitkey:	lda vic20.os_zpvars.KEYCOUNT					// [3]		get keyboard buffer character 
 
 			// handle [SHIFT]+[RUN/STOP]
 dosrs:		sei												// [2]		disable IRQ whilst we stuff the buffer
-			ldx #8											// [2]		command data length
- 			stx vic20.os_zpvars.KEYCOUNT					// [3]		set keyboard buffer character count
-loadloop:	lda f40_static_data.SRSLOAD-1,x					// [4]		get LOAD"$*",8 bytes
-			sta vic20.os_vars.KEYBUFF-1,x					// [5]		inject into keyboard buffer
-			dex												// [2]		decrement index
+			ldy #8											// [2]		command data length
+ 			sty vic20.os_zpvars.KEYCOUNT					// [3]		set keyboard buffer character count
+loadloop:	lda f40_static_data.SRSLOAD-1,y					// [4]		get LOAD"$",8 bytes
+			sta vic20.os_vars.KEYBUFF-1,y					// [5]		inject into keyboard buffer
+			dey												// [2]		decrement index
 			bne loadloop									// [3/2]	loop for next character
-			bit f40_runtime_memory.Memory_Bitmap 			// [4]		get b6 for JiffyDOS
+			bit f40_runtime_memory.MEMBITS			// [3]		get b6 for JiffyDOS
 			bvc waitkey										// [3/2]	execute if JiffyDOS not present
 			lda #'*'										// [2]		overwrite '$' with '*'
 			sta vic20.os_vars.KEYBUFF+3						// [4]		inject into keyboard buffer
-			beq waitkey										// [3/3]	execute
+			bne waitkey										// [3/3]	execute
 
 			// check for [CR] and output character if not
 checkcr:	cmp #vic20.screencodes.CR						// [2]		check for [CR]
@@ -124,24 +129,52 @@ flipquote:	jsr vic20.kernal.FLIPQUOT						// [6]		toggle quote-mode flag if char
 lineend:	lda #vic20.screencodes.CR						// [2]		character is [CR]
 			sta vic20.os_zpvars.CHARBYTE					// [3]		save character
 			ldx #vic20.devices.KEYBOARD						// [2]		input is keyboard
-			stx vic20.os_zpvars.INPUTSRC					// [4]		set input source
+			stx vic20.os_zpvars.INPUTSRC					// [3]		set input source
 			ldx vic20.os_zpvars.DEVIN						// [3]		get input device
 			cpx #vic20.devices.SCREEN						// [2]		is it the screen?
 			beq retchar										// [2/3]	return the character if so
 			ldx vic20.os_zpvars.DEVOUT						// [3]		get output device
 			cpx #vic20.devices.SCREEN						// [2]		is it the screen?
-			beq exit										// [3/2]	skip output
+			beq notpi										// [3/2]	skip output and [PI] check
 
 			// return character, fixing [PI] if required
 retchar:	jsr f40_character_output.character_output		// [6]		output character
-exit:		pla												// [4]		get .Y and .X back from Stack
+exit:		cmp #vic20.screencodes.PICHAR					// [2]		test for [PI] character
+			bne notpi										// [3/2]	skip remap if not [PI]
+			lda #vic20.screencodes.PITOKEN					// [2]		remap to alternate [PI] token code
+			sta vic20.os_zpvars.CHARBYTE					// [3]		update saved character
+notpi:		pla												// [4]		get .Y and .X back from Stack
 			tay												// [2]
 			pla												// [4]
 			tax												// [2]
 			lda vic20.os_zpvars.CHARBYTE					// [3]		get saved character
-			cmp #vic20.screencodes.PICHAR					// [2]		test for [PI] character
-			bne notpi										// [3/2]	skip to exit if not
-			lda #vic20.screencodes.PITOKEN					// [2]		reset for alternate [PI] token code
-notpi:		clc												// [2]		clear Carry (error flag)
+			clc												// [2]		clear Carry (error flag)
 			rts												// [6]
+}
+
+
+// Reload VIC vectors
+reload_vectors:
+.pc = * "reload_vectors"
+{
+			ldx #47											// [2]		vector byte count
+getbyte:	lda f40_static_data.V1CNTSC,x					// [4]		get vector byte
+			dex												// [2]		decrement for next byte
+			stx f40_runtime_memory.TEMPAL					// [3]		stash .X for later
+			sbc #64											// [2]		subtract offset
+			sbc f40_runtime_memory.TEMPAL					// [3]		subtract index
+			sta vic20.vectors.KVECBUFF,x					// [5]		stash for reload
+			lda f40_static_data.V1CNTSC,x					// [4]		get vector byte
+			inx												// [2]		increment for previous byte
+			stx f40_runtime_memory.TEMPAL					// [3]		stash .X for later
+			sbc #64											// [2]		subtract offset
+			sbc f40_runtime_memory.TEMPAL					// [3]		subtract index
+			sta vic20.vectors.KVECBUFF,x					// [5]		stash for reload
+			dex												// [2]		decrement for extra byte
+			dex												// [2]
+			bpl getbyte										// [3/2]	loop until done
+			lda #<vic20.vectors.KVECBUFF					// [2]		pointer to interrupt reload vector lo-byte
+			ldy #>vic20.vectors.KVECBUFF					// [2]		pointer to interrupt reload vector hi-byte
+			jsr vic20.vectors.KVECLOAD						// [6]		load vectors
+			jmp vic20.basic.NEWSTT							// [3]		BASIC warm-start
 }

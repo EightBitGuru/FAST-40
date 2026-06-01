@@ -1,5 +1,5 @@
 // FAST-40 IRQ/NMI routines
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_interrupt_handlers
 
@@ -54,14 +54,11 @@ loop:		lda (f40_runtime_memory.CRSRBITL),y				// [5]		get bitmap byte
 nmi_handler:
 .pc = * "nmi_handler"
 {
-			bit f40_runtime_memory.Memory_Bitmap-1			// [4]		test last byte of MERGROUT (set when FAST-40 is active)
-			bpl stocknmi									// [2/3]	if b7 not set then FAST-40 is not active so do stock NMI
 			bit vic20.via1.V1PORTAO 						// [3]		tickle VIA1 Port A to acknowledge NMI
 			jsr vic20.kernal.UDTIM							// [6]		update clock ($F734)
 			jsr vic20.kernal.CHKSTOP 						// [6]		check if [RUN/STOP] pressed
 			beq brk_handler									// [2/3]	handle RS/RESTORE if so
 			jmp vic20.kernal.INTEXIT						// [3]		jump to stock NMI exit
-stocknmi:	jmp vic20.kernal.NMINOA0						// [3]		jump to stock NMI handler (no cartridge)
 }
 
 

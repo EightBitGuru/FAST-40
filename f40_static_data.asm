@@ -1,74 +1,69 @@
 // FAST-40 ROM data structures
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_static_data
 
-RAMCODE:
-.pc = * "RAMCODE"		// 22-byte self-modifying bitmap merge routine (copied to RAM at runtime) [AY]
-.pseudopc f40_runtime_memory.MERGROUT						// Assemble for target RAM address
-{
-loop:		lda $FFFF,y										// [4]		get character glyph data byte
-			and f40_runtime_memory.CRSRMASK					// [3]		apply character mask
-			sta mergebit+1									// [4]		modify character/bitmap merge byte
-			lda (f40_runtime_memory.CRSRBITL),y				// [5]		indirect get bitmap byte
-			and #$FF										// [3]		apply screen bitmap mask
-mergebit:	ora #$FF										// [2]		merge glyph byte with bitmap byte
-			sta (f40_runtime_memory.CRSRBITL),y				// [6]		indirect set bitmap byte
-			dey												// [2]		decrement glyph byte counter
-			bpl loop										// [3/2]	loop for next glyph byte
-			jmp f40_character_output.line_continuation		// [3]		jump to line continuation logic
-}
-.label RAMCODE_LENGTH = *-RAMCODE-1							// Length of self-modifying routine
+LINELEN:				// Maximum line length for each line in a continuation group
+.pc = * "LINELEN"		// Zero-based logical line lengths (3 bytes)
+.byte 39,39,7
 
-CONCODEC:
-.pc = * "CONCODEC"		// CHROUT control character codes (sorted in ascending likely-usage-frequency order)
-.byte vic20.screencodes.NULL,vic20.screencodes.F1,vic20.screencodes.F2,vic20.screencodes.F3
-.byte vic20.screencodes.F4,vic20.screencodes.F5,vic20.screencodes.F6,vic20.screencodes.F7
-.byte vic20.screencodes.F8,vic20.screencodes.RUNSTOP,vic20.screencodes.LF,vic20.screencodes.CBMOFF
-.byte vic20.screencodes.CBMON,vic20.screencodes.SHIFTCR,vic20.screencodes.CRSRHOME,vic20.screencodes.UCASE
-.byte vic20.screencodes.LCASE,vic20.screencodes.RVSOFF,vic20.screencodes.RVSON,vic20.screencodes.RED
-.byte vic20.screencodes.WHITE,vic20.screencodes.PURPLE,vic20.screencodes.YELLOW,vic20.screencodes.CYAN
-.byte vic20.screencodes.BLACK,vic20.screencodes.GREEN,vic20.screencodes.BLUE,vic20.screencodes.INSERT
-.byte vic20.screencodes.CLRSCRN,vic20.screencodes.CRSRDOWN,vic20.screencodes.CRSRLEFT,vic20.screencodes.CRSRRGHT
-.byte vic20.screencodes.CRSRUP,vic20.screencodes.DELETE,vic20.screencodes.CR
+CROWOFFS:				// Character row offsets
+.pc = * "CROWOFFS"		// Character row offsets (13 bytes)
+.byte 0,20,40,60,80,100,120,140,160,180,200,220,240
 
-CONCODEL:
-.pc = * "CONCODEL"		// CHROUT control character handler address lo-bytes (all hi-bytes are the same)
-.var concode_lo_bytes = List().add(
-	<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,
-	<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,
-	<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.shift_cbm,
-	<f40_controlcode_handlers.shift_cbm,<f40_controlcode_handlers.carriage_return,<f40_controlcode_handlers.cursor_home,<f40_controlcode_handlers.switch_case,
-	<f40_controlcode_handlers.switch_case,<f40_controlcode_handlers.rvs_mode,<f40_controlcode_handlers.rvs_mode,<f40_controlcode_handlers.set_colour_byte,
-	<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,
-	<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.insert,
-	<f40_controlcode_handlers.clear_screen,<f40_controlcode_handlers.cursor_down,<f40_controlcode_handlers.cursor_left,<f40_controlcode_handlers.cursor_right,
-	<f40_controlcode_handlers.cursor_up,<f40_controlcode_handlers.delete,<f40_controlcode_handlers.carriage_return
-)
-.for(var i=0;i<concode_lo_bytes.size();i++)
-{
-	.byte concode_lo_bytes.get(i)-1		// Subtract 1 for RTS offset
-}
+VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
+.pc = * "VICPAL"		// VIC register values (2 bytes)
+.byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
+.byte %00100100			// $9001 - b7-0 = screen y-pos
 
-TROWADD:
-.pc = * "TROWADD"		// Text row address hi/lo bytes
-TROWADDR:
-.lohifill 24,f40_runtime_memory.Text_Buffer+(40*i)
+BLNKTIME:				// Cursor blink timers
+.pc = * "BLNKTIME"		// Cursor phase on/off timer values (2 bytes)
+.byte 19,13
 
 SRSLOAD:				// SHIFT+RUNSTOP bytes for LOAD"$*",8
 .pc = * "SRSLOAD"		// Command text (8 bytes)
 .byte 'L','O'+64		// LOAD
 .text @"\"$\",8\$0d"	// "$",8 [CR]
 
-WEDGECMD:				// BASIC wedge command
-.pc = * "WEDGECMD"		// Command text (5 bytes)
-.text "RESET"
+VECLOAD:				// SYS interface entrypoints
+.pc = $A025 "VECLOAD"
+			jmp f40_sys_trap.vector_reload					// [3]		40997 - handler for vector reload
+JUMPTAB:
+.pc = * "JUMPTAB"
+			jmp f40_sys_trap.write_protect					// [3]		41000 - handler for write-protect flag
+			jmp f40_sys_trap.plot_pixel						// [3]		41003 - handler for PLOT
+			jmp f40_sys_trap.poke_character					// [3]		41006 - handler for POKECHAR
 
-BLNKTIME:				// Cursor blink timers
-.pc = * "BLNKTIME"		// Cursor phase on/off timer values (2 bytes)
-.byte 19,13
+CONCODEL:
+.pc = * "CONCODEL"		// CHROUT control character handler address lo-bytes (all hi-bytes are the same)
+.byte <f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code
+.byte <f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code
+.byte <f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.inactive_code,<f40_controlcode_handlers.shift_cbm
+.byte <f40_controlcode_handlers.shift_cbm,<f40_controlcode_handlers.carriage_return,<f40_controlcode_handlers.cursor_home,<f40_controlcode_handlers.switch_case
+.byte <f40_controlcode_handlers.switch_case,<f40_controlcode_handlers.rvs_mode,<f40_controlcode_handlers.rvs_mode,<f40_controlcode_handlers.set_colour_byte
+.byte <f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte
+.byte <f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.set_colour_byte,<f40_controlcode_handlers.insert
+.byte <f40_controlcode_handlers.clear_screen,<f40_controlcode_handlers.cursor_down,<f40_controlcode_handlers.cursor_left,<f40_controlcode_handlers.cursor_right
+.byte <f40_controlcode_handlers.cursor_up,<f40_controlcode_handlers.delete,<f40_controlcode_handlers.carriage_return
 
-.fill 37,$aa 			// Spare bytes
+CODEIDXL:
+.pc = * "CODEIDXL"		// CHROUT low-range ($00-$1F) -> CONCODEL index ($FF = not a control code)
+.byte $00,$FF,$FF,$09,$FF,$14,$FF,$FF,$0B,$0C,$0A,$FF,$FF,$22,$10,$FF	// $00=NULL,$03=RUNSTOP,$05=WHITE,$08=CBMOFF,$09=CBMON,$0A=LF,$0D=CR,$0E=LCASE
+.byte $FF,$1D,$12,$0E,$21,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$13,$1F,$19,$1A	// $11=CRSRDOWN,$12=RVSON,$13=CRSRHOME,$14=DELETE,$1C=RED,$1D=CRSRRGHT,$1E=GREEN,$1F=BLUE
+
+CODEIDXH:
+.pc = * "CODEIDXH"		// CHROUT high-range ($85-$9F, indexed by char & $1F) -> CONCODEL index ($FF = not a control code)
+.byte $FF,$FF,$FF,$FF,$FF,$01,$03,$05,$07,$02,$04,$06,$08,$0D,$0F,$FF	// $85=F1,$86=F3,$87=F5,$88=F7,$89=F2,$8A=F4,$8B=F6,$8C=F8,$8D=SHIFTCR,$8E=UCASE
+.byte $18,$20,$11,$1C,$1B,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$15,$1E,$16,$17	// $90=BLACK,$91=CRSRUP,$92=RVSOFF,$93=CLRSCRN,$94=INSERT,$9C=PURPLE,$9D=CRSRLEFT,$9E=YELLOW,$9F=CYAN
+
+TROWADD:
+.pc = * "TROWADD"		// Text row address hi/lo bytes
+TROWADDR:
+.lohifill 24,f40_runtime_memory.Text_Buffer+(40*i)
+
+JIFFYID:				// JiffyDOS identifier
+.pc = * "JIFFYID"		// Identifier string (5 bytes)
+.text "JIFFY"
 
 IDMSG1:					// FAST-40 startup banner
 .pc = * "IDMSG1"		// Startup banner message
@@ -78,32 +73,99 @@ IDMSG2:
 .byte vic20.screencodes.CR
 IDMSG3:					// Must be followed by NULL (zero)
 .byte vic20.screencodes.RED
-.text @"FAST-40 1.3 (C) 2025 8BG\$0d\$0d"
+.text @"FAST-40 1.4 (C) 2026 8BG\$0d\$0d"
+
+// -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
+
+LINEADD:				// Line length additions for each line in a continuation group
+.pc = * "LINEADD"		// Zero-based line additions (4 bytes)
+.byte 0,40,80,120
+
+LINESUM:				// Line length (summed) for each line in a continuation group
+.pc = * "LINESUM"		// Zero-based line length sums (3 bytes)
+.byte 39,79,87
+
+IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
+.pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
+.byte <f40_runtime_memory.InsDel_Buffer
+.byte <f40_runtime_memory.InsDel_Buffer+40
+.byte <f40_runtime_memory.InsDel_Buffer+80
+
+BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
+.pc = * "BITADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
+.byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
+
+BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
+.pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
+.fill 16,>[f40_runtime_memory.Screen_Bitmap+(256*i)]	// $00 - $0F plus Screen_Bitmap start address hi-byte
+
+ROWOFFS:				// Bitmap address row offsets
+.pc = * "ROWOFFS"		// Zero-based row offsets (24 bytes)
+.fill 12,[0,8]
+
+COLOFFS:				// Bitmap address column offsets
+.pc = * "COLOFFS"		// Zero-based column offsets (40 bytes)
+.fill 20,[%11110000,%00001111]
+
+PLOTMASK:				// Pixel plot bit mask table
+.pc = * "PLOTMASK"		// Pixel bit mask by column offset (8 bytes)
+.byte $80,$40,$20,$10,$08,$04,$02,$01
+
+V1CNTSC:				// VIC vector defaults (48 bytes)
+.word $5269
+.word $856C
+.word $6477
+.word $7679
+.word $7E69
+.word $6A98
+.word $8D9F
+.word $996F
+.word $9AA0
+.word $9AA1
+.word $A7A4
+.word $A464
+.word $6A79
+.word $7A7B
+.word $7C7D
+.word $8697
+.word $8DA3
+.word $ABB7
+.word $84AC
+.word $BBB9
+.word $BD92
+.word $8A8B
+.word $8C8D
+.word $8E6F
+V1CPAL:
+
+SCRROWS:				// Last screen row index
+.pc = * "SCRROWS"		// Zero-based last row (1 byte)
+.byte f40_runtime_constants.SCREEN_ROWS
+
+.fill 93,$AA
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256
-BITADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
-.pc = * "BITADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
-.for(var x=0;x<15;x++)
-{
-	.for(var y=0;y<256;y+=16)
-	{
-		.byte y			// 16 * $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
-	}
-}
-// An alternate approach for smaller bitmap address lookup tables
-// B2TADDRL:				// Character -> Screen_Bitmap 8x16 character address lo-bytes
-// .pc = * "B2TADDRL"		// Character -> Screen_Bitmap 8x16 character address lo-byte table
-// .byte $00,$10,$20,$30,$40,$50,$60,$70,$80,$90,$A0,$B0,$C0,$D0,$E0,$F0
-// B2TADDRH:
-// .pc = * "B2TADDRH"
-// .fill 16, >[f40_runtime_memory.Screen_Bitmap+(256*(i-1))]	// $00 - $0F plus Screen_Bitmap start address hi-byte
+MATDATA:				// Character matrix data for 20x12 (40x24) screen
+.pc = * "MATDATA"		// Character code bytes (240 bytes)
+.byte $10,$1C,$28,$34,$40,$4C,$58,$64,$70,$7C,$88,$94,$A0,$AC,$B8,$C4,$D0,$DC,$E8,$F4
+.byte $11,$1D,$29,$35,$41,$4D,$59,$65,$71,$7D,$89,$95,$A1,$AD,$B9,$C5,$D1,$DD,$E9,$F5
+.byte $12,$1E,$2A,$36,$42,$4E,$5A,$66,$72,$7E,$8A,$96,$A2,$AE,$BA,$C6,$D2,$DE,$EA,$F6
+.byte $13,$1F,$2B,$37,$43,$4F,$5B,$67,$73,$7F,$8B,$97,$A3,$AF,$BB,$C7,$D3,$DF,$EB,$F7
+.byte $14,$20,$2C,$38,$44,$50,$5C,$68,$74,$80,$8C,$98,$A4,$B0,$BC,$C8,$D4,$E0,$EC,$F8
+.byte $15,$21,$2D,$39,$45,$51,$5D,$69,$75,$81,$8D,$99,$A5,$B1,$BD,$C9,$D5,$E1,$ED,$F9
+.byte $16,$22,$2E,$3A,$46,$52,$5E,$6A,$76,$82,$8E,$9A,$A6,$B2,$BE,$CA,$D6,$E2,$EE,$FA
+.byte $17,$23,$2F,$3B,$47,$53,$5F,$6B,$77,$83,$8F,$9B,$A7,$B3,$BF,$CB,$D7,$E3,$EF,$FB
+.byte $18,$24,$30,$3C,$48,$54,$60,$6C,$78,$84,$90,$9C,$A8,$B4,$C0,$CC,$D8,$E4,$F0,$FC
+.byte $19,$25,$31,$3D,$49,$55,$61,$6D,$79,$85,$91,$9D,$A9,$B5,$C1,$CD,$D9,$E5,$F1,$FD
+.byte $1A,$26,$32,$3E,$4A,$56,$62,$6E,$7A,$86,$92,$9E,$AA,$B6,$C2,$CE,$DA,$E6,$F2,$FE
+.byte $1B,$27,$33,$3F,$4B,$57,$63,$6F,$7B,$87,$93,$9F,$AB,$B7,$C3,$CF,$DB,$E7,$F3,$FF
 
 // Primary Screen Matrix is 20x12 chars  ->  240 bytes at $1000-$10EF (double-height chars)
 // Primary Colour Matrix is 20x12 chars  ->  240 bytes at $9600-$96EF (double-height chars)
 // Primary Screen Screen_Bitmap is 160x192 bits -> 3840 bytes at $1100-$1FFF
-VICNTSC:				// 6560 (NTSC) VIC initialisation data
+VICNTSC:				// 6560 (NTSC) VIC initialisation data (16 bytes)
 .pc = * "VICNTSC"		// VIC register values
 .byte %00000111			// $9000 - b7 = interlace; b6-0 = screen x-pos
 .byte %00011001			// $9001 - b7-0 = screen y-pos
@@ -125,72 +187,9 @@ VICNTSC:				// 6560 (NTSC) VIC initialisation data
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
 .align 256
-BITADDRH:				// Character -> Screen_Bitmap 8x16 character address hi-bytes
-.pc = * "BITADDRH"		// Character -> Screen_Bitmap 8x16 character address hi-byte table
-.for(var x=0;x<15;x++)
-{
-	.for(var y=0;y<16;y++)
-	{
-		.byte [>f40_runtime_memory.Screen_Bitmap]+x	// 16 * $00, 16 * $01, ... 16 * $0F [plus Screen_Bitmap start address hi-byte]
-	}
-}
-
-CROWOFFS:				// Character row offsets
-.pc = * "CROWOFFS"		// Character row offsets (13 bytes)
-.byte 0,20,40,60,80,100,120,140,160,180,200,220,240
-
-IDBUFFLO:				// InsDel buffer row start offset address lo-bytes
-.pc = * "IDBUFFLO"		// Address lo-bytes (3 bytes)
-.byte <f40_runtime_memory.InsDel_Buffer
-.byte <f40_runtime_memory.InsDel_Buffer+40
-.byte <f40_runtime_memory.InsDel_Buffer+80
-
-// -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
-
-.align 256
-MATDATA:				// Character matrix data for 20x12 (40x24) screen
-.pc = * "MATDATA"		// Character code bytes (240 bytes)
-.byte $10,$1C,$28,$34,$40,$4C,$58,$64,$70,$7C,$88,$94,$A0,$AC,$B8,$C4,$D0,$DC,$E8,$F4
-.byte $11,$1D,$29,$35,$41,$4D,$59,$65,$71,$7D,$89,$95,$A1,$AD,$B9,$C5,$D1,$DD,$E9,$F5
-.byte $12,$1E,$2A,$36,$42,$4E,$5A,$66,$72,$7E,$8A,$96,$A2,$AE,$BA,$C6,$D2,$DE,$EA,$F6
-.byte $13,$1F,$2B,$37,$43,$4F,$5B,$67,$73,$7F,$8B,$97,$A3,$AF,$BB,$C7,$D3,$DF,$EB,$F7
-.byte $14,$20,$2C,$38,$44,$50,$5C,$68,$74,$80,$8C,$98,$A4,$B0,$BC,$C8,$D4,$E0,$EC,$F8
-.byte $15,$21,$2D,$39,$45,$51,$5D,$69,$75,$81,$8D,$99,$A5,$B1,$BD,$C9,$D5,$E1,$ED,$F9
-.byte $16,$22,$2E,$3A,$46,$52,$5E,$6A,$76,$82,$8E,$9A,$A6,$B2,$BE,$CA,$D6,$E2,$EE,$FA
-.byte $17,$23,$2F,$3B,$47,$53,$5F,$6B,$77,$83,$8F,$9B,$A7,$B3,$BF,$CB,$D7,$E3,$EF,$FB
-.byte $18,$24,$30,$3C,$48,$54,$60,$6C,$78,$84,$90,$9C,$A8,$B4,$C0,$CC,$D8,$E4,$F0,$FC
-.byte $19,$25,$31,$3D,$49,$55,$61,$6D,$79,$85,$91,$9D,$A9,$B5,$C1,$CD,$D9,$E5,$F1,$FD
-.byte $1A,$26,$32,$3E,$4A,$56,$62,$6E,$7A,$86,$92,$9E,$AA,$B6,$C2,$CE,$DA,$E6,$F2,$FE
-.byte $1B,$27,$33,$3F,$4B,$57,$63,$6F,$7B,$87,$93,$9F,$AB,$B7,$C3,$CF,$DB,$E7,$F3,$FF
-
-LINELEN:				// Maximum line length for each line in a continuation group
-.pc = * "LINELEN"		// Zero-based logical line lengths (3 bytes)
-.byte 39,39,7
-
-LINESUM:				// Line length (summed) for each line in a continuation group
-.pc = * "LINESUM"		// Zero-based line length sums (3 bytes)
-.byte 39,79,87
-
-LINEADD:				// Line length additions for each line in a continuation group
-.pc = * "LINEADD"		// Zero-based line additions (4 bytes)
-.byte 0,40,80,120
-
-VICPAL:					// 6561 (PAL) VIC initialisation data (differences from NTSC values)
-.pc = * "VICPAL"		// VIC register values (2 bytes)
-.byte %00001110			// $9000 - b7 = interlace; b6-0 = screen x-pos
-.byte %00100100			// $9001 - b7-0 = screen y-pos
-
-JIFFYID:				// JiffyDOS identifier
-.pc = * "JIFFYID"		// Identifier string (4 bytes)
-.text "JIFF"
-
-// -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
-
-.align 256
 GLYPHADD:				// Character glyph pixel address data
 .pc = * "GLYPHADD"
 GLPHADDR:
 .lohifill 256,CHARDATA+(8*i)		// Glyph pixel address lo/hi-bytes
-// TODO: might be able to optimise this as:
-//		the lo-byte pattern is 8 rows of 32 bytes, 00-f8, in 8-byte steps (so a fill formula will probably work)
-//  	the hi-byte pattern is 8 rows of 32 bytes, b0-b7 (so we might be able to determine the value in code somehow and eliminate 256 bytes)
+
+// --------------------------------------------------------------------------------------------------------

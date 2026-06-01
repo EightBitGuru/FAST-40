@@ -1,12 +1,14 @@
 # <div><div>FAST-40</div><div>Copyright © 2025 [8-Bit Guru](mailto:the8bitguru@gmail.com)</div></div>
 
-FAST-40 is a utility program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language and requires a 3K RAM expansion.
+FAST-40 is a utility program for the Commodore VIC-20 which reconfigures the stock 22x23 text screen to display a denser 40x24 mode. It is written entirely in 6502 assembly language, ships as an 8K cartridge (and loadable program) and requires a 3K RAM expansion for runtime workspace plus at least an 8K RAM expansion for user programs.
 
 No video hardware modification is required.
 
-Earlier 40-column programs typically suffered from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed from the start to render an artifact-free 40x24 text mode whilst faithfully reproducing standard screen-editor functionality, with performance intended to be comparable to (or better than) the native 22x23 display.
+Earlier 40-column programs typically suffered from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed to render an artifact-free 40x24 text mode whilst faithfully reproducing standard screen-editor functionality, with performance intended to be comparable to (or better than) the native 22x23 display.
 
-FAST-40 works equally well on real VIC-20 hardware or under emulation - it can be attached as an auto-start cartridge in VICE, LOADed as a program into BLK5 (if configured as RAM) and run manually, or burned/flashed/uploaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
+Raw text output performance averages at 49% faster per character than the vanilla hardware-assisted ROM routines, and spikes to higher rates under long-line workloads.
+
+FAST-40 works equally well on real VIC-20 hardware or under emulation - it can be attached as an auto-start cartridge in VICE, LOADed as a program (when BLK5 is configured as RAM) or burned/flashed/uploaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
 
 Both PAL and NTSC video standards are supported.
 
@@ -32,7 +34,7 @@ If you're familar with [VICE](https://vice-emu.sourceforge.io/) and just want to
 
     * FAST-40 built as an autostart cartridge (fast40.bin)
     * FAST-40 built as a LOADable program     (fast40.prg)
-    * a disk image (fast40.d64) containing the program build, a simple performance-comparison program written in BASIC, and a copy of the BASIC adventure game CITADEL adjusted for a 40-column display
+    * a disk image (fast40.d64) containing the program build, a simple performance-comparison program written in BASIC, and a copy of the BASIC adventure game CITADEL adjusted for a 40-column display.
 
 * invoke ***xvic*** with **xvic.exe -memory all -cartA fast40.bin**
 
@@ -80,26 +82,49 @@ Consult the VICE documentation for full details regarding commandline options as
 
 FAST-40 supports all VIC-20 character glyphs and control characters, including those for cursor positioning, colour selection, reverse-mode, etc. The VIC-20 keyboard does not emit visible characters for the SHIFT/C= key combination (which performs the toggle between upper-case and lower-case character sets) but these non-printing characters do exist and are supported.
 
-Unlike the stock VIC-20, FAST-40 allows both upper- and lower-case graphics charactersets to be displayed simultaneously.
+## Enhancements
 
-Performance tests yield a character output rate superior to the native 22x23 mode - ranging between 7% to 40% faster, depending on the workload complexity.
+FAST-40 character output performance is universally better than the stock VIC-20 - it generates characters in 40x24 mode an avergae of 49% faster than the native 22x23 mode.
 
-### Memory Requirements
+The stock VIC-20 applies the SHIFT/C= characterset switch to the whole screen, meaning it is not possible to display glyphs from both upper-case and lower-case charactersets at the same time. FAST-40 does not have this limitation - characters from both sets can be displayed simultaneously.
 
-The FAST-40 program occupies the BLK5 ($A000-$BFFF) ROM/RAM area and uses areas of pages zero and two as working storage. Additionally all of the 4K unexpanded RAM area is needed for video display reconfiguration, and the text buffer is placed in the 3K expansion RAM area in BLK0. Slightly less than 2K of this block is left free for BASIC ($0400-$0AFF).
+FAST-40 adds an optional 'write-protect' mechanism which will prevent overwriting of a BASIC program if SHIFT/RUNSTOP is accidentally triggered; in tape-based systems the user has ample time to cancel the action before any new program is found and loaded, but disk-based systems are likely to action the LOAD much more quickly.
 
-If 8K (or 16K or 24K) expansion RAM is also present in BLK1/2/3 then FAST-40 will make these blocks entirely available for BASIC and the 'lost' memory in BLK0 remains available for machine-code programs.
+### Direct-to-Screen Character Write
 
-### New RESET Command
+It is possible to write directly to the text screen without going through the CHAROUT vector (i.e. PRINT) in the style of the conventional memory-mapped screen. However, since FAST-40 uses a dynamically-updated lookup table to determine which line of the text buffer corresponds to each physical screen line, the text matrix is simply referenced by X/Y coordinates starting at 0,0 (top-left).
 
-FAST-40 provides a new BASIC command to easily reset the system and switch between memory configurations without having to swap cartridges. **Note that memory is cleared during a system reset.**
+The format of the SYS command to 'POKE' to the character matrix is:
 
-    RESET [0|3|8]   Switch to specified video/memory configuration
-    
-        RESET		Switch to 40x24 3K/8K+ mode
-        RESET 0		Switch to 22x23 unexpanded mode
-        RESET 3		Switch to 22x23 3K mode
-        RESET 8		Switch to 22x23 8K+ mode (if RAM is present in BLK1/2/3)
+    SYS 41006,COLUMN,ROW,CHARACTER,COLOUR
+
+To set the first (top-left) character to the 'A' character in black:
+
+    SYS 41006,0,0,1,0
+
+To set the last (bottom-right) character to the 'Z' character in red:
+
+    SYS 41006,39,23,26,2
+
+### Hi-Resolution Pixel Plot/Unplot
+
+Since the 40-column screen is mapped over a 160x192 bitmap, FAST-40 allows pixel plotting to that bitmap alongside the core text-presentation functionality.
+
+The format of the SYS command to 'PLOT' to the hi-res boitmap is:
+
+    SYS 41003,COLUMN,ROW,COLOUR
+
+To set the first (top-left) pixel to a black dot:
+
+    SYS 41003,0,0,0
+
+To set the last (bottom-right) pixel to a red dot:
+
+    SYS 41003,159,191,2
+
+To clear a pixel without changing the colour of the surrounding pixels:
+
+    SYS 41003,159,191,255
 
 ### SHIFT/RUNSTOP Keypress Behaviour
 
@@ -109,11 +134,11 @@ FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands t
 * If JiffyDOS is _not_ present, the sequence `LOAD"$",8` is executed to read the directory of the disk
 * If JiffyDOS _is_ present (featuring the preferred `@$` command to view the directory) the sequence `LOAD"*",8` is executed to load the first program on the disk
 
-### SHIFT/C= Keypress Behaviour
+A write-protect function is available which checks BASIC memory and triggers a **?LOAD ERROR** if a program is already present. This check is disabled by default (when FAST-40 starts or after a RESET) to preserve stock functionality and prevent interference with chain-loading of multi-part programs. When enabled, an explicit LOAD or NEW must be executed to overide the check.
 
-On a stock VIC-20 the SHIFT/C= key combination (or programmatic equivalent) causes the VIC to switch between two charactersets stored in ROM at $8000 and $8800. The first set contains upper-case letters and a wide selection of PETSCII graphics characters, whereas the second contains both upper- and lower-case letters and a smaller choice of PETSCII characters. Switching charactersets instantly affects all visible characters on the screen, not just those which are displayed after the switch occurs.
+To enable or disable the write-protect check, issue this command either directly or in your programs:
 
-The initial FAST-40 release took pains to reproduce this behaviour, ensuring that the entire screen was refreshed whenever a characterset switch occurred. However since characterset switches typically happen before any characters are output (rarely being useful otherwise) the engineering overhead to drive the refresh and the associated rendering throughput performance impact was largely suboptimal. The refresh feature was therefore dropped in later releases.
+    SYS 41000,X     [ X=non-zero to enable, X=zero or omitted to disable]
 
 ### System Reconfiguration
 
@@ -121,12 +146,11 @@ FAST-40 makes changes to numerous memory areas, VIC registers, and system vector
 
 Memory areas:
 
-    $0003-$0004     Not normally used by BASIC/KERNAL.     [only used if BRK debugging is enabled on build]
-    $00D9-$00F1     Normally used as the BASIC screen editor line-link table.
-    $02A1-$02FF     Not normally used by BASIC/KERNAL.
-    $0B00-$0FFF     Top of 3K RAM expansion (BLK0).
-    $1000-$1FFF     Normally used as the unexpanded screen and RAM area.
-    $9400-$95FF     Normally used as colour memory when RAM is in BLK1/2/3.
+    $0003-$0004     Used if BRK debugging is enabled at build time
+    $00D9-$00F1     Working storage (Zero Page)
+    $0B92-$0FFF     Text buffers (3K expansion RAM area)
+    $1000-$1FFF     Hi-res screen matrix (4K onboard RAM area)
+    $9400-$95FF     Lo-res colour matrix
 
 VIC registers:
 
@@ -157,6 +181,8 @@ The VIC-20 has no memory protection hardware and therefore FAST-40 cannot 'lock'
 
 * Limitations in the VIC design mean there is no way to preserve the usual 1:1 relationship between individual text-mode characters and their respective colour attributes when in 40x24 mode. All text colours are supported but they operate on 2x2 blocks of characters; in other words, the colour resolution is half that of the text resolution and colour layout should therefore be planned accordingly to avoid attribute clash.
 
+* FAST-40 needs just over 1K of the 3K expansion RAM area in BLK0, and reserves addresses $0B92-$0FFF for various text buffers. Consequently 1938 bytes from $0400-$0B91 is available for user programms, though not directly available to BASIC.
+
 ### Accidental Breakage
 
 In the event that a program inadvertantly 'breaks' FAST-40 by overwriting something it depends upon to generate the 40x24 mode, recovery can be achieved in the following ways:
@@ -165,17 +191,14 @@ In the event that a program inadvertantly 'breaks' FAST-40 by overwriting someth
 
 * Writes to the VIC registers, system vectors, and/or most other runtime memory structures can almost always be repaired via a RUNSTOP/RESTORE 'soft' reset.
 
-* Any catastrophic breakage that exceeds the capacity of FAST-40 to repair itself will require a system reset to resolve. This can be achieved by power-cycling the machine, hitting a hardware reset button if available, or by using the new RESET command. **Note that memory is cleared during a system reset.**
+* Any catastrophic breakage that exceeds the capacity of FAST-40 to repair itself will require a system reset to resolve. This can be achieved by power-cycling the machine, or hitting a hardware reset button if available.
 
 ## Beta testing, and credit where it's due
 
-The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-web/bulletin/bb/index.php) actively participated in the beta-test phase. Their time and effort spent testing, sending bug reports, and assisting with crash diagnosis is greatly appreciated:
-
-* tokra
-* mathom
+These two VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-web/bulletin/bb/index.php) - **tokra** and **mathom** - actively participated in the beta-test phase. Their time and effort spent testing, sending bug reports, and assisting with crash diagnosis is greatly appreciated.
 
 ### Beta 1 (9th April 2025)
-* Initial release for testing.
+* Initial testing release.
 
 ### Beta 2 (21st April 2025)
 * Fixed a bug where entering long BASIC lines would sometimes lose the character in column 40, causing syntax errors (reported by **tokra@denial**)
@@ -186,7 +209,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Fixed a bug where RUNSTOP/RESTORE didn't reset the default text colour and character-case
 * Added a BRK handler to display CPU registers (to help debug a JiffyDOS showstopper crash reported by **mathom@denial**)
 * Added an alternate build option to do LOAD"$",8 / LIST on SHIFT/RUNSTOP
-* Tweaked the PAL/NTSC startup test to save the result for RUNSTOP/RESTORE and thereby avoid repeated re-tests
+* Tweaked the PAL/NTSC startup test to save the result and thereby avoid repeated re-tests on RUNSTOP/RESTORE 
 * Tweaked the cursor blink phase timings to help cursor visibility during rapid/repeated movement (reported by **mathom@denial**)
 
 ### Beta 2A (22nd April 2025)
@@ -208,7 +231,7 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Tweaked SHIFT/RUNSTOP keypress behaviour to better suit JiffyDOS users
 * Tweaked startup colours back to stock blue-on-white for NTSC visual clarity (prompted by **gunner@denial**)
 * Restructured memory usage so FAST-40 only needs 3K in BLK0 and leaves all 8K blocks free for BASIC
-* Refactored bitmap rendering path logic (FAST-40 draws 40x24 mode faster than the stock ROM draws 22x23)
+* Refactored bitmap rendering path logic (FAST-40 now draws 40x24 mode faster than the stock ROM draws 22x23)
 * Refactored logic in INS/DEL keypress, bitmap line-refresh, and logical line extension routines
 * Removed case-switch bitmap refresh which caused a race condition crash (reported by **boray@denial**)
 * Added ***\artifacts*** folder to the repository, containing
@@ -220,12 +243,28 @@ The following VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-w
 * Fixed a bug where the BRK handler wasn't being set properly (reported by **mike@denial**)
 
 ### Release v1.2 (29th September 2025)
-* Refactored startup logic so the RUNSTOP/RESTORE handler can do better breakage recovery
+* Refactored the startup logic so the RUNSTOP/RESTORE handler can do better breakage recovery
 * Add a SHIFT-key modifier to the scroll CTRL-delay logic to toggle a scroll-lock until released
 
 ### Release v1.3 (30th October 2025)
-* Added overwrite protection so SHIFT/RUNSTOP actions trigger LOAD ERROR if there is a BASIC program in memory
-* Removed the queued LIST and RUN commands from SHIFT/RUNSTOP actions as they were not processed correctly
+* Added a write-protect check so SHIFT/RUNSTOP actions trigger **?LOAD ERROR** if there is a BASIC program in memory
+
+### Release v1.4 (1st June 2026)
+* Fixed a bug where SHIFT/C= sometimes forgot to undraw the cursor
+* Fixed a bug where SHIFT/C= generated a visible character in quote-mode
+* Fixed a bug where SHIFT/RUNSTOP injected a rogue character when JiffyDOS is present
+* Flipped the SHIFT/RUNSTOP write-protect check to DISABLED by default
+* Refactored the bitmap address lookup tables to reduce their ROM footprint by 80%
+* Refactored the glyph rendering pipeline to increase average throughput by 5-10%
+* Refactored control-code dispatch logic and tables to improve throughput by 10%
+* Removed the RESET command which slowed BASIC execution excessively
+* Removed the self-modifying glyph merge routine (now exists as unrolled ROM logic)
+* Added hi-res pixel PLOT
+* Added character matrix 'POKE'
+* Added a fast multi-parameter SYS interface for the new BASIC-accessible features:
+    * SYS 41000       Write-protect enable/disable
+    * SYS 41003       Plot/unplot hi-res screen pixel
+    * SYS 41006       Direct-to-screen character write
 
 # Who is 8-Bit Guru?
 

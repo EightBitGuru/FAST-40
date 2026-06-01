@@ -1,18 +1,15 @@
 // FAST-40 control code output handlers
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace f40_controlcode_handlers
-.align 256		// Page aligned for table addressing
-
-dispatch_page:
-.pc = * "dispatch_page"
-.byte f40_runtime_constants.SCREEN_ROWS						// Push first routine on the page up a byte so JSR/RTS dispatch doesn't underflow
+.align 256		// Page aligned for table addressing - insert routine used for page hi-byte
 
 // Handle control code $94 (INSERT)
 insert:
 .pc = * "insert"
 {
-			jmp f40_helper_routines.insert_character		// [3]		insert character on current line
+			jsr f40_helper_routines.insert_character		// [6]		insert character on current line
+			jmp f40_character_output.charout_tidyup			// [3]		exit control code handler
 }
 
 
@@ -20,7 +17,8 @@ insert:
 delete:
 .pc = * "delete"
 {
-			jmp f40_helper_routines.delete_character		// [3]		delete character on current line
+			jsr f40_helper_routines.delete_character		// [6]		delete character on current line
+			jmp f40_character_output.charout_tidyup			// [3]		exit control code handler
 }
 
 
@@ -106,7 +104,7 @@ cursor_down:
 			isb vic20.os_zpvars.CRSRROW						// [5]		increment cursor line in .A
 			bne reset_text_pointer							// [3/2]	reset line pointers if not beyond end of screen
 			jsr f40_helper_routines.scroll_lines_up			// [6]		scroll all lines up when beyond last line
-			lda #22											// [2]	 	cursor line after scroll
+			lda #f40_runtime_constants.SCREEN_ROWS-1		// [2]	 	cursor line after scroll
 			sta vic20.os_zpvars.CRSRROW						// [3]		set cursor line
 // Fall-through into reset_text_pointer
 }
@@ -131,9 +129,10 @@ reset_colour_pointer:
 			tax												// [2]		copy colour offset to .X
 			lda f40_static_data.CROWOFFS,x					// [4]		get colour matrix row offset
 			sta vic20.os_zpvars.COLRPTRL					// [3]		set colour line pointer lo-byte
-			bit f40_runtime_memory.CRSRCOLF					// [3]		get cursor colour flag
-			bpl colexit										// [2/3]	skip colour read if clear
-			ldx #0											// [2]		read colour byte under cursor
+			bit f40_runtime_memory.CRSRCOLF					// [3]		get cursor colour flag (b7: 0=JSR path, 1=dispatch path)
+			bmi setcol										// [2/3]	dispatch path: read colour byte under cursor
+			rts												// [6]		JSR path: return to caller
+setcol:		ldx #0											// [2]		read colour byte under cursor
 // Fall-through into set_colour_byte
 }
 
@@ -151,10 +150,11 @@ set_colour_byte:
 			jsr vic20.kernal.SETCOLCD						// [6]		set colour screen code
 			txa												// [2]		move screen colour code to .A
 			sta (vic20.os_zpvars.COLRPTRL),y				// [4]		set colour RAM byte
-@colexit:	rts												// [6]
+			jmp f40_character_output.charout_tidyup			// [3]		exit control code handler
+
 readcol:	lda (vic20.os_zpvars.COLRPTRL),y				// [5]		read colour RAM byte
 			sta vic20.os_vars.CURRCOLR						// [4]		set cursor colour
-			rts												// [6]
+			jmp f40_character_output.charout_tidyup			// [3]		exit control code handler
 }
 
 
@@ -178,7 +178,10 @@ set_case:
 			stx vic20.os_zpvars.CRSRMODE					// [3]		set cursor blink mode (!0 = no flash)
 			lda #0											// [2]
 			sta vic20.os_zpvars.CRSRBLNK					// [3]		clear cursor blink phase flag
-			rts												// [6]
+			cpx #$0E										// [2]		SHIFT/C= (.X=3) or dispatch path (.X=$0E/$8E)?
+			bcc shiftcbm									// [2/3]	SHIFT/C= so return to keyboard decoder
+			jmp f40_character_output.charout_tidyup			// [3]		dispatch path so exit via character tidyup
+shiftcbm:	rts												// [6]
 }
 
 
@@ -187,11 +190,10 @@ set_case:
 shift_cbm:
 .pc = * "shift_cbm"
 {
-			txa												// [2]		move control code to .A
-			ror												// [2]		rotate b0 to Carry
+			cpx #$09										// [2]		Carry set if enable required
 			ror vic20.os_vars.SHFTMODE						// [5]		rotate Carry to shift mode lock b7
-			rts												// [6]
-}	
+			jmp f40_character_output.charout_tidyup			// [3]		exit control code handler
+}
 
 
 // Handle control codes $12/$92 (RVS ON/OFF)
@@ -200,8 +202,7 @@ rvs_mode:
 .pc = * "rvs_mode"
 {
 			txa												// [2]		move control code to .A
-			and #%10000000									// [2]		mask for b7
-			eor #%10000000									// [2]		invert it
+			eor #$92										// [2]		$12^$92=$80 (RVS ON), $92^$92=$00 (RVS OFF)
 			sta vic20.os_zpvars.RVSFLAG						// [3]		set screen reverse flag
 // Fall-through into inactive_code
 }
@@ -212,5 +213,5 @@ rvs_mode:
 inactive_code:
 .pc = * "inactive_code"
 {
-			rts												// [6]
+			jmp f40_character_output.charout_tidyup			// [3]		exit control code handler
 }

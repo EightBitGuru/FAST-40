@@ -1,5 +1,5 @@
 // VIC-20 system memory labels
-// Copyright (C) 2025 8BitGuru <the8bitguru@gmail.com>
+// Copyright (C) 2026 8BitGuru <the8bitguru@gmail.com>
 
 .filenamespace vic20
 
@@ -70,4 +70,11 @@
 .namespace screen
 {
     .label MAX_LINE_LENGTH = 88
+}
+
+
+// BASIC constants
+.namespace tokens
+{
+    .label SYS = $9E
 }
