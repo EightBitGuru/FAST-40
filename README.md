@@ -249,7 +249,7 @@ These two VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-web/b
 ### Release v1.3 (30th October 2025)
 * Added a write-protect check so SHIFT/RUNSTOP actions trigger **?LOAD ERROR** if there is a BASIC program in memory
 
-### Release v1.4 (?? June 2026)
+### Release v1.4 (1st June 2026)
 * Fixed a bug where SHIFT/C= sometimes forgot to undraw the cursor
 * Fixed a bug where SHIFT/C= generated a visible character in quote-mode
 * Fixed a bug where SHIFT/RUNSTOP injected a rogue character when JiffyDOS is present
