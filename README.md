@@ -94,7 +94,7 @@ FAST-40 adds an optional 'write-protect' mechanism which will prevent overwritin
 
 It is possible to write directly to the text screen without going through the CHAROUT vector (i.e. PRINT) in the style of the conventional memory-mapped screen. However, since FAST-40 uses a dynamically-updated lookup table to determine which line of the text buffer corresponds to each physical screen line, the text matrix is simply referenced by X/Y coordinates starting at 0,0 (top-left).
 
-The format of the SYS command is:
+The format of the SYS command to 'POKE' to the character matrix is:
 
     SYS 41006,COLUMN,ROW,CHARACTER,COLOUR
 
@@ -106,12 +106,11 @@ To set the last (bottom-right) character to the 'Z' character in red:
 
     SYS 41006,39,23,26,2
 
-
 ### Hi-Resolution Pixel Plot/Unplot
 
 Since the 40-column screen is mapped over a 160x192 bitmap, FAST-40 allows pixel plotting to that bitmap alongside the core text-presentation functionality.
 
-The format of the SYS command is:
+The format of the SYS command to 'PLOT' to the hi-res boitmap is:
 
     SYS 41003,COLUMN,ROW,COLOUR
 
@@ -149,7 +148,7 @@ Memory areas:
 
     $0003-$0004     Used if BRK debugging is enabled at build time
     $00D9-$00F1     Working storage (Zero Page)
-    $0400-$0FFF     Text buffers (3K expansion RAM area)
+    $0B92-$0FFF     Text buffers (3K expansion RAM area)
     $1000-$1FFF     Hi-res screen matrix (4K onboard RAM area)
     $9400-$95FF     Lo-res colour matrix
 
@@ -181,6 +180,8 @@ The VIC-20 has no memory protection hardware and therefore FAST-40 cannot 'lock'
 * Common programming techniques such as switching character-case by altering the value at address 36869 ($9005), adjusting cursor blink phase, frequency, or position by altering the relevant zero-page values at $CC/$CD/$CF/$D3/$D6, or otherwise directly interacting with screen editor functionality via zero-page or other addresses is discouraged. Such interactions are unlikely to yield the expected result and will probably disrupt FAST-40 operation.
 
 * Limitations in the VIC design mean there is no way to preserve the usual 1:1 relationship between individual text-mode characters and their respective colour attributes when in 40x24 mode. All text colours are supported but they operate on 2x2 blocks of characters; in other words, the colour resolution is half that of the text resolution and colour layout should therefore be planned accordingly to avoid attribute clash.
+
+* FAST-40 needs just over 1K of the 3K expansion RAM area in BLK0, and reserves addresses $0B92-$0FFF for various text buffers. Consequently 1938 bytes from $0400-$0B91 is available for user programms, though not directly available to BASIC.
 
 ### Accidental Breakage
 
@@ -254,10 +255,13 @@ These two VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-web/b
 * Fixed a bug where SHIFT/RUNSTOP injected a rogue character when JiffyDOS is present
 * Flipped the SHIFT/RUNSTOP write-protect check to DISABLED by default
 * Refactored the bitmap address lookup tables to reduce their ROM footprint by 80%
-* Refactored the bitmap rendering pipeline to increase average throughput by 5%
-* Added 'hi-res graphics mode' pixel plotting
-* Added direct-to-screen character 'POKE'
-* Added a SYS interface that will be constant across future releases
+* Refactored the glyph rendering pipeline to increase average throughput by 5-10%
+* Refactored control-code dispatch logic and tables to improve throughput by 10%
+* Removed the RESET command which slowed BASIC execution excessively
+* Removed the self-modifying glyph merge routine (now exists as unrolled ROM logic)
+* Added hi-res pixel PLOT
+* Added character matrix 'POKE'
+* Added a fast multi-parameter SYS interface for the new BASIC-accessible features:
     * SYS 41000       Write-protect enable/disable
     * SYS 41003       Plot/unplot hi-res screen pixel
     * SYS 41006       Direct-to-screen character write
