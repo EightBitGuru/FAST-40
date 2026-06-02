@@ -110,7 +110,7 @@ To set the last (bottom-right) character to the 'Z' character in red:
 
 Since the 40-column screen is mapped over a 160x192 bitmap, FAST-40 allows pixel plotting to that bitmap alongside the core text-presentation functionality.
 
-The format of the SYS command to 'PLOT' to the hi-res boitmap is:
+The format of the SYS command to 'PLOT' to the hi-res bitmap is:
 
     SYS 41003,COLUMN,ROW,COLOUR
 
@@ -134,7 +134,7 @@ FAST-40 detects the presence of JiffyDOS and alters the SHIFT/RUNSTOP commands t
 * If JiffyDOS is _not_ present, the sequence `LOAD"$",8` is executed to read the directory of the disk
 * If JiffyDOS _is_ present (featuring the preferred `@$` command to view the directory) the sequence `LOAD"*",8` is executed to load the first program on the disk
 
-A write-protect function is available which checks BASIC memory and triggers a **?LOAD ERROR** if a program is already present. This check is disabled by default (when FAST-40 starts or after a RESET) to preserve stock functionality and prevent interference with chain-loading of multi-part programs. When enabled, an explicit LOAD or NEW must be executed to overide the check.
+A write-protect function is available which checks BASIC memory and triggers a **?LOAD ERROR** if a program is already present. This check is disabled by default to preserve stock functionality and prevent interference with chain-loading of multi-part programs. When enabled, an explicit LOAD or NEW must be executed to overide the check.
 
 To enable or disable the write-protect check, issue this command either directly or in your programs:
 
@@ -181,7 +181,7 @@ The VIC-20 has no memory protection hardware and therefore FAST-40 cannot 'lock'
 
 * Limitations in the VIC design mean there is no way to preserve the usual 1:1 relationship between individual text-mode characters and their respective colour attributes when in 40x24 mode. All text colours are supported but they operate on 2x2 blocks of characters; in other words, the colour resolution is half that of the text resolution and colour layout should therefore be planned accordingly to avoid attribute clash.
 
-* FAST-40 needs just over 1K of the 3K expansion RAM area in BLK0, and reserves addresses $0B92-$0FFF for various text buffers. Consequently 1938 bytes from $0400-$0B91 is available for user programms, though not directly available to BASIC.
+* FAST-40 needs just over 1K of the 3K expansion RAM area in BLK0, and reserves addresses $0B92-$0FFF for various text buffers. Consequently 1938 bytes from $0400-$0B91 is available for user programms, though this area is not directly available to BASIC.
 
 ### Accidental Breakage
 
@@ -256,10 +256,10 @@ These two VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-web/b
 * Flipped the SHIFT/RUNSTOP write-protect check to DISABLED by default
 * Refactored the bitmap address lookup tables to reduce their ROM footprint by 80%
 * Refactored the glyph rendering pipeline to increase average throughput by 5-10%
-* Refactored control-code dispatch logic and tables to improve throughput by 10%
+* Refactored the control-code dispatch logic and tables to improve throughput by 10%
 * Removed the RESET command which slowed BASIC execution excessively
 * Removed the self-modifying glyph merge routine (now exists as unrolled ROM logic)
-* Added hi-res pixel PLOT
+* Added hi-res pixel 'PLOT'
 * Added character matrix 'POKE'
 * Added a fast multi-parameter SYS interface for the new BASIC-accessible features:
     * SYS 41000       Write-protect enable/disable
