@@ -78,8 +78,10 @@ shiftchk:	bpl notshifted									// [3/2]	not shifted if b7 is clear
 			sbc #63											// [2]		CBMed glyph if only b6
 clearb7:	and #%01111111									// [2]		clear b7 for appropriate glyph
 			bne setrvs										// [3/3]	do RVS mode
-notshifted:	jsr vic20.kernal.FLIPQUOT						// [6]		toggle quote-mode flag if character is a quote
-			and #%00111111									// [2]		clear b6 for screen code
+notshifted:	cmp #vic20.screencodes.QUOTE					// [2]		check for quote
+			bne notquote									// [3/2]	skip quote-mode toggle if not a quote
+			jsr vic20.kernal.FLIPQUOT						// [6]		toggle quote-mode flag
+notquote:	and #%00111111									// [2]		clear b6 for screen code
 setrvs:		ora vic20.os_zpvars.RVSFLAG						// [3]		set/clear reverse mode
 
 			// prepare for character render
@@ -112,9 +114,45 @@ setchar:	ldy vic20.os_zpvars.CRSRLPOS					// [3]		get cursor position on logical
 
 			// Left/right glyph merge routines
 			glyph_merge($0F)								// [198]	unrolled left-column glyph merge
-			bcs line_continuation							// [3/3]	exit to line continuation
+			bcs oddnext										// [3/3]	odd column (Carry set by the LSR above): update position
 mergrght:	glyph_merge($F0)								// [198]	unrolled right-column glyph merge
-// Fall-through into line_continuation
+
+			// even column: the next position is the odd column of the same bitmap byte, so only the mask changes
+			// (same state as line continuation + charout_tidyup would leave, without recomputing it)
+			iny												// [2]		.Y = 1 (flag value left by line continuation)
+			sty f40_runtime_memory.CRSRCOLF					// [3]		set cursor colour flag
+			inc vic20.os_zpvars.CRSRLPOS					// [5]		move cursor to next column
+			lda #%00001111									// [2]
+			sta f40_runtime_memory.CRSRMASK					// [3]		set odd-column cursor mask
+			pla												// [4]		pull .Y, .X and .A from Stack
+			tay												// [2]
+			pla												// [4]
+			tax												// [2]
+			pla												// [4]
+			rts												// [6]
+
+			// odd column: the next position is the even column of the next character cell (+192 bytes in the
+			// bitmap), unless this was the last column on the row, which takes the full line continuation path
+oddnext:	lda vic20.os_zpvars.CRSRLPOS					// [3]		get cursor column (0-39)
+			cmp #f40_runtime_constants.SCREEN_COLUMNS		// [2]		check for last column (Carry clear if not)
+			beq line_continuation							// [2/3]	last column: row wrap / line extension
+			iny												// [2]		.Y = 1 (flag value left by line continuation)
+			sty f40_runtime_memory.CRSRCOLF					// [3]		set cursor colour flag
+			inc vic20.os_zpvars.CRSRLPOS					// [5]		move cursor to next column
+			lda #%11110000									// [2]
+			sta f40_runtime_memory.CRSRMASK					// [3]		set even-column cursor mask
+			lda f40_runtime_memory.CRSRBITL					// [3]		get cursor draw address lo-byte
+			adc #[f40_runtime_constants.BITMAP_OFFSET+1]	// [2]		add 192 for next character cell (Carry is clear)
+			sta f40_runtime_memory.CRSRBITL					// [3]		set cursor draw address lo-byte
+			bcc oddexit										// [3/2]	skip hi-byte increment if no carry
+			inc f40_runtime_memory.CRSRBITH					// [5]		increment cursor draw address hi-byte
+			clc												// [2]		CHROUT must return with Carry clear (Carry set = error)
+oddexit:	pla												// [4]		pull .Y, .X and .A from Stack
+			tay												// [2]
+			pla												// [4]
+			tax												// [2]
+			pla												// [4]
+			rts												// [6]
 }
 
 
@@ -140,8 +178,7 @@ line_continuation:
 			bne charout_tidyup								// [2/3]	skip redraw if no line inserted
 			jsr f40_helper_routines.clear_text_bytes 		// [6]		clear text buffer row in .X
 			stx f40_runtime_memory.DRAWROWS					// [3]		set redraw start row
-			ldx #f40_runtime_constants.SCREEN_ROWS			// [2]		use bottom of screen for lower line limit
-			jsr f40_helper_routines.redraw_line_range		// [6]		redraw changed lines to bottom of screen
+			jsr f40_helper_routines.redraw_inserted			// [6]		redraw changed lines (a line was inserted)
 			jsr f40_controlcode_handlers.reset_text_pointer	// [6]		reset line pointers
 // Fall-through into charout_tidyup
 }
@@ -198,7 +235,7 @@ charout_tidyup:
 // Left/right bitmap glyph merge routine macro (87 bytes, 198 cycles)
 .macro glyph_merge(mask)
 {
-	.for (var i = 0; i < 7; i++)
+	.for (var i = 0; i < 7; i++)							// 			unrolled loop
 	{
 			lda (f40_runtime_memory.TEMPAL),y				// [5]		get character glyph byte
 			eor (f40_runtime_memory.CRSRBITL),y				// [5]		XOR with bitmap byte
