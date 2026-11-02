@@ -6,7 +6,7 @@ No video hardware modification is required.
 
 Earlier 40-column programs typically suffered from some combination of sluggish performance, visual glitching, or screen-editor functionality issues. FAST-40 was designed to render an artifact-free 40x24 text mode whilst faithfully reproducing standard screen-editor functionality, with performance intended to be comparable to (or better than) the native 22x23 display.
 
-Raw text output performance averages at 49% faster per character than the vanilla hardware-assisted ROM routines, and spikes to higher rates under long-line workloads.
+Raw text output performance averages at 51% faster per character than the vanilla hardware-assisted ROM routines, and spikes to higher rates under long-line workloads. The greatest throughput improvements occur during line-wrap and screen-scroll events, which are typically almost twice as fast as stock ROM code.
 
 FAST-40 works equally well on real VIC-20 hardware or under emulation - it can be attached as an auto-start cartridge in VICE, LOADed as a program (when BLK5 is configured as RAM) or burned/flashed/uploaded into a suitable EPROM or 'soft' cartridge such as the Final Expansion 3.
 
@@ -84,7 +84,7 @@ FAST-40 supports all VIC-20 character glyphs and control characters, including t
 
 ## Enhancements
 
-FAST-40 character output performance is universally better than the stock VIC-20 - it generates characters in 40x24 mode an avergae of 49% faster than the native 22x23 mode.
+FAST-40 character output performance is universally better than the stock VIC-20 - it generates characters in 40x24 mode an avergae of 51% faster than the native 22x23 mode.
 
 The stock VIC-20 applies the SHIFT/C= characterset switch to the whole screen, meaning it is not possible to display glyphs from both upper-case and lower-case charactersets at the same time. FAST-40 does not have this limitation - characters from both sets can be displayed simultaneously.
 
@@ -265,6 +265,12 @@ These two VIC-20 afficionados at [Denial](https://sleepingelephant.com/ipw-web/b
     * SYS 41000       Write-protect enable/disable
     * SYS 41003       Plot/unplot hi-res screen pixel
     * SYS 41006       Direct-to-screen character write
+
+### Release v1.5 (1st November 2026)
+* Fixed a bug where the ROM screen editor shell could race a cursor undraw and interrupt it
+* Reworked the glyph-draw hot path to avoid unnecessary work and improve renderer throughput by 16%
+* Reworked the line-redraw logic to unroll a merge loop and improve efficiency
+* Relocated some code to avoid crossing page boundaries inside loops
 
 # Who is 8-Bit Guru?
 

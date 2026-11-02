@@ -73,7 +73,7 @@ IDMSG2:
 .byte vic20.screencodes.CR
 IDMSG3:					// Must be followed by NULL (zero)
 .byte vic20.screencodes.RED
-.text @"FAST-40 1.4 (C) 2026 8BG\$0d\$0d"
+.text @"FAST-40 1.5 (C) 2026 8BG\$0d\$0d"
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
@@ -142,7 +142,17 @@ SCRROWS:				// Last screen row index
 .pc = * "SCRROWS"		// Zero-based last row (1 byte)
 .byte f40_runtime_constants.SCREEN_ROWS
 
-.fill 93,$AA
+// MATDATA below must start on a page boundary, which leaves a gap of unused bytes between here and that boundary.
+// It is reused for code, but the code is NOT in this file:
+//
+//   * The label HELPER_ROUTINES records the address where the gap starts.
+//   * The '.pc = (* + 255) & $FF00' line then moves the assembler's program counter up to the page boundary WITHOUT
+//     emitting anything, so the gap is left unwritten (it reads as $00 in the image) for now.
+//   * f40_helper_routines.asm (imported later in main.asm) sets the program counter back to HELPER_ROUTINES and
+//     assembles three small routines there (set_line_pointer, set_temp_line_pointer and find_nonspace), then restores
+//     the program counter to where it was. The bytes they use are therefore emitted by that file, not this one.
+.label HELPER_ROUTINES = *
+.pc = (* + 255) & $FF00
 
 // -------------------------------------------- PAGE ALIGNMENT --------------------------------------------
 
